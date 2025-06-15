@@ -10,6 +10,13 @@ from model import GAT
 from train import train
 from evaluate import evaluate
 
+# todo: encapsulate script style into functions.
+#  fuse two edit path files.
+#  transform back to pyg format.
+#  add save and load model
+#  test model on path graphs
+#  add visualizations
+
 
 def org_train_test():
 

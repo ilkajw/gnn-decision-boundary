@@ -8,8 +8,6 @@ import numpy as np
 
 from config import ROOT, DATASET_NAME
 
-# todo: encapsulate script style into functions. fuse two edit path files. transform back to pyg format. test model
-
 # define cost function for ged
 def node_subst_cost(u_attrs, v_attrs):
     return 0 if np.array_equal(u_attrs.get('label'), v_attrs.get('label')) else 1
