@@ -1,0 +1,10 @@
+# Configuration parameters
+
+EPOCHS = 100
+LEARNING_RATE = 0.005
+BATCH_SIZE = 32
+K_FOLDS = 10
+HIDDEN_CHANNELS = 8
+HEADS = 4
+ROOT = './data/MUTAG'
+DATASET_NAME = 'MUTAG'
