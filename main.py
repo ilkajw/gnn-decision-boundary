@@ -10,8 +10,7 @@ from model import GAT
 from train import train
 from evaluate import evaluate
 
-# todo: encapsulate script style into functions.
-#  fuse two edit path files.
+# todo: test script style into functions transform.
 #  transform back to pyg format.
 #  add save and load model
 #  test model on path graphs
@@ -63,9 +62,6 @@ def org_train_test():
         print(f"fold {fold + 1} accuracy: {acc: .4f}")
 
     print(f"\n average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
-
-
-#def edit_paths_test():
 
 
 if __name__ == "__main__":

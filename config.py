@@ -1,4 +1,4 @@
-# Configuration parameters
+# configuration parameters
 
 EPOCHS = 100
 LEARNING_RATE = 0.005

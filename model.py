@@ -3,11 +3,11 @@ import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv, global_add_pool
 
 
-# GAT model
+# GAT model using GATv2 layers
 class GAT(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, heads=4, dropout=0.5):
         super().__init__()
-        # define gatv2 layers
+        # define GATv2 layers
         self.gat1 = GATv2Conv(in_channels, hidden_channels, heads=heads)
         self.gat2 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads)
         self.gat3 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads)

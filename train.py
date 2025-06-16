@@ -1,4 +1,3 @@
-import torch
 import torch.nn.functional as F
 
 def train(model, loader, optimizer, device):
