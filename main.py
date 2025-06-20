@@ -5,21 +5,22 @@ from torch_geometric.loader import DataLoader
 from sklearn.model_selection import StratifiedKFold
 import random
 
+from torch_geometric.utils import from_networkx
+
 from config import *
 from model import GAT
 from train import train
-from evaluate import evaluate
+from evaluate import *
+from edit_path_graphs_exact import *
 
 # todo: test script style into functions transform.
-#  transform back to pyg format.
-#  add save and load model
-#  test model on path graphs
-#  add visualizations
+#  add visualizations of decision boundary
+#  work on dataset logic. loaded again and again many times
 
 
-def org_train_test():
+def train_test_mutag():
 
-    # seeds for determinism in shuffles and initializations
+    # seeds for reproducibility in shuffles and initializations
     torch.manual_seed(42)
     np.random.seed(42)
     random.seed(42)
@@ -30,12 +31,22 @@ def org_train_test():
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)  # define k folds for cross validation
     accuracies = []
 
+    # todo: only use if all models should be saved
+    # directory for saving models trained on mutag
+    # save_dir = "models"
+    # os.makedirs(save_dir, exist_ok=True)
+
+    best_acc = 0
+
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), labels)):
+
         print(f"\n--- fold {fold + 1} ---")
+
         # split dataset in train and test set
         train_dataset = dataset[train_idx.tolist()]
         test_dataset = dataset[test_idx.tolist()]
-        # define loader for mini batches
+
+        # define loaders for mini batches
         train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
@@ -47,7 +58,7 @@ def org_train_test():
             dropout=DROPOUT
         ).to(device)
 
-        # define adam optimizer for parameter update
+        # adam optimizer for parameter update
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
         # train model over epochs
@@ -57,12 +68,37 @@ def org_train_test():
                 print(f"epoch {epoch: 03d} | loss: {loss: .4f}")
 
         # evaluate trained model
-        acc = evaluate(model, test_loader, device)
+        acc = evaluate_accuracy(model, test_loader, device)
         accuracies.append(acc)
         print(f"fold {fold + 1} accuracy: {acc: .4f}")
+
+        # track best model
+        if acc < best_acc:
+            print(f"\n DEBUG: new best is model trained over fold {fold+1}")
+            best_model = model
+
+    # save best model
+    os.makedirs("model", exist_ok=True)
+    torch.save(best_model.state_dict(), "model/model.pt")
 
     print(f"\n average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
 
 
 if __name__ == "__main__":
-    org_train_test()
+
+    # org_train_test()
+
+    dataset = TUDataset(root=ROOT, name=DATASET_NAME)
+
+    graphs = pyg_to_networkx(dataset)
+
+    edit_paths_graphs(graphs,
+                      node_subst_cost,
+                      edge_subst_cost,
+                      node_ins_cost,
+                      edge_ins_cost,
+                      node_del_cost,
+                      edge_del_cost)
+
+    # todo: read in graphs, load into saved model
+

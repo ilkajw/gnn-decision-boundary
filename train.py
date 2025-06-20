@@ -1,4 +1,5 @@
-import torch.nn.functional as F
+import torch.nn.functional as func
+
 
 def train(model, loader, optimizer, device):
     model.train()
@@ -8,7 +9,7 @@ def train(model, loader, optimizer, device):
         data = data.to(device)
         optimizer.zero_grad()  # reset gradients
         out = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, results in [batch_size]
-        loss = F.binary_cross_entropy_with_logits(out, data.y.float())  # take error
+        loss = func.binary_cross_entropy_with_logits(out, data.y.float())  # take error
         loss.backward()  # take gradients per backpropagation
         optimizer.step()  # update params
         total_loss += loss.item()  # accumulate loss over batches
