@@ -33,7 +33,9 @@ def train_test_mutag():
     # save_dir = "models"
     # os.makedirs(save_dir, exist_ok=True)
 
+    # to track for saving only the best performing model
     best_acc = 0
+    best_model = None
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), labels)):
 
@@ -78,6 +80,7 @@ def train_test_mutag():
     # todo: potentially change to saving all models earlier
     # save best model
     os.makedirs("model", exist_ok=True)
+    best_model.eval()
     torch.save(best_model.state_dict(), "model/model.pt")
 
     print(f"\n average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")

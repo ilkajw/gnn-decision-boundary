@@ -23,7 +23,7 @@ def edit_path_predictions():
         heads=HEADS,
         dropout=DROPOUT
     ).to(device)
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path), map_location=device)
     model.eval()
 
     for i, j in combinations(range(len(dataset)), 2):
@@ -49,11 +49,11 @@ def edit_path_predictions():
                 pred = (probs > 0.5).long()
                 preds.append(pred.cpu().item())
 
-                # save results per path
-                save_path = os.path.join(save_dir, f"predictions_g{i}_to_g{j}.pt")
-                with open(save_path, "wb") as f:
-                    pickle.dump(preds, f)
-                print(f"DEBUG: saved predictions for path {i} → {j} to {save_path}")
+        # save results per path
+        save_path = os.path.join(save_dir, f"predictions_g{i}_to_g{j}.pt")
+        with open(save_path, "wb") as f:
+            pickle.dump(preds, f)
+        print(f"DEBUG: saved predictions for path {i} → {j} to {save_path}")
 
 
 def mutag_predictions():

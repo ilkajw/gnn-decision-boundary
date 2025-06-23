@@ -122,7 +122,7 @@ def apply_edit_operations(g1, g2, path, graphs="graphs"):
                 g_step.remove_node(u)
         # insertion
         elif u is None and v is not None:
-            new_node = f'v{v}'
+            new_node = max(g_step.nodes) + 1 if len(g_step.nodes) > 0 else 0  # todo: check if this works well as integer, else string?
             g_step.add_node(new_node)
             g_step.nodes[new_node]['status'] = 'inserted'
             if 'label' in g2.nodes[v]:
@@ -142,7 +142,7 @@ def apply_edit_operations(g1, g2, path, graphs="graphs"):
     output_dir = "data/edit_path_graphs"
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, f"{graphs}_sequence.pt")
-    torch.save(pyg_sequence, file_path)
+    torch.save(pyg_sequence, file_path)  # todo: potentially save ged cost as well
 
     return
 
