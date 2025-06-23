@@ -11,13 +11,14 @@ class GAT(torch.nn.Module):
         self.gat1 = GATv2Conv(in_channels, hidden_channels, heads=heads)
         self.gat2 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads)
         self.gat3 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads)
-        self.gat4 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads)
+        self.gat4 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads, concat=False)
         # todo: single output for binary classification? or two classes for 0 / 1 class?
-        self.lin = torch.nn.Linear(hidden_channels * heads, 1)
+        self.lin = torch.nn.Linear(hidden_channels, 1)
         self.dropout = dropout
 
     def forward(self, x, edge_index, batch):
         # gatv2 layers with relu activation
+        # todo: use elu like in original paper
         x = F.relu(self.gat1(x, edge_index))
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = F.relu(self.gat2(x, edge_index))

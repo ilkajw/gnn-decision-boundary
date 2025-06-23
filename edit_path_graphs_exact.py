@@ -5,16 +5,19 @@ import numpy as np
 import networkx as nx
 import copy
 import os
-import pickle
 
 
 # define cost function for ged
 def node_subst_cost(u_attrs, v_attrs):
-    return 0 if np.array_equal(u_attrs.get('label'), v_attrs.get('label')) else 1
+    v1 = np.array(u_attrs.get('label'))
+    v2 = np.array(v_attrs.get('label'))
+    return np.linalg.norm(v1 - v2)
 
 
 def edge_subst_cost(e1_attrs, e2_attrs):
-    return 0 if np.array_equal(e1_attrs.get('label'), e2_attrs.get('label')) else 1
+    v1 = np.array(e1_attrs.get('label'))
+    v2 = np.array(e2_attrs.get('label'))
+    return np.linalg.norm(v1 - v2)
 
 
 node_del_cost = lambda attrs: 1
@@ -23,24 +26,22 @@ edge_del_cost = lambda attrs: 1
 edge_ins_cost = lambda attrs: 1
 
 
-# convert each pyg data object from MUTAG to networkx including labels
+# convert each pyg data object from MUTAG to networkx with node, edge labels
 def pyg_to_networkx(dataset):
 
     graphs = []
     for data in dataset:
         g_nx = to_networkx(data, to_undirected=True, node_attrs=['x'], edge_attrs=['edge_attr'])
 
-        # todo: try if comparisons with label vectors works fast enough, otherwise flatten
-        # flatten attributes to label per one hot encoding for better comparison in ged computation
-        #for node in g_nx.nodes():
-        #    x = g_nx.nodes[node].get('x')
-        #    if x is not None:
-        #        g_nx.nodes[node]['label'] = int(x.argmax().item())  # one-hot to label
+        for node in g_nx.nodes():
+            x = g_nx.nodes[node].get('x')
+            if x is not None:
+                g_nx.nodes[node]['label'] = tuple(x)  # label for ged function
 
-        #for u, v, attrs in g_nx.edges(data=True):
-        #    ea = attrs.get('edge_attr')
-        #    if ea is not None:
-        #        g_nx.edges[u, v]['label'] = int(ea.argmax().item())  # one-hot to label
+        for u, v, attrs in g_nx.edges(data=True):
+            edge_attr = attrs.get('edge_attr')
+            if edge_attr is not None:
+                g_nx.edges[u, v]['label'] = tuple(edge_attr)  # label for ged function
 
         graphs.append(g_nx)
         print(f"DEBUG: converted {len(graphs)}/{len(dataset)} graphs to networkx format.")
@@ -74,7 +75,7 @@ def edit_paths_graphs(graphs,
             )
 
             # save costs and edit operations to array
-            # todo: needed? see above
+            # todo: needed?
             # all_edit_paths[(i, j)] = {
             #    'cost': cost,
             #    'path': path

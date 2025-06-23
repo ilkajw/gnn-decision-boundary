@@ -26,5 +26,4 @@ def predict(model, loader, device):
             preds = out.argmax(dim=1)
             all_preds.append(preds.cpu())
             all_labels.append(data.y.cpu())
-    # todo: need to be saved somewhere for later
     return torch.cat(all_preds), torch.cat(all_labels)

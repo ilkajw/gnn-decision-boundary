@@ -3,6 +3,7 @@ from torch_geometric.loader import DataLoader
 from config import *
 from model import GAT
 from edit_path_graphs_exact import *
+import pickle
 
 
 def edit_path_predictions():
@@ -29,11 +30,10 @@ def edit_path_predictions():
 
         file_path = os.path.join(input_dir, f"g{i}_to_g{j}_sequence.pt")
         if not os.path.exists(file_path):
-            print(f"WARNING: Missing file {file_path}, skipping.")
+            print(f"warning: missing file {file_path}, skipping.")
             continue
 
         # load edit paths graphs from file
-        # todo: need to reformat?
         graphs = torch.load(file_path)
         loader = DataLoader(graphs, batch_size=1, shuffle=False)  # batch_size=1 to keep index tracking
 
@@ -44,14 +44,16 @@ def edit_path_predictions():
                 # predict
                 data = data.to(device)
                 out = model(data.x, data.edge_index, data.batch)
-                pred = out.argmax(dim=1)
+                # todo: potentially adjust if two out nodes
+                probs = torch.sigmoid(out.view(-1))
+                pred = (probs > 0.5).long()
                 preds.append(pred.cpu().item())
 
                 # save results per path
                 save_path = os.path.join(save_dir, f"predictions_g{i}_to_g{j}.pt")
                 with open(save_path, "wb") as f:
                     pickle.dump(preds, f)
-                print(f"DEBUG: Saved predictions for path {i} → {j} to {save_path}")
+                print(f"DEBUG: saved predictions for path {i} → {j} to {save_path}")
 
 
 def mutag_predictions():
@@ -63,13 +65,12 @@ def mutag_predictions():
 
     # re-instantiate model
     model = GAT(
-        in_channels=dataset.num_features,  # or known feature size
+        in_channels=dataset.num_features,
         hidden_channels=HIDDEN_CHANNELS,
         heads=HEADS,
         dropout=DROPOUT
     ).to(device)
     model.load_state_dict(torch.load("model/model.pt"))
-    model.eval()
     model.eval()
 
     predictions = {}
@@ -77,7 +78,9 @@ def mutag_predictions():
     for idx, data in enumerate(loader):
         data = data.to(device)
         out = model(data)
-        pred = out.argmax(dim=1).item()
+        # todo: potentially adjust if two out nodes
+        probs = torch.sigmoid(out.view(-1))
+        pred = (probs > 0.5).long()
         true = data.y.item()
         correct = int(pred == true)
 

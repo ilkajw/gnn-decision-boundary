@@ -8,6 +8,7 @@ def train(model, loader, optimizer, device):
     for data in loader:
         data = data.to(device)
         optimizer.zero_grad()  # reset gradients
+        # todo: alright?
         out = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, results in [batch_size]
         loss = func.binary_cross_entropy_with_logits(out, data.y.float())  # take error
         loss.backward()  # take gradients per backpropagation

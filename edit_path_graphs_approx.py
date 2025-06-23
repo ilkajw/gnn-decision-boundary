@@ -7,11 +7,14 @@ from itertools import combinations
 from torch_geometric.utils import to_networkx
 from torch_geometric.datasets import TUDataset
 
+
+# todo: this does not work yet as gedlibpy not compatible on windows in its org form
 def extract_labels(G):
     for u, attrs in G.nodes(data=True):
         attrs['label'] = int(np.argmax(attrs['x']))
     for u, v, attrs in G.edges(data=True):
         attrs['label'] = int(np.argmax(attrs['edge_attr']))
+
 
 def apply_node_mapping(g1, g2, node_map):
     current_graph = g1.copy()
@@ -40,6 +43,7 @@ def apply_node_mapping(g1, g2, node_map):
         step_counter += 1
 
     return graph_sequence
+
 
 def run_batch_ged_and_save(dataset, output_dir="gedlib_output"):
     os.makedirs(output_dir, exist_ok=True)

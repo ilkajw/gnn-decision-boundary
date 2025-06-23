@@ -1,11 +1,7 @@
-import torch
-import numpy as np
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 from sklearn.model_selection import StratifiedKFold
 import random
-
-from torch_geometric.utils import from_networkx
 
 from config import *
 from model import GAT
@@ -13,9 +9,10 @@ from train import train
 from evaluate import *
 from edit_path_graphs_exact import *
 
-# todo: test script style into functions transform.
+# todo: less test script style, more function building blocks?
+#  add logic to evaluate prediction on parameters to be defined (eg. changes per edit distance)
 #  add visualizations of decision boundary
-#  work on dataset logic. loaded again and again many times
+#  work on dataset logic. loaded again many times
 
 
 def train_test_mutag():
@@ -73,10 +70,12 @@ def train_test_mutag():
         print(f"fold {fold + 1} accuracy: {acc: .4f}")
 
         # track best model
-        if acc < best_acc:
+        if acc > best_acc:
             print(f"\n DEBUG: new best is model trained over fold {fold+1}")
+            best_acc = acc
             best_model = model
 
+    # todo: potentially change to saving all models earlier
     # save best model
     os.makedirs("model", exist_ok=True)
     torch.save(best_model.state_dict(), "model/model.pt")
@@ -86,19 +85,17 @@ def train_test_mutag():
 
 if __name__ == "__main__":
 
-    # org_train_test()
+    train_test_mutag()
 
-    dataset = TUDataset(root=ROOT, name=DATASET_NAME)
+    #dataset = TUDataset(root=ROOT, name=DATASET_NAME)
 
-    graphs = pyg_to_networkx(dataset)
+    #graphs = pyg_to_networkx(dataset)
 
-    edit_paths_graphs(graphs,
-                      node_subst_cost,
-                      edge_subst_cost,
-                      node_ins_cost,
-                      edge_ins_cost,
-                      node_del_cost,
-                      edge_del_cost)
-
-    # todo: read in graphs, load into saved model
+    #edit_paths_graphs(graphs,
+    #                  node_subst_cost,
+    #                  edge_subst_cost,
+    #                  node_ins_cost,
+    #                  edge_ins_cost,
+    #                  node_del_cost,
+    #                  edge_del_cost)
 
