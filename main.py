@@ -1,3 +1,5 @@
+import json
+
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 from sklearn.model_selection import StratifiedKFold
@@ -7,7 +9,7 @@ from config import *
 from model import GAT
 from train import train
 from evaluate import *
-from edit_path_graphs_exact import *
+from edit_path_graphs import *
 
 # todo: less test script style, more function building blocks?
 #  add logic to evaluate prediction on parameters to be defined (eg. changes per edit distance)
@@ -15,27 +17,26 @@ from edit_path_graphs_exact import *
 #  work on dataset logic. loaded again many times
 
 
-def train_test_mutag():
+def train_kcv_mutag():
 
-    # seeds for reproducibility in shuffles and initializations
+    """Trains a GAT network with k-fold cross validation on MUTAG. Saves the best performing model over all folds and
+    epochs. Logs the best model's training accuracy, training and test split, as well as the test accuracies and
+    standard deviation over all folds."""
+
     torch.manual_seed(42)
     np.random.seed(42)
     random.seed(42)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset = TUDataset(root=ROOT, name=DATASET_NAME)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     labels = [data.y.item() for data in dataset]  # extract ground truth labels from data set
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)  # define k folds for cross validation
     accuracies = []
 
-    # todo: only use if all models should be saved
-    # directory for saving models trained on mutag
-    # save_dir = "models"
-    # os.makedirs(save_dir, exist_ok=True)
-
     # to track for saving only the best performing model
     best_acc = 0
-    best_model = None
+    best_model_state = None
+    best_split = None
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), labels)):
 
@@ -45,7 +46,6 @@ def train_test_mutag():
         train_dataset = dataset[train_idx.tolist()]
         test_dataset = dataset[test_idx.tolist()]
 
-        # define loaders for mini batches
         train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
@@ -61,34 +61,60 @@ def train_test_mutag():
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
         # train model over epochs
-        for epoch in range(1, EPOCHS + 1):
-            loss = train(model, train_loader, optimizer, device)
-            if epoch % 10 == 0:
-                print(f"epoch {epoch: 03d} | loss: {loss: .4f}")
+        epoch_test_accuracies = []
 
-        # evaluate trained model
-        acc = evaluate_accuracy(model, test_loader, device)
-        accuracies.append(acc)
+        for epoch in range(1, EPOCHS + 1):
+            # train and evaluate training step
+            loss = train(model, train_loader, optimizer, device)
+            acc = evaluate_accuracy(model, test_loader, device)
+            epoch_test_accuracies.append(acc)
+            if epoch % 10 == 0:
+                print(f"epoch {epoch: 03d} | loss: {loss: .4f} | epoch {epoch: 03d} | acc: {acc: .4f}")
+
+            # track best model over folds and epochs
+            if acc > best_acc:
+                print(f"\n DEBUG: new best is model trained over fold {fold + 1} in epoch {epoch} with acc {acc: .4f}")
+                best_acc = acc
+                best_model_state = model.state_dict()
+                best_fold = fold+1
+                best_epoch = epoch
+                best_split = {'train_idx': train_idx.tolist(),
+                              'test_idx': test_idx.tolist(),
+                              'fold': fold + 1,
+                              'epoch': epoch}
+
+        # evaluate model trained over full fold
+        final_acc = evaluate_accuracy(model, test_loader, device)
+        accuracies.append(final_acc)
         print(f"fold {fold + 1} accuracy: {acc: .4f}")
 
-        # track best model
-        if acc > best_acc:
-            print(f"\n DEBUG: new best is model trained over fold {fold+1}")
-            best_acc = acc
-            best_model = model
+    mean_acc = np.mean(accuracies)
+    std_acc = np.std(accuracies)
 
-    # todo: potentially change to saving all models earlier
     # save best model
     os.makedirs("model", exist_ok=True)
-    best_model.eval()
-    torch.save(best_model.state_dict(), "model/model.pt")
+    torch.save(best_model_state, "model/model.pt")
+
+    # log training, test splits
+    with open("model/best_split.json", "wb") as f:
+        json.dump(best_split, f, indent=2)
+
+    # log k-cv training statistics
+    log = {
+        "fold_accuracies": [float(a) for a in accuracies],
+        "mean_accuracy": mean_acc,
+        "std_accuracy": std_acc,
+        "best_model": best_split
+    }
+    with open("model/training_log_mutag.json", "w") as f:
+        json.dump(log, f, indent=2)
 
     print(f"\n average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
 
 
 if __name__ == "__main__":
 
-    train_test_mutag()
+    train_kcv_mutag()
 
     #dataset = TUDataset(root=ROOT, name=DATASET_NAME)
 

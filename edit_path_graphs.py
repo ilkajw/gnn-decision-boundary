@@ -56,6 +56,8 @@ def edit_paths_graphs(graphs,
                     edge_ins_cost,
                     node_del_cost,
                     edge_del_cost):
+    """ Calculates the graph edit distance between all pairwise combinations in 'graphs'. Constructs the edit path
+    graphs from the path. Saves all graphs from one path as pyg objects to .pt file."""
 
     print("DEBUG: computing ged and edit paths for all graph pairs...")
 
@@ -83,19 +85,19 @@ def edit_paths_graphs(graphs,
             print(f"DEBUG: computed ged for graphs {i} and {j}: cost={cost}, steps={len(path)}. Applying edit ops...")
 
             # construct graphs from edit operations and save to file
-            apply_edit_operations(g1, g2, path, graphs=f"g{i}_to_g{j}")
+            construct_graphs_from_path(g1, g2, path, pair=f"g{i}_to_g{j}")
 
         except Exception as e:
             print(f"DEBUG: failed to compute ged between graphs {i} and {j}: {e}")
 
 
-def apply_edit_operations(g1, g2, path, graphs="graphs"):
+def construct_graphs_from_path(g1, g2, path, pair="graphs", connected_only=False):
+
+    """Constructs networkx graphs from path between g1, g2.
+    Converts them to pyg format and saves to a .pt file."""
 
     # copy of original g1 for changes
     current_graph = copy.deepcopy(g1)
-
-    # add attributes on changes for later readability/debug
-    nx.set_node_attributes(current_graph, 'unchanged', 'status')
 
     # counter which equals ged
     step_counter = 1
@@ -104,27 +106,23 @@ def apply_edit_operations(g1, g2, path, graphs="graphs"):
     graph_sequence = []
 
     for match in path:
-        # new snapshot of current graph for changes to be made
-        g_step = copy.deepcopy(current_graph)
-
-        # nodes considered at this step
+        g_step = copy.deepcopy(current_graph)  # snapshot of current graph for changes to be made
         u, v = match
 
         # substitution
         if u is not None and v is not None:
-            g_step.nodes[u]['status'] = f'substituted_to_{v}'
-            # substitute label
             if 'label' in g2.nodes[v]:
                 g_step.nodes[u]['label'] = g2.nodes[v]['label']
+
         # deletion
         elif u is not None and v is None:
             if u in g_step:
                 g_step.remove_node(u)
+
         # insertion
         elif u is None and v is not None:
             new_node = max(g_step.nodes) + 1 if len(g_step.nodes) > 0 else 0  # todo: check if this works well as integer, else string?
             g_step.add_node(new_node)
-            g_step.nodes[new_node]['status'] = 'inserted'
             if 'label' in g2.nodes[v]:
                 g_step.nodes[new_node]['label'] = g2.nodes[v]['label']
 
@@ -135,16 +133,20 @@ def apply_edit_operations(g1, g2, path, graphs="graphs"):
         current_graph = g_step
         step_counter += 1
 
-    # convert pickle to pyg format
-    pyg_sequence = [from_networkx(g) for g in graph_sequence]
+    if connected_only:
+        graph_sequence = [graph for graph in graph_sequence if nx.is_connected(graph)]
+
+    # convert networkx to pyg format
+    pyg_sequence = [from_networkx(g) for g in graph_sequence]  # todo: check if edit_step=step_counter is converted too
 
     # save all edit path graphs between g1 , g2 in one file
     output_dir = "data/edit_path_graphs"
     os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, f"{graphs}_sequence.pt")
-    torch.save(pyg_sequence, file_path)  # todo: potentially save ged cost as well
+    file_path = os.path.join(output_dir, f"{pair}_sequence.pt")
+    torch.save(pyg_sequence, file_path)
 
     return
+
 
 
 
