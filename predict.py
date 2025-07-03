@@ -6,6 +6,7 @@ from edit_path_graphs_old import *
 import pickle
 
 
+# todo: change the workings of this to work more similarly to ep predictions?
 def mutag_predictions():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -104,7 +105,7 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
             # add prediction and probability to graph metadata
             graph.prediction = pred
             graph.probability = prob
-            
+
             updated_sequence.append(graph)
 
             # dict with all preds
