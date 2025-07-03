@@ -1,17 +1,21 @@
 import json
 import os
 from itertools import combinations
+
+import networkx as nx
+
 from model import GAT
-from config import ROOT, DATASET_NAME, HIDDEN_CHANNELS, HEADS, DROPOUT
-from torch_geometric.datasets import TUDataset
 import torch
 from config import *
 
 
+
+
+
 def correct_class_idxs():
 
-    """Returns the indices of all graphs classified correctly by our GAT model, grouped by all correct
-    classification and per-class classifications."""
+    """Returns the indices of all MUTAG graphs classified correctly by our GAT model, grouped by all correct
+    classifications and correct per-class classifications."""
 
     with open("data/predictions/mutag_predictions.json") as f:
         predictions = json.load(f)
@@ -30,50 +34,47 @@ def correct_class_idxs():
     return correct_idxs, correct_class_0_idxs, correct_class_1_idxs
 
 
-def valid_idxs():
+def idx_set_same_class():
+
+    """Creates a lists of MUTAG graph index pairs being from the same class."""
 
     all, class0, class1 = correct_class_idxs()
 
     # generate all (i, j) pairs from class 0 and class 1
     same = list(combinations(class0, 2)) + list(combinations(class1, 2))
 
+    return same,
+
+def idx_set_diff_class():
+
+    """Creates a lists of all MUTAG graph index pairs being from different classes."""
+
+    all, class0, class1 = correct_class_idxs()
+
     # generate all (i, j) pairs where one is from class 0 and one from class 1
     diff = [(i, j) for i in class0 for j in class1]  # todo: other way necessary?
 
-    return same, diff
+    return diff
 
 
-def graphs_by_edit_step(graph_idx_pairs, step):
-    collected_graphs = []
 
-    for i, j in graph_idx_pairs:
-        file_path = os.path.join("data/edit_path_graphs", f"g{i}_to_g{j}_sequence.pt")
-
-        if not os.path.exists(file_path):
-            print(f"Warning: {file_path} not found.")
-            continue
-
-        graph_sequence = torch.load(file_path)
-
-        if step - 1 < len(graph_sequence):  # step is 1-based
-            collected_graphs.append(graph_sequence[step - 1], i, j)
-        else:
-            print(f"Step {step} exceeds length of sequence in g{i}_to_g{j}")
-
-    return collected_graphs
 
 # todo: check if really want to hand graph pairs to function or if not calc for all graphs, then save data
 #  with result and filter later on
-# todo: but keep indexes for correctly classified maybe!
-def predict_leg_edit_graphs(graph_pairs):
+# todo: but keep indexes to insert correctly classified maybe!
+
+# todo: has to change due to florians implementation. check metadata of florians impl. potentially add method
+#  "add_metadata" for things like train/test split
+def predict_log_edit_graphs(graph_pairs):
+
+    # todo: why graph pairs??
 
     model_path = "model/model.pt"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # load model training and test split for
     with open("model/best_split.json", "r") as f:
         best_split = json.load(f)
-    train_idxs = set(best_split["train_idx"])
-    test_idxs = set(best_split["test_idx"])
 
     # load trained model
     model = GAT(

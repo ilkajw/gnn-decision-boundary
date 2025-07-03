@@ -9,7 +9,7 @@ from config import *
 from model import GAT
 from train import train
 from evaluate import *
-from edit_path_graphs import *
+from edit_path_graphs_old import *
 
 # todo: less test script style, more function building blocks?
 #  add logic to evaluate prediction on parameters to be defined (eg. changes per edit distance)
