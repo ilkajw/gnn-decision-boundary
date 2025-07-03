@@ -39,6 +39,7 @@ def idx_set_same_class():
 
     return same
 
+
 def idx_set_diff_class():
 
     """Creates a lists of all MUTAG graph index pairs being from different classes."""
@@ -51,11 +52,9 @@ def idx_set_diff_class():
     return diff
 
 
-
-
 # todo: check if really want to hand graph pairs to function or if not calc for all graphs, then save data
 #  with result and filter later on
-# todo: but keep indexes to insert correctly classified maybe!
+# todo: but keep indexes arg to insert correctly classified maybe!
 
 # todo: has to change due to florians implementation. check metadata of florians impl. potentially add method
 #  "add_metadata" for things like train/test split

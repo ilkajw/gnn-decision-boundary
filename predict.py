@@ -1,3 +1,5 @@
+import json
+
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 from config import *
@@ -119,7 +121,52 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
                 "probability": prob
             })
 
+        # todo: rethink if saving to
         torch.save(updated_sequence, os.path.join(output_dir, filename))
 
     return predictions
 
+
+def add_metadata_to_preds(pred_dict, base_pred_path, split_path, output_path):
+    """
+    Enriches dictionary entries of edit path predictions with additional metadata:
+    - true class labels of source and target
+    - whether source/target are in training split
+    - whether source/target were classified correctly
+
+    Args:
+        :param split_path: Path to saved train, test split
+        :param base_pred_path: Path to original MUTAG predictions file
+        :param pred_dict: Predictions (list): List of prediction dicts on edit path graphs
+        :param output_path: Path to file where enriched dictionary is saved
+
+    Returns:
+        list: Enriched prediction dictionaries
+    """
+
+    # load train, test split
+    with open(split_path, "r") as f:
+        split = json.load(f)
+
+    # load predictions on org mutag graphs
+    with open(base_pred_path, "r") as f:
+        base_preds = json.load(f)
+
+    # add train vs. test split, classes of source & target, correct classification of source & train to metadata
+    for entry in pred_dict:
+
+        i = str(entry["source_idx"])
+        j = str(entry["target_idx"])
+
+        entry["source_in_train"] = int(i) in split["train_idx"]
+        entry["target_in_train"] = int(j) in split["train_idx"]
+
+        entry["correct_source"] = base_preds[i]["correct"]
+        entry["correct_target"] = base_preds[j]["correct"]
+
+        entry["source_class"] = base_preds[i]["true_label"]
+        entry["target_class"] = base_preds[j]["true_label"]
+
+    with open(output_path, "w") as f:
+        json.dump(pred_dict, f, indent=2)
+    print(f"DEBUG: saved enriched predictions to {output_path}")
