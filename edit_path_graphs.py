@@ -7,11 +7,11 @@ from torch_geometric.utils import from_networkx
 
 
 
-def generate_and_save_all_graphs(db_name="MUTAG",
-                                 seed=42,
-                                 data_dir="data",
-                                 output_dir="data/pyg_edit_path_graphs",
-                                 fully_connected=True):
+def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
+                                           seed=42,
+                                           data_dir="data",
+                                           output_dir="data/pyg_edit_path_graphs",
+                                           fully_connected=True):
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.

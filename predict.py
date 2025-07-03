@@ -8,7 +8,7 @@ from edit_path_graphs_old import *
 import pickle
 
 
-def mutag_predictions():
+def mutag_predictions(output_path="data/predictions/mutag_predictions.json"):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # load dataset
@@ -50,8 +50,7 @@ def mutag_predictions():
                 correct_class_1[idx] = predictions[idx]
 
     os.makedirs("data/predictions", exist_ok=True)
-
-    with open("data/predictions/mutag_predictions.json", "wb") as f:
+    with open(output_path, "wb") as f:
         pickle.dump(predictions, f)
 
 

@@ -6,10 +6,12 @@ from sklearn.model_selection import StratifiedKFold
 import random
 
 from config import *
+from edit_path_graphs import generate_and_save_all_edit_path_graphs
 from model import GAT
 from train import train
 from evaluate import *
-from edit_path_graphs_old import *
+from predict import *
+from edit_path_graphs import *
 
 # todo: less test script style, more function building blocks?
 #  add logic to evaluate prediction on parameters to be defined (eg. changes per edit distance)
@@ -17,7 +19,7 @@ from edit_path_graphs_old import *
 #  work on dataset logic. loaded again many times
 
 
-def train_and_choose_model_(dataset):
+def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname):
 
     """Trains a GAT network with k-fold cross validation on MUTAG. Saves the best performing model over all folds and
     epochs. Logs the best model's training accuracy, training and test split, as well as the test accuracies and
@@ -92,11 +94,13 @@ def train_and_choose_model_(dataset):
     std_acc = np.std(accuracies)
 
     # save best model
-    os.makedirs("model", exist_ok=True)
-    torch.save(best_model_state, "model/model.pt")
+    os.makedirs(output_dir, exist_ok=True)
+    model_path=f"{output_dir}/{model_fname}"
+    torch.save(best_model_state, model_path)
 
     # log training, test splits
-    with open("model/best_split.json", "wb") as f:
+    split_path = f"{output_dir}/{split_fname}"
+    with open(split_path, "wb") as f:
         json.dump(best_split, f, indent=2)
 
     # log k-cv training statistics
@@ -106,7 +110,8 @@ def train_and_choose_model_(dataset):
         "std_accuracy": std_acc,
         "best_model": best_split
     }
-    with open("model/training_log_mutag.json", "w") as f:
+    log_path = f"{output_dir}/{log_fname}"
+    with open(log_path, "w") as f:
         json.dump(log, f, indent=2)
 
     print(f"\n average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
@@ -116,10 +121,29 @@ if __name__ == "__main__":
 
     dataset_name = 'MUTAG'
     dataset = TUDataset(root=ROOT, name=dataset_name)
-    train_and_choose_model_(dataset=dataset)
+    train_and_choose_model(dataset=dataset,
+                           output_dir="model",
+                           model_fname="model.pt",
+                           split_fname="best_split.json",
+                           log_fname="log.json")
 
-    N = len(dataset)
-    missing_keys = [(i, j) for i in range(N) for j in range(i + 1, N)]
+    mutag_predictions(output_path="data/predictions/mutag_predictions.json")
+
+    generate_and_save_all_edit_path_graphs(db_name="MUTAG",
+                                           seed=42,
+                                           data_dir="data",
+                                           output_dir="data/pyg_edit_path_graphs",
+                                           fully_connected=True)
+
+    add_metadata_to_edit_path_predictions(pred_dict="data/pyg_edit_path_graphs",
+                                          base_pred_path="data/predictions/mutag_predictions.json",
+                                          split_path=f"model/best_split.json",
+                                          output_path="data/predictions/edit_paths.json")
+
+
+
+
+
 
 
 
