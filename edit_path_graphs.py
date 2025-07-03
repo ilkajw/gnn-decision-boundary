@@ -1,99 +1,62 @@
+import os
+
 import networkx as nx
+import torch
 from torch_geometric.utils import from_networkx
 
+# todo: check ob alle pfade generiert wurden, oder nur einzelne
 
-def generate_all_edit_path_graph_sequences(db_name="MUTAG", seed=42):
+def generate_and_save_all_graphs(db_name="MUTAG",
+                                 seed=42,
+                                 data_dir="data",
+                                 output_dir="data/pyg_edit_path_graphs",
+                                 fully_connected=True):
     """
-    Generates all intermediate NetworkX graphs from stored edit paths.
+    Generates and saves all intermediate PyG graphs from stored edit paths.
+    Optionally filters only fully connected graphs.
 
-    Returns:
-        A dict of {(i, j, iteration): [graph_0, graph_1, ..., graph_k]} for all pairs and iterations.
+    Args:
+        db_name (str): Dataset name.
+        seed (int): Random seed for edit path generation.
+        data_dir (str): Directory where edit paths are stored.
+        output_dir (str): Where to save the PyG graphs.
+        fully_connected (bool): If True, filter only connected graphs.
     """
 
-    # todo: import repo
-    graph_dataset = GraphDataset(root="data", name=db_name, from_existing_data="TUDataset")
-    graph_dataset.create_nx_graphs()
-    nx_graphs = graph_dataset.nx_graphs
+    # load nx graphs from original dataset
+    dataset = GraphDataset(root=data_dir, name=db_name, from_existing_data="TUDataset")
+    dataset.create_nx_graphs()
+    nx_graphs = dataset.nx_graphs
 
-    edit_paths = load_edit_paths_from_file(db_name=db_name, file_path="data")
+    # load edit paths
+    edit_paths = load_edit_paths_from_file(db_name=db_name, file_path=data_dir)
     if edit_paths is None:
-        raise RuntimeError("Edit paths file missing or unreadable.")
+        raise RuntimeError("Edit path file not found. Run generation first.")
 
-    sequence_dict = dict()
+    os.makedirs(output_dir, exist_ok=True)
+
     for (i, j), paths in edit_paths.items():
         for ep in paths:
             sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
-            key = (i, j, ep.iteration)
-            sequence_dict[key] = sequence
-    return sequence_dict
 
+            if fully_connected:
+                sequence = [g for g in sequence if nx.is_connected(g)]
 
-def add_edit_steps_to_sequence_graphs(sequence_dict):
-    """
-    Adds 'edit_step' metadata to each graph in each sequence within the sequence dictionary.
+            # convert to pyg with metadata
+            pyg_sequence = []
+            for step, g in enumerate(sequence):
+                g.graph['edit_step'] = step
+                g.graph['source_idx'] = i
+                g.graph['target_idx'] = j
+                g.graph['iteration'] = ep.iteration
+                g.graph['distance'] = ep.distance
+                pyg_g = from_networkx(g)
+                for meta_key, meta_val in g.graph.items():
+                    setattr(pyg_g, meta_key, meta_val)
+                pyg_sequence.append(pyg_g)
 
-    Args:
-        sequence_dict (dict): {(i, j, iteration): [graph_0, graph_1, ..., graph_k]}
-
-    Returns:
-        dict: The same dictionary with 'edit_step' added to each graph's metadata.
-    """
-    for key, sequence in sequence_dict.items():
-        for step, g in enumerate(sequence):
-            g.graph['edit_step'] = step  # 0-based
-    return sequence_dict
-
-
-def filter_connected_graphs(sequence_dict):
-    """
-    Filters each graph sequence to include only connected graphs,
-    preserving the original structure and metadata.
-
-    Args:
-        sequence_dict (dict): {(i, j, iteration): [graph_0, graph_1, ..., graph_k]}
-
-    Returns:
-        dict: Filtered version of sequence_dict with only connected graphs.
-    """
-    filtered_dict = {}
-
-    for key, sequence in sequence_dict.items():
-        connected_sequence = [
-            g for g in sequence if nx.is_connected(g)
-        ]
-        filtered_dict[key] = connected_sequence
-
-    return filtered_dict
-
-
-def nx_sequences_to_pyg(sequence_dict):
-    """
-     Converts a dictionary of NetworkX graph sequences to PyTorch Geometric format,
-     preserving node/edge attributes and graph-level metadata (e.g., edit_step).
-
-     Args:
-         sequence_dict (dict): {(i, j, iteration): [graph_0, graph_1, ..., graph_k]}
-
-     Returns:
-         dict: {(i, j, iteration): [pyg_graph_0, pyg_graph_1, ..., pyg_graph_k]}
-     """
-
-    pyg_sequence_dict = {}
-
-    for key, sequence in sequence_dict.items():
-        pyg_sequence = []
-        for g in sequence:
-            # Convert to PyG, automatically includes node and edge attributes
-            pyg_g = from_networkx(g)
-
-            # Manually add graph-level metadata (edit step)
-            for meta_key, meta_val in g.graph.items():
-                setattr(pyg_g, meta_key, meta_val)
-
-            pyg_sequence.append(pyg_g)
-
-        pyg_sequence_dict[key] = pyg_sequence
-
-    return pyg_sequence_dict
+            # save sequence to file
+            file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence_graph.pt")
+            torch.save(pyg_sequence, file_path)
 
 

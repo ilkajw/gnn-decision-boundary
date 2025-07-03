@@ -1,17 +1,11 @@
 import json
-import os
 from itertools import combinations
-
-import networkx as nx
-
 from model import GAT
 import torch
 from config import *
 
 
-
-
-
+# todo: rewrite to dictionary "index: class"
 def correct_class_idxs():
 
     """Returns the indices of all MUTAG graphs classified correctly by our GAT model, grouped by all correct
@@ -38,18 +32,18 @@ def idx_set_same_class():
 
     """Creates a lists of MUTAG graph index pairs being from the same class."""
 
-    all, class0, class1 = correct_class_idxs()
+    class0, class1 = correct_class_idxs()[1, 2] # todo: indexing correct?
 
     # generate all (i, j) pairs from class 0 and class 1
     same = list(combinations(class0, 2)) + list(combinations(class1, 2))
 
-    return same,
+    return same
 
 def idx_set_diff_class():
 
     """Creates a lists of all MUTAG graph index pairs being from different classes."""
 
-    all, class0, class1 = correct_class_idxs()
+    class0, class1 = correct_class_idxs()[1, 2]
 
     # generate all (i, j) pairs where one is from class 0 and one from class 1
     diff = [(i, j) for i in class0 for j in class1]  # todo: other way necessary?
