@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
     generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                                            seed=42,
-                                           data_dir="data",
+                                           data_dir="external/pg_gnn_edit_paths/example_paths_MUTAG",
                                            output_dir="data/pyg_edit_path_graphs",
                                            fully_connected=True)
 

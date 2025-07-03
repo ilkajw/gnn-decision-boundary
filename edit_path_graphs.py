@@ -1,10 +1,15 @@
-import os
+import sys
 
+# make github submodule code available
+sys.path.append("external/pg_gnn_edit_paths")
+
+import os
 import networkx as nx
 import torch
 from torch_geometric.utils import from_networkx
-
-
+from utils import EditPath
+from utils.io import load_edit_paths_from_file
+from utils.GraphLoader import GraphDataset
 
 
 def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
