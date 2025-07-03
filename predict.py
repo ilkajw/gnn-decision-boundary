@@ -40,7 +40,7 @@ def mutag_predictions():
             'pred_label': pred,
             'correct': correct
         }
-        # Separate correctly classified graphs
+        # separate correctly classified graphs
         if correct:
             if true == 0:
                 correct_class_0[idx] = predictions[idx]
@@ -53,9 +53,11 @@ def mutag_predictions():
         pickle.dump(predictions, f)
 
 
-def edit_path_predictions_from_dict(pyg_sequence_dict, model_path, dataset):
+def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
     """
-    Runs predictions on a dictionary of PyG graph sequences and logs results.
+    Loads all pyg graph sequences, each indexed by source, target graph and iteration.
+    Runs predictions on graphs per sequence.
+    Saves graph sequence with per-graph prediction as graph metadata to file.
 
     Args:
         pyg_sequence_dict (dict): {(i, j, iteration): [pyg_graph_0, ..., pyg_graph_k]}
@@ -68,39 +70,55 @@ def edit_path_predictions_from_dict(pyg_sequence_dict, model_path, dataset):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load model
+    dataset = TUDataset(root="data", name=dataset_name)
     model = GAT(
         in_channels=dataset.num_features,
         hidden_channels=HIDDEN_CHANNELS,
         heads=HEADS,
         dropout=DROPOUT
     ).to(device)
-
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
+    os.makedirs(output_dir, exist_ok=True)
     predictions = []
 
-    for (i, j, iteration), graph_sequence in pyg_sequence_dict.items():
+    for filename in os.listdir(input_dir):
+        if not filename.endswith(".pt"):
+            continue
+
+        # load ep graph sequence
+        path = os.path.join(input_dir, filename)
+        graph_sequence = torch.load(path)
+
+        updated_sequence = []
+
+        # predictions for each graph in sequence
         for graph in graph_sequence:
             graph = graph.to(device)
-
             with torch.no_grad():
                 out = model(graph.x, graph.edge_index, torch.zeros(graph.num_nodes, dtype=torch.long).to(device))
                 prob = torch.sigmoid(out.view(-1)).item()
                 pred = int(prob > 0.5)
 
+            # add prediction and probability to graph metadata
+            graph.prediction = pred
+            graph.probability = prob
+            
+            updated_sequence.append(graph)
+
+            # dict with all preds
             predictions.append({
-                "prediction": pred,
-                "probability": prob,
+                "file": filename,
+                "source_idx": int(getattr(graph, 'source_idx', -1)),
+                "target_idx": int(getattr(graph, 'target_idx', -1)),
+                "iteration": int(getattr(graph, 'iteration', -1)),
                 "edit_step": int(getattr(graph, 'edit_step', -1)),
-                "source_idx": i,
-                "target_idx": j,
-                "iteration": iteration
+                "prediction": pred,
+                "probability": prob
             })
+
+        torch.save(updated_sequence, os.path.join(output_dir, filename))
 
     return predictions
 
-
-def postprocess_edit_path_preds():
-    """Adds metadata to the edit path predictions for later analysis."""
