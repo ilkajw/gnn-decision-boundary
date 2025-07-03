@@ -1,11 +1,11 @@
 import json
 from itertools import combinations
-from model import GAT
-import torch
-from config import *
+
+# todo: rewrite to dictionary "index: class".
+#  possibly obsolete as logic changed this way: predict all graphs,
+#  then add metadata on source/target classes, train/test split, correct classifications
 
 
-# todo: rewrite to dictionary "index: class"
 def correct_class_idxs():
 
     """Returns the indices of all MUTAG graphs classified correctly by our GAT model, grouped by all correct
@@ -52,62 +52,4 @@ def idx_set_diff_class():
     return diff
 
 
-# todo: check if really want to hand graph pairs to function or if not calc for all graphs, then save data
-#  with result and filter later on
-# todo: but keep indexes arg to insert correctly classified maybe!
 
-# todo: has to change due to florians implementation. check metadata of florians impl. potentially add method
-#  "add_metadata" for things like train/test split
-def predict_log_edit_graphs(graph_pairs):
-
-    # todo: why graph pairs??
-
-    model_path = "model/model.pt"
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # load model training and test split for
-    with open("model/best_split.json", "r") as f:
-        best_split = json.load(f)
-
-    # load trained model
-    model = GAT(
-        in_channels=NUM_FEATURES,
-        hidden_channels=HIDDEN_CHANNELS,
-        heads=HEADS,
-        dropout=DROPOUT
-    ).to(device)
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
-
-    # load true labels for source, target node from predictions file
-    with open("data/predictions/mutag_predictions.json") as f:
-        predictions = json.load(f)
-
-    results = []
-
-    for graph, i, j in graph_pairs:
-        graph = graph.to(device)
-        with torch.no_grad():
-            out = model(graph)
-            prob = torch.sigmoid(out.view(-1))
-            pred = (prob > 0.5).long().item()
-
-        results.append({
-            "prediction": pred,
-            "probability": prob.item(),
-            "edit_step": graph['edit_step'],
-            "source_idx": i,
-            "target_idx": j,
-            "source_class": predictions[str(i)]["true_label"],  # todo: potentially redundant if we only look at correctly classified graphs
-            "target_class": predictions[str(j)]["true_label"],
-            "correct_source": predictions[str(i)]["correct"],
-            "correct_target": predictions[str(j)]["correct"],
-            "source_in_train": i in best_split["train_idx"],
-            "target_in_train": i in best_split["train_idx"]
-
-            # todo: potentially it is enough to filter back here and not filter for index sets before as we can filter
-            # through the results dict later on for graphs of interest. potentially also encode train/test split of
-            # sorce/target
-        })
-
-    return results

@@ -4,7 +4,8 @@ import networkx as nx
 import torch
 from torch_geometric.utils import from_networkx
 
-# todo: check ob alle pfade generiert wurden, oder nur einzelne
+
+
 
 def generate_and_save_all_graphs(db_name="MUTAG",
                                  seed=42,

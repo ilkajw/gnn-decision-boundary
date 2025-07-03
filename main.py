@@ -17,7 +17,7 @@ from edit_path_graphs_old import *
 #  work on dataset logic. loaded again many times
 
 
-def train_kcv_mutag():
+def train_and_choose_model_(dataset):
 
     """Trains a GAT network with k-fold cross validation on MUTAG. Saves the best performing model over all folds and
     epochs. Logs the best model's training accuracy, training and test split, as well as the test accuracies and
@@ -27,7 +27,7 @@ def train_kcv_mutag():
     np.random.seed(42)
     random.seed(42)
 
-    dataset = TUDataset(root=ROOT, name=DATASET_NAME)
+    dataset = dataset
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     labels = [data.y.item() for data in dataset]  # extract ground truth labels from data set
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)  # define k folds for cross validation
@@ -114,17 +114,12 @@ def train_kcv_mutag():
 
 if __name__ == "__main__":
 
-    train_kcv_mutag()
+    dataset_name = 'MUTAG'
+    dataset = TUDataset(root=ROOT, name=dataset_name)
+    train_and_choose_model_(dataset=dataset)
 
-    #dataset = TUDataset(root=ROOT, name=DATASET_NAME)
+    N = len(dataset)
+    missing_keys = [(i, j) for i in range(N) for j in range(i + 1, N)]
 
-    #graphs = pyg_to_networkx(dataset)
 
-    #edit_paths_graphs(graphs,
-    #                  node_subst_cost,
-    #                  edge_subst_cost,
-    #                  node_ins_cost,
-    #                  edge_ins_cost,
-    #                  node_del_cost,
-    #                  edge_del_cost)
 

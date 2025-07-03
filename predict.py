@@ -8,7 +8,6 @@ from edit_path_graphs_old import *
 import pickle
 
 
-# todo: change the workings of this to work more similarly to ep predictions?
 def mutag_predictions():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -63,16 +62,16 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
     Saves graph sequence with per-graph prediction as graph metadata to file.
 
     Args:
-        pyg_sequence_dict (dict): {(i, j, iteration): [pyg_graph_0, ..., pyg_graph_k]}
         model_path (str): Path to the saved GAT model.
-        dataset (TUDataset): The dataset to determine feature dimension.
+        input_dir
+        output_dir
+        dataset_name (TUDataset): The dataset to determine feature dimension.
 
     Returns:
         list: A list of prediction dictionaries with metadata.
     """
-
+    # set model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     dataset = TUDataset(root="data", name=dataset_name)
     model = GAT(
         in_channels=dataset.num_features,
@@ -84,9 +83,12 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
     model.eval()
 
     os.makedirs(output_dir, exist_ok=True)
+
     predictions = []
 
+    # loop through ep graph sequences indexed by source, target, iteration
     for filename in os.listdir(input_dir):
+
         if not filename.endswith(".pt"):
             continue
 
@@ -110,7 +112,7 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
 
             updated_sequence.append(graph)
 
-            # dict with all preds
+            # dict with all predictions
             predictions.append({
                 "file": filename,
                 "source_idx": int(getattr(graph, 'source_idx', -1)),
@@ -121,13 +123,13 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
                 "probability": prob
             })
 
-        # todo: rethink if saving to
+        # todo: rethink if putting pred to metadata and saving is useful or if pediction dict is enough for analysis
         torch.save(updated_sequence, os.path.join(output_dir, filename))
 
     return predictions
 
 
-def add_metadata_to_preds(pred_dict, base_pred_path, split_path, output_path):
+def add_metadata_to_edit_path_predictions(pred_dict, base_pred_path, split_path, output_path):
     """
     Enriches dictionary entries of edit path predictions with additional metadata:
     - true class labels of source and target
