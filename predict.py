@@ -8,7 +8,8 @@ from edit_path_graphs_old import *
 import pickle
 
 
-def mutag_predictions(output_path="data/predictions/mutag_predictions.json"):
+def mutag_predictions(model_path="model/model.pt",
+                      output_path="data/predictions/mutag_predictions.json"):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # load dataset
@@ -31,7 +32,7 @@ def mutag_predictions(output_path="data/predictions/mutag_predictions.json"):
 
     for idx, data in enumerate(loader):
         data = data.to(device)
-        out = model(data)
+        out = model(data.x, data.edge_index, data.batch)
         probs = torch.sigmoid(out.view(-1))
         pred = (probs > 0.5).long()
         true = data.y.item()

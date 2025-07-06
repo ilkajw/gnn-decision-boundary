@@ -100,7 +100,7 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
 
     # log training, test splits
     split_path = f"{output_dir}/{split_fname}"
-    with open(split_path, "wb") as f:
+    with open(split_path, "w") as f:
         json.dump(best_split, f, indent=2)
 
     # log k-cv training statistics
@@ -119,15 +119,16 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
 
 if __name__ == "__main__":
 
-    dataset_name = 'MUTAG'
+    dataset_name = 'MUTAG'  # todo: redundant
     dataset = TUDataset(root=ROOT, name=dataset_name)
-    train_and_choose_model(dataset=dataset,
-                           output_dir="model",
-                           model_fname="model.pt",
-                           split_fname="best_split.json",
-                           log_fname="log.json")
+    #train_and_choose_model(dataset=dataset,
+     #                      output_dir="model",
+      #                     model_fname="model.pt",
+       #                    split_fname="best_split.json",
+        #                   log_fname="log.json")
 
-    mutag_predictions(output_path="data/predictions/mutag_predictions.json")
+    #mutag_predictions(model_path="model/model.pt",
+     #                 output_path="data/predictions/mutag_predictions.json")
 
     generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                                            seed=42,
@@ -135,10 +136,10 @@ if __name__ == "__main__":
                                            output_dir="data/pyg_edit_path_graphs",
                                            fully_connected=True)
 
-    add_metadata_to_edit_path_predictions(pred_dict="data/pyg_edit_path_graphs",
-                                          base_pred_path="data/predictions/mutag_predictions.json",
-                                          split_path=f"model/best_split.json",
-                                          output_path="data/predictions/edit_paths.json")
+    #add_metadata_to_edit_path_predictions(pred_dict="data/pyg_edit_path_graphs",
+     #                                     base_pred_path="data/predictions/mutag_predictions.json",
+      #                                    split_path=f"model/best_split.json",
+       #                                   output_path="data/predictions/edit_paths.json")
 
 
 

@@ -1,15 +1,17 @@
 import sys
-
-# make github submodule code available
-sys.path.append("external/pg_gnn_edit_paths")
-
 import os
+
+# Add submodule root to Python path
+submodule_path = os.path.abspath("external")
+if submodule_path not in sys.path:
+    sys.path.insert(0, submodule_path)
+
 import networkx as nx
 import torch
+from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
+from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
-from utils import EditPath
-from utils.io import load_edit_paths_from_file
-from utils.GraphLoader import GraphDataset
+
 
 
 def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
@@ -20,8 +22,8 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.
-    Adds metadata for later filtering.
-    Converts to pyg objects.
+    Adds metadata to graph for later filtering.
+    Converts nx graphs to pyg.
     Saves each pyg graph sequence identified by source graph, target graph, iteration to one .pt file.
 
     Args:
@@ -33,7 +35,11 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
     """
 
     # load nx graphs from original dataset
-    dataset = GraphDataset(root=data_dir, name=db_name, from_existing_data="TUDataset")
+    dataset = GraphDataset(root=data_dir,
+                           name=db_name,
+                           from_existing_data="TUDataset",
+                           task="graph_classification")
+
     dataset.create_nx_graphs()
     nx_graphs = dataset.nx_graphs
 
@@ -48,6 +54,7 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
 
         # loop through all paths between i, j
         for ep in paths:
+            print(f"DEBUG: going into path {ep.iteration} between {i}, {j} ")
 
             # create edit path graph sequence for path 'ep' between i, j
             sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
@@ -62,6 +69,7 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
 
             # filter for fully connected graphs
             if fully_connected:
+                print(f"DEBUG: filtering for fully connected")
                 sequence = [g for g in sequence if nx.is_connected(g)]
 
             # convert to pyg with metadata
@@ -69,12 +77,21 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
 
             # convert nx objects to pyg and copy metadata
             for step, g in enumerate(sequence):
-                pyg_g = from_networkx(g)
+                print(f"DEBUG: converting graph {step} of curr sequence")
+
+                # strip edge attributes bc not used for learning and throwing error
+                g_no_attrs = nx.Graph()
+                g_no_attrs.add_nodes_from(g.nodes(data=True))
+                g_no_attrs.add_edges_from(g.edges())  # strips all edge attributes
+                pyg_g = from_networkx(g_no_attrs)
+
                 for meta_key, meta_val in g.graph.items():
                     setattr(pyg_g, meta_key, meta_val)
+                print(f"added meta data to graph {step} of curr sequence")
                 pyg_sequence.append(pyg_g)
 
             # save sequence to file
+            print(f"DEBUG: will save pyg graphs from sequence {ep.iteration} between {i}, {j}")
             file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
