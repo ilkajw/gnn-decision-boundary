@@ -16,8 +16,10 @@ class GAT(torch.nn.Module):
         self.dropout = dropout
 
     def forward(self, x, edge_index, batch):
-        # gatv2 layers with relu activation
+
         # todo: use elu like in original paper
+
+        # gatv2 layers with relu activation
         x = F.relu(self.gat1(x, edge_index))
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = F.relu(self.gat2(x, edge_index))

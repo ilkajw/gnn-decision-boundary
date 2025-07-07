@@ -22,9 +22,9 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.
-    Adds metadata to graph for later filtering.
+    Adds source node, target node, edit step to graph metadata for later analysis.
     Converts nx graphs to pyg.
-    Saves each pyg graph sequence identified by source graph, target graph, iteration to one .pt file.
+    Saves each pyg graph sequence identified by source graph, target graph, iteration to .pt file.
 
     Args:
         db_name (str): Dataset name.
@@ -34,32 +34,34 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
         fully_connected (bool): If True, filter only connected graphs.
     """
 
+    os.makedirs(output_dir, exist_ok=True)
+
     # load nx graphs from original dataset
     dataset = GraphDataset(root=data_dir,
                            name=db_name,
                            from_existing_data="TUDataset",
                            task="graph_classification")
-
     dataset.create_nx_graphs()
     nx_graphs = dataset.nx_graphs
 
-    # todo: this doesnt work yet. some labels of nx graph nodes coming out of repos create_edit_path_graphs
-    #  bigger than size of org x tensor
-    num_node_classes = dataset.unique_node_labels  # for reconstruction of node feature tensor
+    # todo: doesnt work yet. some labels of nx graph nodes coming out of repos create_edit_path_graphs
+    #  bigger than 7 = size of org x vector
 
-    print(f"DEBUG: NUM NODE CLASSES: {num_node_classes} \n ")
+    # for reconstruction of node feature tensor x
+    num_node_classes = dataset.unique_node_labels
+    print(f"NUM NODE CLASSES: {num_node_classes} \n ")
 
-    # load edit paths
+    # load all pre-calculated edit path operations
     edit_paths = load_edit_paths_from_file(db_name=db_name, file_path=data_dir)
     if edit_paths is None:
         raise RuntimeError("Edit path file not found. Run generation first.")
 
-    os.makedirs(output_dir, exist_ok=True)
-
+    # create graphs from operations per (source graph, target graph)
     for (i, j), paths in edit_paths.items():
+
+        # todo: right now only 1 path per pair. if not potentially more in the future, delete inner loop
         # loop through all paths between graph pairs i, j
         for ep in paths:
-            print(f"DEBUG: going into path between {i}, {j} ")
 
             # create edit path graph sequence for path iteration between i, j
             sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
@@ -76,20 +78,25 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
             if fully_connected:
                 sequence = [g for g in sequence if nx.is_connected(g)]
 
-            # convert nx objects to pyg objects and copy metadata
+            # drop edge attrs, convert to pyg objects, copy metadata
             pyg_sequence = []
             for step, g in enumerate(sequence):
-                # todo: alternatively copy edge attrs from g. if not check if edge attrs are used later on
-                # strip edge attributes bc not used for learning and throwing error
+
+                # todo: alternatively copy edge attrs from g and transform back to vectors. else check for
+                #  any use of edge attrs later on
+
+                # strip edge attributes bc not used for learning
                 g_no_edge_attrs = nx.Graph()
 
-                # todo: causes error as num_node_classes < label for some nodes
-                # add nodes with attr tensor x reconstructed from nx graphs's scalar primary_label
+                # todo: causes error as num_node_classes < label for node 9 of graph 3
+
+                # add nodes with attr tensor x reconstructed from nx graph's scalar primary_label
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
-                    if label > 7:
-                        print(f"DEBUG: Node {n} of edit path graph {g.graph['edit_step']} between {i}, {j} with "
+                    if label >= num_node_classes:
+                        print(f"ERROR: Node {n} of edit path graph {g.graph['edit_step']} between {i}, {j} with "
                               f"label {label} > 7. ")
+
                     d['x'] = F.one_hot(torch.tensor(label), num_classes=7).float()
                     g_no_edge_attrs.add_node(n, **d)
 

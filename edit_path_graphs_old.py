@@ -51,7 +51,6 @@ def pyg_to_networkx(dataset):
     return graphs
 
 
-# todo: to be deleted
 def edit_paths_graphs(graphs,
                     node_subst_cost,
                     edge_subst_cost,
@@ -81,7 +80,6 @@ def edit_paths_graphs(graphs,
             )
 
             # save costs and edit operations to array
-            # todo: needed?
             # all_edit_paths[(i, j)] = {
             #    'cost': cost,
             #    'path': path
@@ -89,15 +87,13 @@ def edit_paths_graphs(graphs,
             print(f"DEBUG: computed ged for graphs {i} and {j}: cost={cost}, steps={len(ops_path)}. Applying edit ops...")
 
             # construct graphs from edit operations and save to file
-            # todo: potentially hand, i, j to it, to save in edit graphs. do (i,j) insted of pair string.
-            #  construct string in method
             construct_graphs_from_path(g1, g2, ops_path, pair=f"g{i}_to_g{j}")
 
         except Exception as e:
             print(f"DEBUG: failed to compute ged between graphs {i} and {j}: {e}")
 
 
-# todo: to be deleted
+
 def construct_graphs_from_path(g1, g2, path, pair="graphs", connected_only=False):
 
     """Constructs networkx graphs from path between g1, g2.
