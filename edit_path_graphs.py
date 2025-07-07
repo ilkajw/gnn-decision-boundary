@@ -95,7 +95,7 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                     label = d['primary_label']
                     if label >= num_node_classes:
                         print(f"ERROR: Node {n} of edit path graph {g.graph['edit_step']} between {i}, {j} with "
-                              f"label {label} > 7. ")
+                              f"label {label} >= 7. ")
 
                     d['x'] = F.one_hot(torch.tensor(label), num_classes=7).float()
                     g_no_edge_attrs.add_node(n, **d)
