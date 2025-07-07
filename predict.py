@@ -1,13 +1,12 @@
 import json
-
+import torch
+import os
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
-from config import *
-from model import GAT
-from edit_path_graphs_old import *
-import pickle
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
+from config import *
+from model import GAT
 
 
 def mutag_predictions(model_path="model/model.pt",
@@ -54,8 +53,8 @@ def mutag_predictions(model_path="model/model.pt",
                 correct_class_1[idx] = predictions[idx]
     # todo: change to json
     os.makedirs("data/predictions", exist_ok=True)
-    with open(output_path, "wb") as f:
-        pickle.dump(predictions, f)
+    with open(output_path, "w") as f:
+        json.dump(predictions, f, indent=2)
 
 
 def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):

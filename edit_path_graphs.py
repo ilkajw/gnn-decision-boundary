@@ -85,7 +85,7 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                 g_no_edge_attrs = nx.Graph()
 
                 # add nodes with attr tensor x reconstructed from nx graphs's scalar primary_label
-                # todo: this causes an error as num_node_classes is too smaller for some node's labels
+                # todo: this causes an error as num_node_classes >= label for some nodes
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
                     d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
