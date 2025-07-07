@@ -49,7 +49,7 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
 
     # for reconstruction of node feature tensor x
     num_node_classes = dataset.unique_node_labels
-    print(f"NUM NODE CLASSES: {num_node_classes} \n ")
+    print(f"Number of node classes, equivalent to size of original feature tensor: {num_node_classes} \n ")
 
     # load all pre-calculated edit path operations
     edit_paths = load_edit_paths_from_file(db_name=db_name, file_path=data_dir)
@@ -94,10 +94,10 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
                     if label >= num_node_classes:
-                        print(f"ERROR: Node {n} of edit path graph {g.graph['edit_step']} between {i}, {j} with "
-                              f"label {label} >= 7. ")
+                        print(f"Error: Node {n} of edit path graph {g.graph['edit_step']} between graphs {i}, {j} with "
+                              f"label {label} >= {num_node_classes}. ")
 
-                    d['x'] = F.one_hot(torch.tensor(label), num_classes=7).float()
+                    d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
                     g_no_edge_attrs.add_node(n, **d)
 
                 # add edges without attributes
