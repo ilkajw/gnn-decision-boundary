@@ -5,8 +5,8 @@ import numpy as np
 import networkx as nx
 import copy
 import os
-from utils.io import load_edit_paths_from_file
-from utils.GraphLoader.GraphLoader import GraphDataset
+
+# todo: file to be deleted
 
 
 # define cost function for ged
@@ -93,7 +93,6 @@ def edit_paths_graphs(graphs,
             print(f"DEBUG: failed to compute ged between graphs {i} and {j}: {e}")
 
 
-
 def construct_graphs_from_path(g1, g2, path, pair="graphs", connected_only=False):
 
     """Constructs networkx graphs from path between g1, g2.
@@ -124,7 +123,7 @@ def construct_graphs_from_path(g1, g2, path, pair="graphs", connected_only=False
 
         # insertion
         elif u is None and v is not None:
-            new_node = max(g_step.nodes) + 1 if len(g_step.nodes) > 0 else 0  # todo: check if this works well as integer, else string?
+            new_node = max(g_step.nodes) + 1 if len(g_step.nodes) > 0 else 0
             g_step.add_node(new_node)
             if 'label' in g2.nodes[v]:
                 g_step.nodes[new_node]['label'] = g2.nodes[v]['label']
@@ -140,7 +139,7 @@ def construct_graphs_from_path(g1, g2, path, pair="graphs", connected_only=False
         graph_sequence = [graph for graph in graph_sequence if nx.is_connected(graph)]
 
     # convert networkx to pyg format
-    pyg_sequence = [from_networkx(g) for g in graph_sequence]  # todo: check if edit_step=step_counter is converted too
+    pyg_sequence = [from_networkx(g) for g in graph_sequence]
 
     # save all edit path graphs between g1 , g2 in one file
     output_dir = "data/edit_path_graphs"

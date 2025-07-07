@@ -8,21 +8,22 @@ from sklearn.model_selection import StratifiedKFold
 
 
 def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname):
-    """Trains a GAT network with k-fold cross validation on MUTAG. Saves the best performing model over all folds and
-    epochs. Logs the best model's training accuracy, training and test split, as well as the test accuracies and
+
+    """Trains a GAT network with k-fold cross validation on MUTAG.
+    Saves the best performing model over all folds and epochs.
+    Logs the best model's training accuracy, training and test split, as well as the test accuracies and
     standard deviation over all folds."""
 
     torch.manual_seed(42)
     np.random.seed(42)
     random.seed(42)
 
-    dataset = dataset
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     labels = [data.y.item() for data in dataset]  # extract ground truth labels from data set
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)  # define k folds for cross validation
     accuracies = []
 
-    # to track for saving only the best performing model
+    # to track for saving the best performing model
     best_acc = 0
     best_model_state = None
     best_split = None
@@ -46,23 +47,21 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
             dropout=DROPOUT
         ).to(device)
 
-        # adam optimizer for parameter update
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
         # train model over epochs
         epoch_test_accuracies = []
-
         for epoch in range(1, EPOCHS + 1):
             # train and evaluate training step
             loss = train(model, train_loader, optimizer, device)
             acc = evaluate_accuracy(model, test_loader, device)
             epoch_test_accuracies.append(acc)
             if epoch % 10 == 0:
-                print(f"epoch {epoch: 03d} | loss: {loss: .4f} | epoch {epoch: 03d} | acc: {acc: .4f}")
+                print(f"Epoch {epoch: 03d} | loss: {loss: .4f} | epoch {epoch: 03d} | acc: {acc: .4f}")
 
             # track best model over folds and epochs
             if acc > best_acc:
-                print(f"\n DEBUG: new best is model trained over fold {fold + 1} in epoch {epoch} with acc {acc: .4f}")
+                print(f"\n New best is model trained over fold {fold + 1} in epoch {epoch} with acc {acc: .4f}")
                 best_acc = acc
                 best_model_state = model.state_dict()
                 best_fold = fold + 1
@@ -75,7 +74,7 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         # evaluate model trained over full fold
         final_acc = evaluate_accuracy(model, test_loader, device)
         accuracies.append(final_acc)
-        print(f"fold {fold + 1} accuracy: {acc: .4f}")
+        print(f"Fold {fold + 1} | Accuracy: {acc: .4f}")
 
     mean_acc = np.mean(accuracies)
     std_acc = np.std(accuracies)
@@ -101,12 +100,14 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
     with open(log_path, "w") as f:
         json.dump(log, f, indent=2)
 
-    print(f"\n average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
+    print(f"\n Average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
 
 
 if __name__ == "__main__":
+
     dataset_name = 'MUTAG'
     dataset = TUDataset(root=ROOT, name=dataset_name)
+
     # train_and_choose_model(dataset=dataset,
     #                       output_dir="model",
     #                       model_fname="model.pt",

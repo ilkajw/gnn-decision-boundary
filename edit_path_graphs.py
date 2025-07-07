@@ -1,7 +1,7 @@
 import sys
 import os
 
-# Add submodule root to Python path
+# add submodule root to Python path
 submodule_path = os.path.abspath("external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
