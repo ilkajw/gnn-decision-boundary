@@ -47,11 +47,12 @@ def mutag_predictions(model_path="model/model.pt",
         }
         # separate correctly classified graphs
         if correct:
+            # todo: potentially return lists. right now, nothing happens
             if true == 0:
                 correct_class_0[idx] = predictions[idx]
             elif true == 1:
                 correct_class_1[idx] = predictions[idx]
-    # todo: change to json
+
     os.makedirs("data/predictions", exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(predictions, f, indent=2)
@@ -59,7 +60,7 @@ def mutag_predictions(model_path="model/model.pt",
 
 def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
     """
-    Loads all pyg graph sequences, each indexed by source, target graph and iteration.
+    Loads all pyg graph sequences, each indexed by (source, target graph, iteration).
     Runs predictions on all graphs per sequence.
     Saves graph sequence with per-graph prediction as graph metadata to file.
 

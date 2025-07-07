@@ -1,22 +1,10 @@
-import json
-
-from torch_geometric.datasets import TUDataset
-from torch_geometric.loader import DataLoader
-from sklearn.model_selection import StratifiedKFold
 import random
-
-from config import *
-from edit_path_graphs import generate_and_save_all_edit_path_graphs
-from model import GAT
+import numpy as np
 from train import train
 from evaluate import *
 from predict import *
 from edit_path_graphs import *
-
-# todo: less test script style, more function building blocks?
-#  add logic to evaluate prediction on parameters to be defined (eg. changes per edit distance)
-#  add visualizations of decision boundary
-#  work on dataset logic. loaded again many times
+from sklearn.model_selection import StratifiedKFold
 
 
 def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname):
@@ -127,14 +115,14 @@ if __name__ == "__main__":
        #                    split_fname="best_split.json",
         #                   log_fname="log.json")
 
-    mutag_predictions(model_path="model/model.pt",
-                      output_path="data/predictions/mutag_predictions.json")
+    #mutag_predictions(model_path="model/model.pt",
+     #                 output_path="data/predictions/mutag_predictions.json")
 
-    #generate_and_save_all_edit_path_graphs(db_name="MUTAG",
-     #                                      seed=42,
-      #                                     data_dir="external/pg_gnn_edit_paths/example_paths_MUTAG",
-       #                                    output_dir="data/pyg_edit_path_graphs",
-        #                                   fully_connected=True)
+    generate_and_save_all_edit_path_graphs(db_name="MUTAG",
+                                           seed=42,
+                                           data_dir="external/pg_gnn_edit_paths/example_paths_MUTAG",
+                                           output_dir="data/pyg_edit_path_graphs",
+                                           fully_connected=True)
 
     #pred_dict = edit_path_predictions(model_path="model/model.pt",
      #                                 input_dir="data/pyg_edit_path_graphs",
@@ -145,8 +133,6 @@ if __name__ == "__main__":
      #                                     base_pred_path="data/predictions/mutag_predictions.json",
       #                                    split_path=f"model/best_split.json",
        #                                   output_path="data/predictions/edit_paths.json")
-
-
 
 
 
