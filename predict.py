@@ -6,10 +6,13 @@ from config import *
 from model import GAT
 from edit_path_graphs_old import *
 import pickle
+from torch.serialization import add_safe_globals
+from torch_geometric.data import Data
 
 
 def mutag_predictions(model_path="model/model.pt",
                       output_path="data/predictions/mutag_predictions.json"):
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # load dataset
@@ -23,7 +26,7 @@ def mutag_predictions(model_path="model/model.pt",
         heads=HEADS,
         dropout=DROPOUT
     ).to(device)
-    model.load_state_dict(torch.load("model/model.pt"))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
 
     predictions = {}
@@ -49,7 +52,7 @@ def mutag_predictions(model_path="model/model.pt",
                 correct_class_0[idx] = predictions[idx]
             elif true == 1:
                 correct_class_1[idx] = predictions[idx]
-
+    # todo: change to json
     os.makedirs("data/predictions", exist_ok=True)
     with open(output_path, "wb") as f:
         pickle.dump(predictions, f)
@@ -58,7 +61,7 @@ def mutag_predictions(model_path="model/model.pt",
 def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
     """
     Loads all pyg graph sequences, each indexed by source, target graph and iteration.
-    Runs predictions on graphs per sequence.
+    Runs predictions on all graphs per sequence.
     Saves graph sequence with per-graph prediction as graph metadata to file.
 
     Args:
@@ -94,7 +97,8 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
 
         # load ep graph sequence
         path = os.path.join(input_dir, filename)
-        graph_sequence = torch.load(path)
+        add_safe_globals([Data])
+        graph_sequence = torch.load(path, weights_only=False)
 
         updated_sequence = []
 
@@ -123,7 +127,7 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
                 "probability": prob
             })
 
-        # todo: rethink if putting pred to metadata and saving is useful or if pediction dict is enough for analysis
+        # todo: rethink if putting pred to metadata and saving is necessary or if prediction dict is sufficient
         torch.save(updated_sequence, os.path.join(output_dir, filename))
 
     return predictions
@@ -131,7 +135,7 @@ def edit_path_predictions(model_path, input_dir, output_dir, dataset_name):
 
 def add_metadata_to_edit_path_predictions(pred_dict, base_pred_path, split_path, output_path):
     """
-    Enriches dictionary entries of edit path predictions with additional metadata:
+    Enriches dictionary entries of edit path predictions with additional metadata to help later analysis:
     - true class labels of source and target
     - whether source/target are in training split
     - whether source/target were classified correctly
@@ -151,7 +155,7 @@ def add_metadata_to_edit_path_predictions(pred_dict, base_pred_path, split_path,
         split = json.load(f)
 
     # load predictions on org mutag graphs
-    with open(base_pred_path, "r") as f:
+    with open(base_pred_path, "r", encoding="utf-8") as f:
         base_preds = json.load(f)
 
     # add train vs. test split, classes of source & target, correct classification of source & train to metadata

@@ -12,7 +12,6 @@ class GAT(torch.nn.Module):
         self.gat2 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads)
         self.gat3 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads)
         self.gat4 = GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads, concat=False)
-        # todo: single output for binary classification? or two classes for 0 / 1 class?
         self.lin = torch.nn.Linear(hidden_channels, 1)
         self.dropout = dropout
 

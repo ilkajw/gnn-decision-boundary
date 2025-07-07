@@ -136,6 +136,11 @@ if __name__ == "__main__":
                                            output_dir="data/pyg_edit_path_graphs",
                                            fully_connected=True)
 
+    #pred_dict = edit_path_predictions(model_path="model/model.pt",
+     #                                 input_dir="data/pyg_edit_path_graphs",
+      #                                output_dir="predictions",
+       #                               dataset_name="MUTAG")
+
     #add_metadata_to_edit_path_predictions(pred_dict="data/pyg_edit_path_graphs",
      #                                     base_pred_path="data/predictions/mutag_predictions.json",
       #                                    split_path=f"model/best_split.json",

@@ -32,7 +32,7 @@ def idx_set_same_class():
 
     """Creates a lists of MUTAG graph index pairs being from the same class."""
 
-    class0, class1 = correct_class_idxs()[1, 2] # todo: indexing correct?
+    class0, class1 = correct_class_idxs()[1, 2]  # todo: indexing correct?
 
     # generate all (i, j) pairs from class 0 and class 1
     same = list(combinations(class0, 2)) + list(combinations(class1, 2))

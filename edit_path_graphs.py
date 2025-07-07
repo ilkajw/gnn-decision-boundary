@@ -8,6 +8,7 @@ if submodule_path not in sys.path:
 
 import networkx as nx
 import torch
+import torch.nn.functional as F
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
@@ -42,6 +43,9 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
 
     dataset.create_nx_graphs()
     nx_graphs = dataset.nx_graphs
+    # todo: this doesnt work yet. label of nx graph nodes coming out of repos create_edit_path_graphs
+    #  is bigger than unique_node_labels
+    num_node_classes = dataset.unique_node_labels  # for reconstruction of node feature tensor
 
     # load edit paths
     edit_paths = load_edit_paths_from_file(db_name=db_name, file_path=data_dir)
@@ -51,12 +55,11 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
     os.makedirs(output_dir, exist_ok=True)
 
     for (i, j), paths in edit_paths.items():
-
-        # loop through all paths between i, j
+        # loop through all paths between graph pairs i, j
         for ep in paths:
             print(f"DEBUG: going into path {ep.iteration} between {i}, {j} ")
 
-            # create edit path graph sequence for path 'ep' between i, j
+            # create edit path graph sequence for path iteration between i, j
             sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
 
             # assign metadata to nx graphs
@@ -72,19 +75,29 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                 print(f"DEBUG: filtering for fully connected")
                 sequence = [g for g in sequence if nx.is_connected(g)]
 
-            # convert to pyg with metadata
+            # convert nx objects to pyg objects and copy metadata
             pyg_sequence = []
-
-            # convert nx objects to pyg and copy metadata
             for step, g in enumerate(sequence):
                 print(f"DEBUG: converting graph {step} of curr sequence")
 
                 # strip edge attributes bc not used for learning and throwing error
-                g_no_attrs = nx.Graph()
-                g_no_attrs.add_nodes_from(g.nodes(data=True))
-                g_no_attrs.add_edges_from(g.edges())  # strips all edge attributes
-                pyg_g = from_networkx(g_no_attrs)
+                # todo: alternatively copy edge attrs from g. if not check if edge attrs are used later on
+                g_no_edge_attrs = nx.Graph()
 
+                # add nodes with attr tensor x reconstructed from nx graphs's scalar primary_label
+                # todo: this causes an error as num_node_classes is too smaller for some node's labels
+                for n, d in g.nodes(data=True):
+                    label = d['primary_label']
+                    d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
+                    g_no_edge_attrs.add_node(n, **d)
+
+                # add edges without attributes
+                g_no_edge_attrs.add_edges_from(g.edges())
+
+                # convert to PyG
+                pyg_g = from_networkx(g_no_edge_attrs)
+
+                # copy metadata
                 for meta_key, meta_val in g.graph.items():
                     setattr(pyg_g, meta_key, meta_val)
                 print(f"added meta data to graph {step} of curr sequence")
