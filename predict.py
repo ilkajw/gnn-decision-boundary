@@ -41,9 +41,9 @@ def mutag_predictions(model_path="model/model.pt",
         correct = int(pred == true)
 
         predictions[idx] = {
-            'true_label': true,
-            'pred_label': pred,
-            'correct': correct
+            'true_label': int(true),
+            'pred_label': int(pred.item()),
+            'correct': bool(correct)
         }
         # separate correctly classified graphs
         if correct:

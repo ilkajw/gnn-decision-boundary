@@ -127,14 +127,14 @@ if __name__ == "__main__":
        #                    split_fname="best_split.json",
         #                   log_fname="log.json")
 
-    #mutag_predictions(model_path="model/model.pt",
-     #                 output_path="data/predictions/mutag_predictions.json")
+    mutag_predictions(model_path="model/model.pt",
+                      output_path="data/predictions/mutag_predictions.json")
 
-    generate_and_save_all_edit_path_graphs(db_name="MUTAG",
-                                           seed=42,
-                                           data_dir="external/pg_gnn_edit_paths/example_paths_MUTAG",
-                                           output_dir="data/pyg_edit_path_graphs",
-                                           fully_connected=True)
+    #generate_and_save_all_edit_path_graphs(db_name="MUTAG",
+     #                                      seed=42,
+      #                                     data_dir="external/pg_gnn_edit_paths/example_paths_MUTAG",
+       #                                    output_dir="data/pyg_edit_path_graphs",
+        #                                   fully_connected=True)
 
     #pred_dict = edit_path_predictions(model_path="model/model.pt",
      #                                 input_dir="data/pyg_edit_path_graphs",
