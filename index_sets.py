@@ -16,6 +16,7 @@ def graphs_correctly_classified(dataset_name):
     return correct_idxs
 
 
+# todo: potentially merge next two functions into 1 with same/diff argument
 def graph_index_pairs_same_class(dataset_name,
                                  correctly_classified_only=True,
                                  save_path=None):

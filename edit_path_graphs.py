@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
-from config import FULLY_CONNECTED_ONLY
+
 
 def generate_all_edit_path_graphs(data_dir,
                                   output_dir,
@@ -61,8 +61,10 @@ def generate_all_edit_path_graphs(data_dir,
     # create graphs from operations per (source graph, target graph)
     for (i, j), paths in edit_paths.items():
 
-        # todo: for logic testing purposes only. to prevent running into errors in label transformation from
-        #  graph pairs (0, 3) onwards
+        # todo:
+        #  the next block is for logic testing purposes only.
+        #  to prevent running into errors in label transformation from graph pairs (0, 3) onwards.
+        #  to see error comment out this block:
         if i != 0 or j > 2:
             continue
 
@@ -90,9 +92,8 @@ def generate_all_edit_path_graphs(data_dir,
 
             for step, g in enumerate(sequence):
 
-                # todo: alternatively use edge attrs of g too. then the loop to copy from g to g_with no_edge_attrs
-                #  is obsolete. also need to transform edge labels back to vectors to avoid when handing edge
-                #  labels to model
+                # todo: alternatively leave edge attrs. then, loop to copy g to g_no_edge_attrs is obsolete.
+                #  also need to transform edge labels back to vectors to avoid error when handing edge labels to model
 
                 # strip edge attributes as not used for learning
                 g_no_edge_attrs = nx.Graph()
@@ -108,7 +109,8 @@ def generate_all_edit_path_graphs(data_dir,
                     if label > max_label:
                         max_label = label
 
-                    # todo: causes error as label >= num_node_classes for many nodes
+                    # todo: causes error as label >= num_node_classes for many nodes.
+                    #  to prevent error and get info on all nodes with labels >= 7, comment out the following line:
                     d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
                     print(f"DEBUG: Transformed label {label} of node {n} graph {g.graph['edit_step']} between "
                           f"{i}, {j} into {d['x']}")
