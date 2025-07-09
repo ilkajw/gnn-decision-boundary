@@ -5,8 +5,7 @@ import os
 
 def graphs_correctly_classified(dataset_name):
 
-    """Returns the indices of all MUTAG graphs classified correctly by our GAT model,
-    grouped by all, class 0, class 1 correct classifications."""
+    """Returns the indices of all MUTAG graphs classified correctly by our GAT model."""
 
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
@@ -45,7 +44,7 @@ def graph_index_pairs_same_class(dataset_name,
         if labels[i] == labels[j]:
             pairs.add((i, j))
 
-    # save result to file
+    # optionally, save result to file
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "w") as f:
@@ -63,25 +62,27 @@ def graph_index_pairs_diff_class(dataset_name,
     If correctly_classified_only is True, only include graphs correctly classified by the model.
     Optionally saves the result to a JSON file.
     """
+    # read in predictions of our model on MUTAG graphs
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
 
+    # filter graph indexes, if only correctly classified graphs should be considered
     if correctly_classified_only:
         correct_idxs, _, _ = graphs_correctly_classified(dataset_name)
         idxs = correct_idxs
     else:
         idxs = list(map(int, predictions.keys()))
 
-    # Build dictionary of idx → label
+    # build dictionary of idx → label, potentially filtered for correct classifications
     labels = {int(i): entry["true_label"] for i, entry in predictions.items() if int(i) in idxs}
 
-    # Generate pairs with same label
+    # generate pairs with same label
     pairs = set()
     for i, j in itertools.combinations(sorted(labels.keys()), 2):
         if labels[i] != labels[j]:
             pairs.add((i, j))
 
-    # Save result to file
+    # optionally, save result to file
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "w") as f:
