@@ -14,11 +14,11 @@ from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
 
 
-def generate_and_save_all_edit_path_graphs(data_dir,
-                                           output_dir,
-                                           db_name="MUTAG",
-                                           seed=42,
-                                           fully_connected_only=True):
+def generate_all_edit_path_graphs(data_dir,
+                                  output_dir,
+                                  db_name="MUTAG",
+                                  seed=42,
+                                  fully_connected_only=True):
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.

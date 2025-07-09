@@ -7,15 +7,16 @@ from index_sets import *
 if __name__ == "__main__":
     dataset_name = 'MUTAG'
     dataset = TUDataset(root=ROOT, name=dataset_name)
-    training =False
+    train_model = False
     dataset_predict = False
-    edit_path_graph = False
+    calc_edit_path_graphs = False
     edit_path_predict = False
     add_meta_data = False
 
     # todo: add logic to check if data exists, else calculate
     # todo: where to get edit distance for pairs from? needed to analyse where class flips happen
-    if training:
+
+    if train_model:
         train_and_choose_model(dataset=dataset,
                                output_dir="model",
                                model_fname="model.pt",
@@ -27,12 +28,12 @@ if __name__ == "__main__":
                             output_fname=f"{dataset_name}_predictions.json",
                             model_path="model/model.pt")
 
-    if edit_path_graph:
-        generate_and_save_all_edit_path_graphs(db_name=dataset_name,
-                                               seed=42,
-                                               data_dir=f"external/pg_gnn_edit_paths/example_paths_{dataset_name}",
-                                               output_dir=f"data/{dataset_name}/pyg_edit_path_graphs",
-                                               fully_connected_only=True)
+    if calc_edit_path_graphs:
+        generate_all_edit_path_graphs(db_name=dataset_name,
+                                      seed=42,
+                                      data_dir=f"external/pg_gnn_edit_paths/example_paths_{dataset_name}",
+                                      output_dir=f"data/{dataset_name}/pyg_edit_path_graphs",
+                                      fully_connected_only=True)
     if edit_path_predict:
         pred_dict = edit_path_predictions(dataset_name=dataset_name,
                                           model_path="model/model.pt",
@@ -40,7 +41,6 @@ if __name__ == "__main__":
                                           output_dir=f"data/{dataset_name}/predictions",
                                           output_fname=f"{dataset_name}_edit_path_predictions.json")
 
-    if add_meta_data:
         add_metadata_to_edit_path_predictions(pred_dict_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions.json",
                                               base_pred_path=f"data/{dataset_name}/predictions/{dataset_name}_predictions.json",
                                               split_path=f"model/best_split.json",
@@ -55,6 +55,9 @@ if __name__ == "__main__":
                                     output_dir=f"data/{dataset_name}/predictions",
                                     output_fname=f"{dataset_name}_changes_per_path.json",
                                     verbose=True)
+
+    # todo: check if this is actually needed. the info in source/target class and split is in the predictions dictionary
+
 
     graph_index_pairs_diff_class(dataset_name=dataset_name,
                                  correctly_classified_only=True,
