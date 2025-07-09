@@ -30,7 +30,7 @@ def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=N
             continue
 
         filepath = os.path.join(input_dir, fname)
-        sequence = torch.load(filepath)
+        sequence = torch.load(filepath, weights_only=False)
         prev_pred = None
 
         for step, g in enumerate(sequence):
@@ -48,15 +48,16 @@ def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=N
         if verbose:
             print(f"Processed: {fname}")
 
-    change_dict = dict(class_changes_per_step)
+    changes_dict = dict(class_changes_per_step)
+    serializable_dict = {str(k): v for k, v in changes_dict.items()}
 
     # optionally save dict
-    if output_dir & output_fname:
+    if output_dir:
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, output_fname), "w") as f:
-            json.dump(change_dict, f, indent=2)
+            json.dump(serializable_dict, f, indent=2)
 
-    return change_dict
+    return serializable_dict
 
 
 def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=None, verbose=False):
@@ -87,7 +88,7 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
         i, j = int(match.group(1)), int(match.group(2))
         filepath = os.path.join(input_dir, fname)
 
-        sequence = torch.load(filepath)
+        sequence = torch.load(filepath, weights_only=False)
         prev_pred = None
         change_steps = []
 
@@ -110,10 +111,12 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
         if verbose:
             print(f"Processed: {fname} | Changes: {change_steps}")
 
+    serializable_dict = {f"{i},{j}": val for (i, j), val in changes_dict.items()}
+
     # optionally save dict
-    if output_dir & output_fname:
+    if output_dir:
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, output_fname), "w") as f:
-            json.dump(changes_dict, f, indent=2)
+            json.dump(serializable_dict, f, indent=2)
 
-    return changes_dict
+    return serializable_dict

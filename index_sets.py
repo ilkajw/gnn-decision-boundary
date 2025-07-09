@@ -30,7 +30,7 @@ def graph_index_pairs_same_class(dataset_name,
 
     # filter graph indexes, if only correctly classified graphs should be considered
     if correctly_classified_only:
-        correct_idxs, _, _ = graphs_correctly_classified(dataset_name)
+        correct_idxs = graphs_correctly_classified(dataset_name)
         idxs = correct_idxs
     else:
         idxs = list(map(int, predictions.keys()))
@@ -68,7 +68,7 @@ def graph_index_pairs_diff_class(dataset_name,
 
     # filter graph indexes, if only correctly classified graphs should be considered
     if correctly_classified_only:
-        correct_idxs, _, _ = graphs_correctly_classified(dataset_name)
+        correct_idxs = graphs_correctly_classified(dataset_name)
         idxs = correct_idxs
     else:
         idxs = list(map(int, predictions.keys()))
