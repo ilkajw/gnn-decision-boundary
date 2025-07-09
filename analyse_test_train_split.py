@@ -3,8 +3,11 @@ import json
 import os
 
 import numpy as np
-from config import DATASET_NAME
+from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
+
+
 if __name__ == "__main__":
+    # todo: add analysis of num changes per edit step
 
     save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_train_vs_test_split.json"
 
@@ -21,13 +24,18 @@ if __name__ == "__main__":
     train_set = set(split["train_idx"])
     test_set = set(split["test_idx"])
 
+    if CORRECTLY_CLASSIFIED_ONLY:
+        pass
+        # todo: filter train_set, test_set for correctly classified source, target.
+        #  delete filtering from sam/doff class idx set functions
+
     change_counts = {
         'train_train': [],
         'test_test': [],
         'train_test': []
     }
 
-    # calculate number of changes in paths belonging to train_train, test_test, train_test
+    # calculate number of changes in paths belonging to either train_train, test_test, train_test
     for pair_str, steps in changes_dict.items():
         i, j = map(int, pair_str.split(","))
 
@@ -42,17 +50,17 @@ if __name__ == "__main__":
 
     # stats: num data points, mean, std
     stats_changes_per_path = {
-        'train_train': {'num pairs': len(change_counts['train_train']),
-                        'mean': np.mean(change_counts['train_train']) if change_counts['train_train'] else 0,
-                        'std': np.std(change_counts['train_train']) if change_counts['train_train'] else 0},
+        'train_train': {'num_paths': len(change_counts['train_train']),
+                        'mean': float(np.mean(change_counts['train_train'])) if change_counts['train_train'] else 0,
+                        'std': float(np.std(change_counts['train_train'])) if change_counts['train_train'] else 0},
 
-        'test_test': {'num pairs': len(change_counts['test_test']) ,
-                      'mean': np.mean(change_counts['test_test']) if change_counts['test_test'] else 0,
-                      'std': np.std(change_counts['test_test']) if change_counts['test_test'] else 0},
+        'test_test': {'num_paths': len(change_counts['test_test']) ,
+                      'mean': float(np.mean(change_counts['test_test'])) if change_counts['test_test'] else 0,
+                      'std': float(np.std(change_counts['test_test'])) if change_counts['test_test'] else 0},
 
-        'train_test': {'num pairs': len(change_counts['train_test']),
-                       'mean': np.mean(change_counts['train_test']) if change_counts['train_test'] else 0,
-                       'std': np.std(change_counts['train_test']) if change_counts['train_test'] else 0}
+        'train_test': {'num_paths': len(change_counts['train_test']),
+                       'mean': float(np.mean(change_counts['train_test'])) if change_counts['train_test'] else 0,
+                       'std': float(np.std(change_counts['train_test'])) if change_counts['train_test'] else 0}
     }
 
     print(stats_changes_per_path)

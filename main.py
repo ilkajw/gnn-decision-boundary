@@ -2,20 +2,18 @@ from predict import *
 from edit_path_graphs import *
 from train import train_and_choose_model
 from analyse import *
-from index_sets import *
+
 
 if __name__ == "__main__":
 
     dataset = TUDataset(root=ROOT, name=DATASET_NAME)
 
-    # todo: this is only temporary. find better logic to access parts of the pipeline
+    # todo: this is only temporary. add suitable logic to structure the pipeline/access parts of the pipeline
     train_model = False
     dataset_predict = False
     calc_edit_path_graphs = False
     edit_path_predict = False
     add_meta_data = False
-
-    # todo: where to get edit distance for pairs from? needed to analyse the occurence of class flips
 
     if train_model:
         train_and_choose_model(dataset=dataset,
@@ -34,7 +32,7 @@ if __name__ == "__main__":
                                       seed=42,
                                       data_dir=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
                                       output_dir=f"data/{DATASET_NAME}/pyg_edit_path_graphs",
-                                      fully_connected_only=True)
+                                      fully_connected_only=FULLY_CONNECTED_ONLY)
     if edit_path_predict:
         pred_dict = edit_path_predictions(dataset_name=DATASET_NAME,
                                           model_path="model/model.pt",
@@ -56,5 +54,3 @@ if __name__ == "__main__":
                                     output_dir=f"data/{DATASET_NAME}/predictions",
                                     output_fname=f"{DATASET_NAME}_changes_per_path.json",
                                     verbose=True)
-
-

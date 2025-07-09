@@ -9,7 +9,8 @@ def graphs_correctly_classified(dataset_name):
 
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
-
+    # todo: not very intuitive for this to happen in this function.
+    #  better add filtering into scripts
     correct_idxs = [int(i) for i, entry in predictions.items() if entry["correct"]]
 
     return correct_idxs

@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
-
+from config import FULLY_CONNECTED_ONLY
 
 def generate_all_edit_path_graphs(data_dir,
                                   output_dir,

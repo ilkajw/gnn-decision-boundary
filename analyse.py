@@ -6,7 +6,7 @@ import torch
 from collections import defaultdict
 
 
-def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=None, verbose=False):
+def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=None):
 
     """
     Counts class changes at each edit step across all edit path sequences with predictions.
@@ -43,9 +43,6 @@ def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=N
                 class_changes_per_step[g.edit_step] += 1
 
             prev_pred = pred
-
-        if verbose:
-            print(f"Processed: {fname}")
 
     changes_dict = dict(class_changes_per_step)
     serializable_dict = {str(k): v for k, v in changes_dict.items()}

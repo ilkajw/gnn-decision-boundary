@@ -2,7 +2,6 @@ import torch.nn.functional as func
 import random
 import numpy as np
 
-from evaluate import *
 from predict import *
 from edit_path_graphs import *
 from sklearn.model_selection import StratifiedKFold
@@ -23,7 +22,21 @@ def train_epoch(model, loader, optimizer, device):
     return total_loss / len(loader)  # average loss over batches
 
 
-def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname):
+# evaluate accuracy on original dataset
+def evaluate_accuracy(model, loader, device):
+    model.eval()
+    correct = 0
+    with torch.no_grad():
+        for data in loader:
+            data = data.to(device)
+            out = model(data.x, data.edge_index, data.batch)
+            probs = torch.sigmoid(out.view(-1))
+            pred = (probs > 0.5).long()
+            correct += (pred == data.y).sum().item()
+    return correct / len(loader.dataset)  # return accuracy
+
+
+def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname, verbose=False):
 
     """Trains a GAT network with k-fold cross validation on MUTAG.
     Saves the best performing model over all folds and epochs.
@@ -46,7 +59,8 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), labels)):
 
-        print(f"\n--- fold {fold + 1} ---")
+        if verbose:
+            print(f"\n--- fold {fold + 1} ---")
 
         # split dataset in train and test set
         train_dataset = dataset[train_idx.tolist()]
@@ -72,16 +86,16 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
             loss = train_epoch(model, train_loader, optimizer, device)
             acc = evaluate_accuracy(model, test_loader, device)
             epoch_test_accuracies.append(acc)
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch: 03d} | loss: {loss: .4f} | epoch {epoch: 03d} | acc: {acc: .4f}")
+            if verbose:
+                if epoch % 10 == 0:
+                    print(f"Epoch {epoch: 03d} | loss: {loss: .4f} | epoch {epoch: 03d} | acc: {acc: .4f}")
 
             # track best model over folds and epochs
             if acc > best_acc:
-                print(f"\n New best is model trained over fold {fold + 1} in epoch {epoch} with acc {acc: .4f}")
+                if verbose:
+                    print(f"\n New best is model trained over fold {fold + 1} in epoch {epoch} with acc {acc: .4f}")
                 best_acc = acc
                 best_model_state = model.state_dict()
-                best_fold = fold + 1
-                best_epoch = epoch
                 best_split = {'train_idx': train_idx.tolist(),
                               'test_idx': test_idx.tolist(),
                               'fold': fold + 1,
@@ -90,10 +104,8 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         # evaluate model trained over full fold
         final_acc = evaluate_accuracy(model, test_loader, device)
         accuracies.append(final_acc)
-        print(f"Fold {fold + 1} | Accuracy: {acc: .4f}")
-
-    mean_acc = np.mean(accuracies)
-    std_acc = np.std(accuracies)
+        if verbose:
+            print(f"Fold {fold + 1} | Accuracy: {acc: .4f}")
 
     # save best model
     os.makedirs(output_dir, exist_ok=True)
@@ -108,12 +120,14 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
     # log k-cv training statistics
     log = {
         "fold_accuracies": [float(a) for a in accuracies],
-        "mean_accuracy": mean_acc,
-        "std_accuracy": std_acc,
+        "mean_accuracy": np.mean(accuracies),
+        "std_accuracy": np.std(accuracies),
         "best_model": best_split
     }
     log_path = f"{output_dir}/{log_fname}"
     with open(log_path, "w") as f:
         json.dump(log, f, indent=2)
 
-    print(f"\n Average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
+    if verbose:
+        print(f"\n Average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
+        
