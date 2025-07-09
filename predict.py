@@ -31,8 +31,6 @@ def dataset_predictions(dataset_name,
     model.eval()
 
     predictions = {}
-    correct_class_0 = {}
-    correct_class_1 = {}
 
     for idx, data in enumerate(loader):
         data = data.to(device)
@@ -47,13 +45,6 @@ def dataset_predictions(dataset_name,
             'pred_label': int(pred.item()),
             'correct': bool(correct)
         }
-        # separate correctly classified graphs
-        if correct:
-            # todo: potentially return lists. right now, nothing happens. define how logic works with indices
-            if true == 0:
-                correct_class_0[idx] = predictions[idx]
-            elif true == 1:
-                correct_class_1[idx] = predictions[idx]
 
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, output_fname)

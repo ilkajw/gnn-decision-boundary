@@ -2,9 +2,7 @@ from predict import *
 from edit_path_graphs import *
 from train import train_and_choose_model
 
-
 if __name__ == "__main__":
-
     dataset_name = 'MUTAG'
     dataset = TUDataset(root=ROOT, name=dataset_name)
 
@@ -15,8 +13,8 @@ if __name__ == "__main__":
                            log_fname="log.json")
 
     dataset_predictions(dataset_name=dataset_name,
-                        output_dir = f"data/{dataset_name}/predictions/",
-                        output_fname = f"{dataset_name}_predictions.json",
+                        output_dir=f"data/{dataset_name}/predictions/",
+                        output_fname=f"{dataset_name}_predictions.json",
                         model_path="model/model.pt")
 
     generate_and_save_all_edit_path_graphs(db_name=dataset_name,
@@ -31,7 +29,8 @@ if __name__ == "__main__":
                                       output_dir=f"data/{dataset_name}/predictions",
                                       output_fname=f"{dataset_name}_edit_path_predictions.json")
 
-    add_metadata_to_edit_path_predictions(pred_dict_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions.json",
-                                          base_pred_path=f"data/{dataset_name}/predictions/{dataset_name}_predictions.json",
-                                          split_path=f"model/best_split.json",
-                                          output_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions_metadata.json")
+    add_metadata_to_edit_path_predictions(
+        pred_dict_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions.json",
+        base_pred_path=f"data/{dataset_name}/predictions/{dataset_name}_predictions.json",
+        split_path=f"model/best_split.json",
+        output_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions_metadata.json")
