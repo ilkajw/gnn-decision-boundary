@@ -11,10 +11,10 @@ if __name__ == "__main__":
     dataset_predict = False
     edit_path_graph = False
     edit_path_predict = False
-    meta_data = False
+    add_meta_data = False
 
     # todo: add logic to check if data exists, else calculate
-    # todo: where to get edit distance for pairs from?
+    # todo: where to get edit distance for pairs from? needed to analyse where class flips happen
     if training:
         train_and_choose_model(dataset=dataset,
                                output_dir="model",
@@ -40,7 +40,7 @@ if __name__ == "__main__":
                                           output_dir=f"data/{dataset_name}/predictions",
                                           output_fname=f"{dataset_name}_edit_path_predictions.json")
 
-    if meta_data:
+    if add_meta_data:
         add_metadata_to_edit_path_predictions(pred_dict_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions.json",
                                               base_pred_path=f"data/{dataset_name}/predictions/{dataset_name}_predictions.json",
                                               split_path=f"model/best_split.json",
@@ -57,7 +57,9 @@ if __name__ == "__main__":
                                     verbose=True)
 
     graph_index_pairs_diff_class(dataset_name=dataset_name,
-                                 correctly_classified_only=True)
+                                 correctly_classified_only=True,
+                                 save_path=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs_diff_class.json")
 
     graph_index_pairs_same_class(dataset_name=dataset_name,
-                                 correctly_classified_only=True)
+                                 correctly_classified_only=True,
+                                 save_path=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs_same_class.json")

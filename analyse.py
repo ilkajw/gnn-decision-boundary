@@ -101,7 +101,7 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
             pred = getattr(g, "prediction", None)
 
             if prev_pred is not None and pred != prev_pred:
-                change_steps.append((step, pred))
+                change_steps.append((g.edit_step, pred))
 
             prev_pred = pred
 
