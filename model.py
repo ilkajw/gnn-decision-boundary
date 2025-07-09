@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv, global_add_pool
 
 
-# GAT model using GATv2 layers
+# GAT model using GATv2 layers for dynamic attention
 class GAT(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, heads=4, dropout=0.5):
         super().__init__()
@@ -17,16 +17,14 @@ class GAT(torch.nn.Module):
 
     def forward(self, x, edge_index, batch):
 
-        # todo: use elu like in original paper
-
-        # gatv2 layers with relu activation
-        x = F.relu(self.gat1(x, edge_index))
+        # GATv2 layers with relu activation
+        x = F.elu(self.gat1(x, edge_index))
         x = F.dropout(x, p=self.dropout, training=self.training)
-        x = F.relu(self.gat2(x, edge_index))
+        x = F.elu(self.gat2(x, edge_index))
         x = F.dropout(x, p=self.dropout, training=self.training)
-        x = F.relu(self.gat3(x, edge_index))
+        x = F.elu(self.gat3(x, edge_index))
         x = F.dropout(x, p=self.dropout, training=self.training)
-        x = F.relu(self.gat4(x, edge_index))
+        x = F.elu(self.gat4(x, edge_index))
         # readout: sum pooling
         x = global_add_pool(x, batch)
         return self.lin(x)

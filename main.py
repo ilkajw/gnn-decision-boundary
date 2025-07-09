@@ -108,27 +108,30 @@ if __name__ == "__main__":
     dataset_name = 'MUTAG'
     dataset = TUDataset(root=ROOT, name=dataset_name)
 
-    # train_and_choose_model(dataset=dataset,
-    #                       output_dir="model",
-    #                       model_fname="model.pt",
-    #                       split_fname="best_split.json",
-    #                       log_fname="log.json")
+    train_and_choose_model(dataset=dataset,
+                           output_dir="model",
+                           model_fname="model.pt",
+                           split_fname="best_split.json",
+                           log_fname="log.json")
 
-    # mutag_predictions(model_path="model/model.pt",
-    #                  output_path="data/predictions/mutag_predictions.json")
+    dataset_predictions(dataset_name=dataset_name,
+                        output_dir = f"data/{dataset_name}/predictions/",
+                        output_fname = f"{dataset_name}_predictions.json",
+                        model_path="model/model.pt")
 
     generate_and_save_all_edit_path_graphs(db_name=dataset_name,
                                            seed=42,
-                                           data_dir="external/pg_gnn_edit_paths/example_paths_MUTAG",
-                                           output_dir="data/pyg_edit_path_graphs",
-                                           fully_connected=True)
+                                           data_dir=f"external/pg_gnn_edit_paths/example_paths_{dataset_name}",
+                                           output_dir=f"data/{dataset_name}/pyg_edit_path_graphs",
+                                           fully_connected_only=True)
 
-    # pred_dict = edit_path_predictions(model_path="model/model.pt",
-    #                                  input_dir="data/pyg_edit_path_graphs",
-    #                                  output_dir="predictions",
-    #                                  dataset_name=dataset_name)
+    pred_dict = edit_path_predictions(dataset_name=dataset_name,
+                                      model_path="model/model.pt",
+                                      input_dir=f"data/{dataset_name}/pyg_edit_path_graphs",
+                                      output_dir=f"data/{dataset_name}/predictions",
+                                      output_fname=f"{dataset_name}_edit_path_predictions.json")
 
-    # add_metadata_to_edit_path_predictions(pred_dict="data/pyg_edit_path_graphs",
-    #                                      base_pred_path="data/predictions/mutag_predictions.json",
-    #                                      split_path=f"model/best_split.json",
-    #                                      output_path="data/predictions/edit_paths.json")
+    add_metadata_to_edit_path_predictions(pred_dict_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions.json",
+                                          base_pred_path=f"data/{dataset_name}/predictions/{dataset_name}_predictions.json",
+                                          split_path=f"model/best_split.json",
+                                          output_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions_metadata.json")

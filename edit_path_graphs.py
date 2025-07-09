@@ -14,11 +14,11 @@ from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
 
 
-def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
+def generate_and_save_all_edit_path_graphs(data_dir,
+                                           output_dir,
+                                           db_name="MUTAG",
                                            seed=42,
-                                           data_dir="data",
-                                           output_dir="data/pyg_edit_path_graphs",
-                                           fully_connected=True):
+                                           fully_connected_only=True):
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.
@@ -31,7 +31,7 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
         seed (int): Random seed for edit path generation.
         data_dir (str): Directory where edit paths are stored.
         output_dir (str): Where to save the PyG graphs.
-        fully_connected (bool): If True, filter only connected graphs.
+        fully_connected_only (bool): If True, filter only connected graphs.
     """
 
     os.makedirs(output_dir, exist_ok=True)
@@ -53,14 +53,19 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
     num_node_classes = dataset.unique_node_labels
     print(f"Number of node classes, equivalent to size of original feature tensor: {num_node_classes} \n ")
 
-    # todo: for debugging only. delete afterwards
+    # todo: for debugging node label values only. delete afterwards
     counter = 0
     max_label = 0
 
     # create graphs from operations per (source graph, target graph)
     for (i, j), paths in edit_paths.items():
 
-        # todo: right now only 1 path per pair. if not potentially more for other datasets, delete inner loop
+        # todo: for logic testing purposes only. to prevent running into errors in label transformation from
+        #  graph pairs (0, 3) onwards
+        if i != 0 or j > 2:
+            continue
+
+        # todo: right now only 1 path per pair. if not more for other datasets, delete inner loop
         # loop through all paths between graph pairs i, j
         for ep in paths:
 
@@ -76,7 +81,7 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                 g.graph['distance'] = ep.distance
 
             # filter for fully connected graphs
-            if fully_connected:
+            if fully_connected_only:
                 sequence = [g for g in sequence if nx.is_connected(g)]
 
             # drop edge attrs, convert to pyg objects, copy metadata
@@ -84,11 +89,12 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
 
             for step, g in enumerate(sequence):
 
-                # todo: alternatively copy edge attrs from g and transform back to vectors. else check for
-                #  any use of edge attrs later on
+                # todo: alternatively use edge attrs of g too. then the loop to copy from g to g_with no_edge_attrs
+                #  is obsolete. also need to transform edge labels back to vectors to avoid when handing edge
+                #  labels to model
+
                 # strip edge attributes as not used for learning
                 g_no_edge_attrs = nx.Graph()
-
 
                 # add nodes with attr tensor x reconstructed from nx graph's scalar primary_label
                 for n, d in g.nodes(data=True):
@@ -102,23 +108,25 @@ def generate_and_save_all_edit_path_graphs(db_name="MUTAG",
                         max_label = label
 
                     # todo: causes error as label >= num_node_classes for many nodes
-                    #d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
-                    #g_no_edge_attrs.add_node(n, **d)
+                    d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
+                    print(f"DEBUG: Transformed label {label} of node {n} graph {g.graph['edit_step']} between "
+                          f"{i}, {j} into {d['x']}")
+                    g_no_edge_attrs.add_node(n, **d)
 
                 # add edges without attributes
-                #g_no_edge_attrs.add_edges_from(g.edges())
+                g_no_edge_attrs.add_edges_from(g.edges())
 
                 # convert to PyG
-                #pyg_g = from_networkx(g_no_edge_attrs)
+                pyg_g = from_networkx(g_no_edge_attrs)
 
                 # copy metadata
-                #for meta_key, meta_val in g.graph.items():
-                #    setattr(pyg_g, meta_key, meta_val)
-                #pyg_sequence.append(pyg_g)
+                for meta_key, meta_val in g.graph.items():
+                    setattr(pyg_g, meta_key, meta_val)
+                pyg_sequence.append(pyg_g)
 
-    print(f"Number of nodes with label >= {num_node_classes}: {counter} \n Max label: {max_label}")
             # save sequence to file
-            #file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
-            #torch.save(pyg_sequence, file_path)
+            file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
+            torch.save(pyg_sequence, file_path)
+            print(f"Saved pyg sequence between {i}, {j}, iteration {ep.iteration}")
 
-
+    # print(f"Number of nodes with label >= {num_node_classes}: {counter} \n Max label: {max_label}")
