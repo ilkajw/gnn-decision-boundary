@@ -56,13 +56,4 @@ if __name__ == "__main__":
                                     output_fname=f"{dataset_name}_changes_per_path.json",
                                     verbose=True)
 
-    # todo: check if this is actually needed. the info in source/target class and split is in the predictions dictionary
 
-
-    graph_index_pairs_diff_class(dataset_name=dataset_name,
-                                 correctly_classified_only=True,
-                                 save_path=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs_diff_class.json")
-
-    graph_index_pairs_same_class(dataset_name=dataset_name,
-                                 correctly_classified_only=True,
-                                 save_path=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs_same_class.json")

@@ -7,16 +7,15 @@ from collections import defaultdict
 
 
 def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=None, verbose=False):
+
     """
     Counts class changes at each edit step across all edit path sequences with predictions.
 
     Args:
-        :param input_dir:
-        :param verbose:
-        :param output_fname:
-        :param output_dir:
-        input_dir (str): Directory containing .pt files (each a list of PyG graphs with predictions).
-        verbose (bool): If True, print debug info per file.
+    :param input_dir: Directory with .pt files containing prediction-augmented PyG graphs.
+        :param verbose: If True, print progress.
+        :param output_dir: Directory to save dictionary of number of classification changes per edit step to.
+        :param output_fname: Name of file to save to.
 
     Returns:
         dict: Mapping edit step → number of class changes at that step.
@@ -61,6 +60,7 @@ def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=N
 
 
 def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=None, verbose=False):
+
     """
     Tracks classification changes along edit paths for each graph pair.
 
@@ -68,12 +68,12 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
         (i, j) → list of (edit_step, new_class)
 
     Args:
-        input_dir (str): Directory with .pt files containing prediction-augmented PyG graphs.
-        verbose (bool): If True, print progress.
-        :param verbose:
-        :param output_fname:
-        :param output_dir:
+        :param input_dir: Directory with .pt files containing prediction-augmented PyG graphs.
+        :param verbose: If True, print progress.
+        :param output_dir: Directory to save dictionary of classification changes per sequence to.
+        :param output_fname: Name of file to save to.
     """
+
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
     changes_dict = {}
 

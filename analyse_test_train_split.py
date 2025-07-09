@@ -1,8 +1,10 @@
 import itertools
 import json
 
+import numpy as np
 
 if __name__ == "__main__":
+
     dataset_name = "MUTAG"
 
     with open("model/best_split.json") as f:
@@ -17,9 +19,7 @@ if __name__ == "__main__":
     train_set = set(split["train_idx"])
     test_set = set(split["test_idx"])
 
-    # working logic:
-
-    stats = {
+    change_counts = {
         'train_train': [],
         'test_test': [],
         'train_test': []
@@ -31,38 +31,24 @@ if __name__ == "__main__":
         num_changes = len(steps)
 
         if i in train_set and j in train_set:
-            stats['train_train'].append(num_changes)
+            change_counts['train_train'].append(num_changes)
         elif i in test_set and j in test_set:
-            stats['test_test'].append(num_changes)
+            change_counts['test_test'].append(num_changes)
         else:
-            stats['train_test'].append(num_changes)
+            change_counts['train_test'].append(num_changes)
 
-    mean_changes = {'train_train': sum(stats['train_train'])/len(stats['train_train'])}
-    print(stats)
-    print(mean_changes)
+    stats_num_changes = {
+        'train_train': {'num pairs': len(change_counts['train_train']),
+                        'mean': np.mean(change_counts['train_train']),
+                        'std': np.std(change_counts['train_train'])},
 
-    # -----------------------------------------------------------------------------
-    ''' # alternative to workings below,
-    # does not work yet due to change_dict having entries for (0,1), (0,2) only:
+        'test_test': {'num pairs': len(change_counts['test_test']),
+                      'mean': np.mean(change_counts['test_test']),
+                      'std': np.std(change_counts['test_test'])},
 
-    stats_altern = {
-        'train_train': [],
-        'test_test': [],
-        'train_test': []
+        'test_train': {'num pairs': len(change_counts['test_train']),
+                       'mean': np.mean(change_counts['test_train']),
+                       'std': np.std(change_counts['test_train'])}
     }
 
-    for (i, j) in set(itertools.combinations(train_set, 2)):
-        changes = changes_dict[f"{i},{j}"]
-        num_changes = len(changes)
-        stats_altern['train_train'].append(num_changes)
-
-    for (i, j) in set(itertools.combinations(test_set, 2)):
-        changes = changes_dict[f"{i},{j}"]
-        num_changes = len(changes)
-        stats_altern['test_test'].append(num_changes)
-
-    for (i, j) in set(itertools.product(train_set, test_set)):
-        changes = changes_dict[f"{i},{j}"]
-        num_changes = len(changes)
-        stats_altern['train_test'].append(num_changes) '''
-
+    # todo: save, test

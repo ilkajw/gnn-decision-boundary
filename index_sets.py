@@ -58,10 +58,11 @@ def graph_index_pairs_diff_class(dataset_name,
                                  correctly_classified_only=True,
                                  save_path=None):
     """
-    Returns all index pairs (i, j) from MUTAG where the graphs are of different class.
+    Returns all index pairs (i, j) from MUTAG where the graphs are of different classes.
     If correctly_classified_only is True, only include graphs correctly classified by the model.
     Optionally saves the result to a JSON file.
     """
+
     # read in predictions of our model on MUTAG graphs
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
