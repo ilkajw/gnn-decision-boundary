@@ -12,8 +12,7 @@ def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=N
     Counts class changes at each edit step across all edit path sequences with predictions.
 
     Args:
-    :param input_dir: Directory with .pt files containing prediction-augmented PyG graphs.
-        :param verbose: If True, print progress.
+        :param input_dir: Directory with .pt files containing prediction-augmented PyG graphs.
         :param output_dir: Directory to save dictionary of number of classification changes per edit step to.
         :param output_fname: Name of file to save to.
 

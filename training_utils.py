@@ -37,11 +37,21 @@ def evaluate_accuracy(model, loader, device):
 
 
 def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname, verbose=False):
+    """
+    Trains a GAT network with k-fold cross validation on MUTAG.
+        Saves the best performing model over all folds and epochs.
+        Logs the best model's training accuracy, training and test split, as well as the test accuracies and
+        standard deviation over all folds.
 
-    """Trains a GAT network with k-fold cross validation on MUTAG.
-    Saves the best performing model over all folds and epochs.
-    Logs the best model's training accuracy, training and test split, as well as the test accuracies and
-    standard deviation over all folds."""
+        Args:
+            :param dataset: Graph dataset to fit model to.
+            :param output_dir: Directory to save weights of best performing model, train and test split the best performing model was trained on,
+             and k-fold cross validation training statistics to.
+            :param model_fname: Name of file to save weights of best performing model to.
+            :param split_fname: Name of file to save training and test split to.
+            :param log_fname: Name of file to save k-fold cross validation training statistics.
+            :param verbose: If True, training progress is printed.
+    """
 
     torch.manual_seed(42)
     np.random.seed(42)
