@@ -1,6 +1,8 @@
 from predict import *
 from edit_path_graphs import *
 from train import train_and_choose_model
+from analyse import *
+from index_sets import *
 
 if __name__ == "__main__":
     dataset_name = 'MUTAG'
@@ -34,3 +36,19 @@ if __name__ == "__main__":
         base_pred_path=f"data/{dataset_name}/predictions/{dataset_name}_predictions.json",
         split_path=f"model/best_split.json",
         output_path=f"data/{dataset_name}/predictions/{dataset_name}_edit_path_predictions_metadata.json")
+
+    count_class_changes_per_edit_step(input_dir=f"/data/{dataset_name}/predictions/edit_path_graphs_with_predictions",
+                                      output_dir=f"/data/{dataset_name}/predictions",
+                                      output_fname=f"{dataset_name}_changes_per_edit_step.json",
+                                      verbose=True)
+
+    get_class_change_steps_per_pair(input_dir=f"/data/{dataset_name}/predictions/edit_path_graphs_with_predictions",
+                                    output_dir=f"/data/{dataset_name}/predictions",
+                                    output_fname=f"{dataset_name}_changes_per_graph_pair.json",
+                                    verbose=True)
+
+    graph_index_pairs_diff_class(dataset_name=dataset_name,
+                                 correctly_classified_only=True)
+
+    graph_index_pairs_same_class(dataset_name=dataset_name,
+                                 correctly_classified_only=True)

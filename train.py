@@ -1,13 +1,14 @@
 import torch.nn.functional as func
 import random
 import numpy as np
-from train import train
+
 from evaluate import *
 from predict import *
 from edit_path_graphs import *
 from sklearn.model_selection import StratifiedKFold
 
-def train(model, loader, optimizer, device):
+
+def train_epoch(model, loader, optimizer, device):
     model.train()
     total_loss = 0
     # train per batch
@@ -68,7 +69,7 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         epoch_test_accuracies = []
         for epoch in range(1, EPOCHS + 1):
             # train and evaluate training step
-            loss = train(model, train_loader, optimizer, device)
+            loss = train_epoch(model, train_loader, optimizer, device)
             acc = evaluate_accuracy(model, test_loader, device)
             epoch_test_accuracies.append(acc)
             if epoch % 10 == 0:

@@ -55,7 +55,7 @@ def graph_index_pairs_same_class(dataset_name,
 
 
 def graph_index_pairs_diff_class(dataset_name,
-                                 correctly_classified_only=False,
+                                 correctly_classified_only=True,
                                  save_path=None):
     """
     Returns all index pairs (i, j) from MUTAG where the graphs are of different class.
