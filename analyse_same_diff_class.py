@@ -6,7 +6,9 @@ from analyse_utils import *
 
 if __name__ == "__main__":
 
-    # todo: change to jupyter notebook
+    # todo: change to jupyter notebook?
+    #  differentiate between class 0, class 1 vor in-class paths,
+    #  differentiate between 0->1, 1->0 for between-class paths
 
     stats_per_path_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_same_vs_diff_class.json"
     stats_per_step_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_edit_step_same_vs_diff_class.json"

@@ -4,12 +4,15 @@ import os
 
 import numpy as np
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
+from analyse_utils import count_class_changes_per_edit_step
 
 
 if __name__ == "__main__":
-    # todo: add analysis of num changes per edit step
 
-    save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_train_vs_test_split.json"
+    # todo: change to jupyter notebook?
+
+    per_path_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_train_vs_test_split.json"
+    per_step_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_edit_step_train_vs_test_split.json"
 
     with open("model/best_split.json") as f:
         split = json.load(f)
@@ -17,7 +20,7 @@ if __name__ == "__main__":
     with open(f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_edit_path_predictions.json", "r") as f:
         predictions = json.load(f)
 
-    with open(f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_changes_per_path.json") as f:
+    with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json") as f:
         changes_dict = json.load(f)
 
     # create index sets of train and test graphs
@@ -27,13 +30,21 @@ if __name__ == "__main__":
     if CORRECTLY_CLASSIFIED_ONLY:
         pass
         # todo: filter train_set, test_set for correctly classified source, target.
-        #  delete filtering from sam/diff class idx set functions
+        #  delete filtering from same/diff class idx set functions
+
+    # sets of indices
+    train_train_pairs = {tuple(sorted((i, j))) for i, j in itertools.combinations(train_set, 2)}
+    test_test_pairs = {tuple(sorted((i, j))) for i, j in itertools.combinations(test_set, 2)}
+    train_test_pairs = {tuple(sorted((i, j))) for i, j in itertools.product(train_set, test_set) if i != j}
 
     change_counts = {
         'train_train': [],
         'test_test': [],
         'train_test': []
     }
+
+    # -------------------------------------------------------------------------------------------------------------------
+    # PER PATH ANALYSIS
 
     # calculate number of changes in paths belonging to either train_train, test_test, train_test
     for pair_str, steps in changes_dict.items():
@@ -66,6 +77,27 @@ if __name__ == "__main__":
     print(stats_changes_per_path)
 
     # save
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    with open(save_path, "w") as f:
+    os.makedirs(os.path.dirname(per_path_save_path), exist_ok=True)
+    with open(per_path_save_path, "w") as f:
         json.dump(stats_changes_per_path, f, indent=2)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # PER STEP ANALYSIS
+
+    changes_per_step_train_train = count_class_changes_per_edit_step(
+        idx_pairs_set=train_train_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_train_train.json")
+
+    changes_per_step_test_test = count_class_changes_per_edit_step(
+        idx_pairs_set=test_test_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_test_test.json")
+
+    changes_per_step_test_test = count_class_changes_per_edit_step(
+        idx_pairs_set=test_test_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_train_test.json")
