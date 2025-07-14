@@ -14,10 +14,11 @@ from config import DATASET_NAME
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
-def get_distance_per_pair(output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"):
+def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
+                          output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"):
 
     edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
-                                           file_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}")
+                                           file_path=input_path)
     distances = {}
 
     for (i, j), path_list in edit_paths.items():
@@ -32,7 +33,7 @@ def get_distance_per_pair(output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NA
     return distances
 
 
-def count_class_changes_per_edit_step(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
+def get_class_changes_per_edit_step(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
 
     """
     Counts class changes at each edit step across all edit path sequences with predictions.
@@ -87,7 +88,77 @@ def count_class_changes_per_edit_step(idx_pairs_set, input_dir, output_dir=None,
     serializable_dict = {str(k): v for k, v in changes_dict.items()}  # to save with json
 
     # optionally save dict
-    if output_dir:
+    if output_dir is not None and output_fname is not None:
+        os.makedirs(output_dir, exist_ok=True)
+        with open(os.path.join(output_dir, output_fname), "w") as f:
+            json.dump(serializable_dict, f, indent=2)
+
+    return serializable_dict
+
+
+def get_class_changes_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
+
+    """
+    Counts class changes at each edit step across all edit path sequences with predictions.
+
+    Args:
+        :param input_dir: Directory with .pt files containing prediction-augmented PyG graphs.
+        :param output_dir: Directory to save dictionary of number of classification changes per edit step to.
+        :param output_fname: Name of file to save to.
+
+    Returns:
+        dict: Mapping edit step → number of class changes at that step.
+
+    """
+
+    # load precalculated dict (i,j) -> edit distance
+    with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json") as f:
+        distances = json.load(f)
+
+    # initialize dict to store number of class changes per decile
+    class_changes_per_decile = {decile: 0 for decile in range(10)}
+
+    pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
+
+    for fname in os.listdir(input_dir):
+        if not fname.endswith(".pt"):
+            continue
+
+        match = pattern.match(fname)
+        if not match:
+            continue
+
+        i, j = int(match.group(1)), int(match.group(2))
+
+        # filter for graph pairs from the given index set only
+        if (i, j) not in idx_pairs_set and (j, i) not in idx_pairs_set:
+            continue
+
+        # load sequence of graphs between i, j with their predictions
+        filepath = os.path.join(input_dir, fname)
+        sequence = torch.load(filepath, weights_only=False)
+        prev_pred = None
+
+        # loop through sequence of predicted graphs and track predictions changes
+        for step, g in enumerate(sequence):
+
+            pred = getattr(g, "prediction", None)
+            if pred is None:
+                print(f"Graph without prediction at edit step {g.edit_step} in {fname}")
+                continue
+
+            if prev_pred is not None and pred != prev_pred:
+                rel_step = g.edit_step/distances[f"{i},{j}"]
+                decile = int(min(rel_step * 10, 9))
+                class_changes_per_decile[decile] += 1
+
+            prev_pred = pred
+
+    # make keys strings
+    serializable_dict = {str(k): v for k, v in class_changes_per_decile.items()}
+
+    # optionally save dict
+    if output_dir is not None and output_fname is not None:
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, output_fname), "w") as f:
             json.dump(serializable_dict, f, indent=2)
