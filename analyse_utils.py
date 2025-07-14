@@ -1,12 +1,38 @@
-import json
+import sys
 import os
+
+# add submodule root to Python path
+submodule_path = os.path.abspath("external")
+if submodule_path not in sys.path:
+    sys.path.insert(0, submodule_path)
+
+import json
 import re
 import torch
-
 from collections import defaultdict
+from config import DATASET_NAME
+from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
-def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=None):
+def get_distance_per_pair(output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"):
+
+    edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
+                                           file_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}")
+    distances = {}
+
+    for (i, j), path_list in edit_paths.items():
+
+        if path_list:
+            distances[f"{i},{j}"] = path_list[0].distance  # or average/multiple if needed
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(distances, f, indent=2)
+
+    return distances
+
+
+def count_class_changes_per_edit_step(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
 
     """
     Counts class changes at each edit step across all edit path sequences with predictions.
@@ -23,14 +49,28 @@ def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=N
 
     class_changes_per_step = defaultdict(int)
 
+    pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
+
     for fname in os.listdir(input_dir):
         if not fname.endswith(".pt"):
             continue
 
+        match = pattern.match(fname)
+        if not match:
+            continue
+
+        # filter for graph pairs from the index set only (same/diff class or test/train split)
+        i, j = int(match.group(1)), int(match.group(2))
+
+        if (i, j) not in idx_pairs_set and (j, i) not in idx_pairs_set:
+            continue
+
+        # load sequence of graphs with their predictions
         filepath = os.path.join(input_dir, fname)
         sequence = torch.load(filepath, weights_only=False)
         prev_pred = None
 
+        # loop through sequence of predicted graphs and track predictions changes
         for step, g in enumerate(sequence):
 
             pred = getattr(g, "prediction", None)
@@ -44,7 +84,7 @@ def count_class_changes_per_edit_step(input_dir, output_dir=None, output_fname=N
             prev_pred = pred
 
     changes_dict = dict(class_changes_per_step)
-    serializable_dict = {str(k): v for k, v in changes_dict.items()}
+    serializable_dict = {str(k): v for k, v in changes_dict.items()}  # to save with json
 
     # optionally save dict
     if output_dir:
@@ -77,6 +117,7 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
         if not fname.endswith(".pt"):
             continue
 
+        # extract indices from existing files of predicted graph sequences
         match = pattern.match(fname)
         if not match:
             continue
@@ -88,6 +129,7 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
         prev_pred = None
         change_steps = []
 
+        # loop through each sequence from i to j and track at which steps changes happen to which class
         for step, g in enumerate(sequence):
 
             if not hasattr(g, "prediction"):
@@ -114,5 +156,19 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, output_fname), "w") as f:
             json.dump(serializable_dict, f, indent=2)
+        print("Saved changes per pair dict")
 
     return serializable_dict
+
+
+def get_num_changes_per_path(pairs, changes_dict):
+    counts = []
+    for i, j in pairs:
+        key = f"{i},{j}"
+        if key in changes_dict:
+            counts.append(len(changes_dict[key]))
+        elif f"{j},{i}" in changes_dict:  # in case direction was flipped
+            counts.append(len(changes_dict[f"{j},{i}"]))
+        else:
+            continue
+    return counts

@@ -47,10 +47,6 @@ if __name__ == "__main__":
                                               split_path=f"model/best_split.json",
                                               output_path=f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_edit_path_predictions_metadata.json")
 
-    count_class_changes_per_edit_step(input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-                                      output_dir=f"data/{DATASET_NAME}/analysis",
-                                      output_fname=f"{DATASET_NAME}_changes_per_edit_step.json")
-
     get_class_change_steps_per_pair(input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
                                     output_dir=f"data/{DATASET_NAME}/analysis",
                                     output_fname=f"{DATASET_NAME}_changes_per_path.json")

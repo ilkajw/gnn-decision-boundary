@@ -68,8 +68,6 @@ def generate_all_edit_path_graphs(data_dir,
         if i != 0 or j > 2:
             continue
 
-        # todo: right now only 1 path per pair. if not more for other datasets, delete inner loop
-        # loop through all paths between graph pairs i, j
         for ep in paths:
 
             # create edit path graph sequence for path iteration between i, j

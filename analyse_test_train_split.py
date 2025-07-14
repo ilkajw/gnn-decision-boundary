@@ -27,7 +27,7 @@ if __name__ == "__main__":
     if CORRECTLY_CLASSIFIED_ONLY:
         pass
         # todo: filter train_set, test_set for correctly classified source, target.
-        #  delete filtering from sam/doff class idx set functions
+        #  delete filtering from sam/diff class idx set functions
 
     change_counts = {
         'train_train': [],
