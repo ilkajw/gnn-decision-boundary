@@ -1,5 +1,5 @@
-from predict import *
-from edit_path_graphs import *
+from predict_utils import *
+from edit_path_graphs_utils import *
 from training_utils import train_and_choose_model
 from analyse_utils import *
 

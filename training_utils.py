@@ -2,8 +2,8 @@ import torch.nn.functional as func
 import random
 import numpy as np
 
-from predict import *
-from edit_path_graphs import *
+from predict_utils import *
+from edit_path_graphs_utils import *
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -140,4 +140,3 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
 
     if verbose:
         print(f"\n Average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
-        
