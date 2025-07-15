@@ -52,7 +52,6 @@ def generate_all_edit_path_graphs(data_dir,
 
     # for reconstruction of node feature tensor x
     num_node_classes = dataset.unique_node_labels
-    print(f"Number of node classes, equivalent to size of original feature tensor: {num_node_classes} \n ")
 
     # todo: for debugging node label values only. delete afterwards
     counter = 0
@@ -65,8 +64,8 @@ def generate_all_edit_path_graphs(data_dir,
         #  the next block is for logic testing purposes only.
         #  to prevent running into errors in label transformation from graph pairs (0, 3) onwards.
         #  to see error comment out this block:
-        if i != 0 or j > 2:
-            continue
+        #if i != 0 or j > 2:
+        #    continue
 
         for ep in paths:
 
@@ -108,10 +107,10 @@ def generate_all_edit_path_graphs(data_dir,
                         max_label = label
 
                     # todo: causes error as label >= num_node_classes for many nodes.
-                    #  to prevent error and get info on all nodes with labels >= 7, comment out the following line:
+                    #  to prevent error and get info on all nodes with labels >= 7, comment out the following lines:
                     d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
-                    print(f"DEBUG: Transformed label {label} of node {n} graph {g.graph['edit_step']} between "
-                          f"{i}, {j} into {d['x']}")
+                    #print(f"DEBUG: Transformed label {label} of node {n} graph {g.graph['edit_step']} between "
+                    #      f"{i}, {j} into {d['x']}")
                     g_no_edge_attrs.add_node(n, **d)
 
                 # add edges without attributes
@@ -128,6 +127,7 @@ def generate_all_edit_path_graphs(data_dir,
             # save sequence to file
             file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
-            print(f"Saved pyg sequence between {i}, {j}, iteration {ep.iteration}")
+            # print(f"Saved pyg sequence between {i}, {j}, iteration {ep.iteration}")
 
-    # print(f"Number of nodes with label >= {num_node_classes}: {counter} \n Max label: {max_label}")
+    #print(f"Number of node classes, equivalent to size of original feature tensor: {num_node_classes} \n ")
+    #print(f"Number of nodes with label >= {num_node_classes}: {counter} \n Max label: {max_label}")

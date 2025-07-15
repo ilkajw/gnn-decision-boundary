@@ -14,11 +14,11 @@ if __name__ == "__main__":
     stats_per_step_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_edit_step_same_vs_diff_class.json"
 
     # get all index pairs of same and different classes
-    same_class_pairs = graph_index_pairs_diff_class(dataset_name=DATASET_NAME,
+    diff_class_pairs = graph_index_pairs_diff_class(dataset_name=DATASET_NAME,
                                                     correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
                                                     save_path=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs_diff_class.json")
 
-    diff_class_pairs = graph_index_pairs_same_class(dataset_name=DATASET_NAME,
+    same_class_pairs = graph_index_pairs_same_class(dataset_name=DATASET_NAME,
                                                     correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
                                                     save_path=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs_same_class.json")
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             "std": float(np.std(same_class_changes)) if same_class_changes else 0
         },
         "diff_class": {
-            "count": len(diff_class_changes),
+            "num_paths": len(diff_class_changes),
             "mean": float(np.mean(diff_class_changes)) if diff_class_changes else 0,
             "std": float(np.std(diff_class_changes)) if diff_class_changes else 0
         }

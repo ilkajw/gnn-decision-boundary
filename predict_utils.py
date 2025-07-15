@@ -124,7 +124,7 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
         # todo: rethink if putting pred to metadata and saving is necessary or if saving prediction dict is sufficient
         # save predictions as metadata for graphs
         torch.save(updated_sequence, os.path.join(output_dir, "edit_path_graphs_with_predictions", filename))
-
+        print(f"Saved preds for file {filename} ")
     # save predictions dict
     with open(os.path.join(output_dir, output_fname), "w") as f:
         json.dump(predictions, f, indent=2)
