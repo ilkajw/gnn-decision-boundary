@@ -33,7 +33,7 @@ if __name__ == "__main__":
                                       seed=42,
                                       data_dir=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
                                       output_dir=f"data/{DATASET_NAME}/pyg_edit_path_graphs",
-                                      fully_connected_only=False)
+                                      fully_connected_only=FULLY_CONNECTED_ONLY)
     if predict_edit_paths:
         pred_dict = edit_path_predictions(dataset_name=DATASET_NAME,
                                           model_path="model/model.pt",
