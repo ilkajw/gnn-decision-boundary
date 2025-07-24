@@ -9,7 +9,7 @@ if __name__ == "__main__":
     #       differentiate between class 0, class 1 vor in-class paths,
     #       differentiate between 0->1, 1->0 for between-class paths,
     #       calculate percentage of steps per decile
-
+    # test test
     stats_per_path_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_same_vs_diff_class.json"
     stats_per_step_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_edit_step_same_vs_diff_class.json"
 
@@ -18,9 +18,10 @@ if __name__ == "__main__":
                                                     correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
                                                     save_path=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs_diff_class.json")
 
-    same_class_pairs = graph_index_pairs_same_class(dataset_name=DATASET_NAME,
-                                                    correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
-                                                    save_path=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs_same_class.json")
+    same_class_pairs, same_class_0_pairs, same_class_1_pairs = graph_index_pairs_same_class(
+        dataset_name=DATASET_NAME,
+        correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
+        save_dir=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs")
 
     if CORRECTLY_CLASSIFIED_ONLY:
         pass
@@ -45,6 +46,8 @@ if __name__ == "__main__":
     # belonging to same or different classes
 
     same_class_changes = get_num_changes_per_path(same_class_pairs, changes_per_path_dict)
+    same_class_0_changes = get_num_changes_per_path(same_class_0_pairs, changes_per_path_dict)
+    same_class_1_changes = get_num_changes_per_path(same_class_1_pairs, changes_per_path_dict)
     diff_class_changes = get_num_changes_per_path(diff_class_pairs, changes_per_path_dict)
 
     # calculate statistics
@@ -53,6 +56,16 @@ if __name__ == "__main__":
             "num_paths": len(same_class_changes),
             "mean": float(np.mean(same_class_changes)) if same_class_changes else 0,
             "std": float(np.std(same_class_changes)) if same_class_changes else 0
+        },
+        "same_class_0": {
+            "num_paths": len(same_class_0_changes),
+            "mean": float(np.mean(same_class_0_changes)) if same_class_0_changes else 0,
+            "std": float(np.std(same_class_0_changes)) if same_class_0_changes else 0
+        },
+        "same_class_1": {
+            "num_paths": len(same_class_1_changes),
+            "mean": float(np.mean(same_class_1_changes)) if same_class_1_changes else 0,
+            "std": float(np.std(same_class_1_changes)) if same_class_1_changes else 0
         },
         "diff_class": {
             "num_paths": len(diff_class_changes),
@@ -77,6 +90,18 @@ if __name__ == "__main__":
         output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class.json")
 
     get_class_changes_per_edit_step(
+        idx_pairs_set=same_class_0_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class_0.json")
+
+    get_class_changes_per_edit_step(
+        idx_pairs_set=same_class_1_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class_1.json")
+
+    get_class_changes_per_edit_step(
         idx_pairs_set=diff_class_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",
@@ -87,6 +112,20 @@ if __name__ == "__main__":
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",
         output_fname=f"{DATASET_NAME}_changes_per_decile_same_class.json"
+    )
+
+    get_class_changes_per_decile(
+        idx_pairs_set=same_class_0_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_decile_same_class_0.json"
+    )
+
+    get_class_changes_per_decile(
+        idx_pairs_set=same_class_1_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_decile_same_class_1.json"
     )
 
     get_class_changes_per_decile(
