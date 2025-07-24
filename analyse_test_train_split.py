@@ -8,9 +8,7 @@ from analyse_utils import get_abs_flips_per_edit_step, get_abs_flips_per_decile
 
 if __name__ == "__main__":
 
-    # todo: change to jupyter notebook?
-    #       calculate percentage of steps per decile
-    #       encapsulate per path logic in function?
+    # todo: change to jupyter notebook? per path logic into function?
 
     per_path_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_train_vs_test_split.json"
     per_step_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_edit_step_train_vs_test_split.json"

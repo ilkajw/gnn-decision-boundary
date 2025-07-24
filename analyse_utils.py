@@ -25,7 +25,9 @@ def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_
     for (i, j), path_list in edit_paths.items():
 
         if path_list:
-            distances[f"{i},{j}"] = len(path_list[0].all_operations) # todo: check!! changed from .disance param # or average/multiple if needed
+            # todo: check! was path_list[0].distance before.
+            #  but distance is ged which is not equal to number of edit steps
+            distances[f"{i},{j}"] = len(path_list[0].all_operations)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
