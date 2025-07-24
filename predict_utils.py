@@ -110,7 +110,7 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
 
             updated_sequence.append(graph)
 
-            # dict with all predictions
+            # update dict with all predictions
             predictions.append({
                 "file": filename,
                 "source_idx": int(getattr(graph, 'source_idx', -1)),
@@ -121,7 +121,6 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
                 "probability": prob
             })
 
-        # todo: rethink if putting pred to metadata and saving is necessary or if saving prediction dict is sufficient
         # save predictions as metadata for graphs
         torch.save(updated_sequence, os.path.join(output_dir, "edit_path_graphs_with_predictions", filename))
         print(f"Saved preds for file {filename} ")

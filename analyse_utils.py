@@ -9,6 +9,7 @@ if submodule_path not in sys.path:
 import json
 import re
 import torch
+import numpy as np
 from collections import defaultdict
 from config import DATASET_NAME
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
@@ -24,7 +25,7 @@ def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_
     for (i, j), path_list in edit_paths.items():
 
         if path_list:
-            distances[f"{i},{j}"] = path_list[0].distance  # or average/multiple if needed
+            distances[f"{i},{j}"] = len(path_list[0].all_operations) # todo: check!! changed from .disance param # or average/multiple if needed
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
@@ -32,8 +33,8 @@ def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_
 
     return distances
 
-
-def get_class_changes_per_edit_step(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
+# todo: why output dir and fname given? merge to one arg? see below for solution for earlier assumed problem
+def get_abs_flips_per_edit_step(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
 
     """
     Counts class changes at each edit step across all edit path sequences with predictions.
@@ -85,18 +86,20 @@ def get_class_changes_per_edit_step(idx_pairs_set, input_dir, output_dir=None, o
             prev_pred = pred
 
     changes_dict = dict(class_changes_per_step)
-    serializable_dict = {str(k): v for k, v in changes_dict.items()}  # to save with json
+    #serializable_dict = {str(k): v for k, v in changes_dict.items()}  # to save with json
 
     # optionally save dict
     if output_dir is not None and output_fname is not None:
         os.makedirs(output_dir, exist_ok=True)
+        # todo: i believe this can be done via
+        #   os.makedirs(os.path.dirname(save_path), exist_ok=True) for one single output arg "save_path", so no two args needed
         with open(os.path.join(output_dir, output_fname), "w") as f:
-            json.dump(serializable_dict, f, indent=2)
+            json.dump(changes_dict, f, indent=2, sort_keys=True)
 
-    return serializable_dict
+    return changes_dict
 
 
-def get_class_changes_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
+def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
 
     """
     Counts class changes at each edit step across all edit path sequences with predictions.
@@ -139,7 +142,7 @@ def get_class_changes_per_decile(idx_pairs_set, input_dir, output_dir=None, outp
         sequence = torch.load(filepath, weights_only=False)
         prev_pred = None
 
-        # loop through sequence of predicted graphs and track predictions changes
+        # loop through sequence of predicted graphs and track prediction changes
         for step, g in enumerate(sequence):
 
             pred = getattr(g, "prediction", None)
@@ -166,7 +169,117 @@ def get_class_changes_per_decile(idx_pairs_set, input_dir, output_dir=None, outp
     return serializable_dict
 
 
-def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=None, verbose=False):
+def get_rel_flips_per_decile(idx_pair_set, dist_input_path, flips_input_path, output_path=None):
+
+    # load distances of all paths
+    with open(dist_input_path) as f:
+        distances = json.load(f)
+
+    # load flips per path
+    with open(flips_input_path) as f:
+        flips_per_path = json.load(f)
+
+    # initialize storage for per-decile relative flip counts
+    decile_accumulator = defaultdict(list)  # decile -> list of per-path flip proportions
+
+    # iterate over each graph pair
+    for pair_str, flips in flips_per_path.items():
+
+        if not flips:
+            continue  # no flips
+
+        i, j = map(int, pair_str.split(","))
+
+        if (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
+            continue
+
+        key_forward = f"{i},{j}"
+        key_backward = f"{j},{i}"
+
+        if key_forward in distances:
+            dist = distances[key_forward]
+        elif key_backward in distances:
+            dist = distances[key_backward]
+        else:
+            print(f"dist not available for key {key_forward}. shouldnt happen")
+            continue  # skip if distance not available
+
+        if dist == 0:
+            continue  # avoid division by zero
+
+        # count how many flips fall into each decile for this path
+        decile_counts = defaultdict(int)
+        for step, _ in flips:
+            rel_step = step / dist
+            decile = int(min(rel_step * 10, 9))
+            decile_counts[decile] += 1
+
+        # count all flips per path for normalization
+        total_flips = sum(decile_counts.values())
+        if total_flips == 0:
+            continue
+
+        # normalize per-path and accumulate
+        for d in range(10):
+            proportion = decile_counts[d] / total_flips if d in decile_counts else 0
+            decile_accumulator[d].append(proportion)
+
+    # compute average proportion per decile over all paths
+    average_distribution = {
+        str(d): float(np.mean(decile_accumulator[d])) if decile_accumulator[d] else 0.0
+        for d in range(10)
+    }
+
+    # save global distribution
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(average_distribution, f, indent=2)
+
+    return average_distribution
+
+def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, same_class = False):
+    """
+    For a given set of index pairs, count how many paths have 0, 1, 2, ... flips.
+
+    Args:
+        idx_pair_set (set of tuples): Set of (i, j) graph index pairs to consider.
+        flips_input_path (str): Path to JSON file with flip data like {"i,j": [[step, label], ...], ...}
+        output_path (str, optional): Where to save the resulting histogram (JSON). If None, don't save.
+
+    Returns:
+        dict: {num_flips: count} showing how many paths have that many flips.
+    """
+
+    # load flip data
+    with open(flips_input_path) as f:
+        flips_per_path = json.load(f)
+
+    # initialize histogram
+    flip_histogram = defaultdict(int)
+
+    # count paths per number of flips
+    for pair_str, flips in flips_per_path.items():
+        i, j = map(int, pair_str.split(","))
+
+        if (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
+            continue
+
+        num_flips = len(flips)
+        flip_histogram[num_flips] += 1
+
+        if same_class and flip_histogram[1] > 0:
+            print(f"DEBUG: ERROR: {i}, {j} of same class, but have flip 1 > 0.")
+
+    # optionally save
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(dict(flip_histogram), f, indent=2)
+
+    return dict(flip_histogram)
+
+def get_flip_steps_per_pair(input_dir, output_dir=None, output_fname=None, verbose=False):
 
     """
     Tracks classification changes along edit paths for each graph pair.
@@ -214,7 +327,6 @@ def get_class_change_steps_per_pair(input_dir, output_dir=None, output_fname=Non
 
             prev_pred = pred
 
-        if change_steps:
             changes_dict[(i, j)] = change_steps
 
         if verbose:

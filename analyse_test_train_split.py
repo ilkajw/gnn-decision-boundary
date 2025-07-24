@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from analyse_utils import get_class_changes_per_edit_step, get_class_changes_per_decile
+from analyse_utils import get_abs_flips_per_edit_step, get_abs_flips_per_decile
 
 if __name__ == "__main__":
 
@@ -83,39 +83,39 @@ if __name__ == "__main__":
 
     # ---------------------------------- PER STEP ANALYSIS -------------------------------------------------------
 
-    get_class_changes_per_edit_step(
+    get_abs_flips_per_edit_step(
         idx_pairs_set=train_train_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",
         output_fname=f"{DATASET_NAME}_changes_per_edit_step_train_train.json")
 
-    get_class_changes_per_edit_step(
+    get_abs_flips_per_edit_step(
         idx_pairs_set=test_test_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",
         output_fname=f"{DATASET_NAME}_changes_per_edit_step_test_test.json")
 
-    changes_per_step_test_test = get_class_changes_per_edit_step(
+    changes_per_step_test_test = get_abs_flips_per_edit_step(
         idx_pairs_set=test_test_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",
         output_fname=f"{DATASET_NAME}_changes_per_edit_step_train_test.json")
 
-    get_class_changes_per_decile(
+    get_abs_flips_per_decile(
         idx_pairs_set=train_train_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",
         output_fname=f"{DATASET_NAME}_changes_per_decile_train_train.json"
     )
 
-    get_class_changes_per_decile(
+    get_abs_flips_per_decile(
         idx_pairs_set=test_test_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",
         output_fname=f"{DATASET_NAME}_changes_per_decile_test_test.json"
     )
 
-    get_class_changes_per_decile(
+    get_abs_flips_per_decile(
         idx_pairs_set=train_test_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",

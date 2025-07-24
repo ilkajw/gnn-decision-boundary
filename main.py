@@ -8,14 +8,13 @@ if __name__ == "__main__":
 
     dataset = TUDataset(root=ROOT, name=DATASET_NAME)
 
-    # todo: this is only temporary. add suitable logic to partition/structure the pipeline or access parts
-    #  of it
+    # todo: this is only temporary. add suitable logic to partition/structure the pipeline or access parts of it
 
     train_model = False
     dataset_predict = False
-    calc_edit_path_graphs = False
+    gen_edit_path_graphs = True
     edit_path_predict = False
-    add_meta_data = True
+    add_meta_data = False
 
     if train_model:
         train_and_choose_model(dataset=dataset,
@@ -29,12 +28,12 @@ if __name__ == "__main__":
                             output_fname=f"{DATASET_NAME}_predictions.json",
                             model_path="model/model.pt")
 
-    if calc_edit_path_graphs:
+    if gen_edit_path_graphs:
         generate_all_edit_path_graphs(db_name=DATASET_NAME,
                                       seed=42,
                                       data_dir=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
                                       output_dir=f"data/{DATASET_NAME}/pyg_edit_path_graphs",
-                                      fully_connected_only=FULLY_CONNECTED_ONLY)
+                                      fully_connected_only=False)
     if edit_path_predict:
         pred_dict = edit_path_predictions(dataset_name=DATASET_NAME,
                                           model_path="model/model.pt",

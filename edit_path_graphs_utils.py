@@ -1,6 +1,8 @@
 import sys
 import os
 
+
+
 # add submodule root to Python path
 submodule_path = os.path.abspath("external")
 if submodule_path not in sys.path:
@@ -13,6 +15,7 @@ import torch.nn.functional as F
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
+from networkx import is_isomorphic
 
 
 def generate_all_edit_path_graphs(data_dir,
@@ -53,24 +56,20 @@ def generate_all_edit_path_graphs(data_dir,
     # for reconstruction of node feature tensor x
     num_node_classes = dataset.unique_node_labels
 
-    # todo: for debugging node label values only. delete afterwards
-    counter = 0
-    max_label = 0
-
     # create graphs from operations per (source graph, target graph)
     for (i, j), paths in edit_paths.items():
-
-        # todo:
-        #  the next block is for logic testing purposes only.
-        #  to prevent running into errors in label transformation from graph pairs (0, 3) onwards.
-        #  to see error comment out this block:
-        #if i != 0 or j > 2:
-        #    continue
 
         for ep in paths:
 
             # create edit path graph sequence for path iteration between i, j
             sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
+
+            # todo: included to make sure the target graph is included for approximate paths.
+            #  check in with florian if this is correct
+            last_graph = sequence[-1]
+            last_graph_included = is_isomorphic(last_graph, nx_graphs[j])
+            if not last_graph_included:
+                sequence.append(nx_graphs[j])
 
             # assign metadata to nx graphs
             for step, g in enumerate(sequence):
@@ -89,28 +88,14 @@ def generate_all_edit_path_graphs(data_dir,
 
             for step, g in enumerate(sequence):
 
-                # todo: alternatively leave edge attrs. then, loop to copy g to g_no_edge_attrs is obsolete.
-                #  also need to transform edge labels back to vectors to avoid error when handing edge labels to model
-
+                # todo: alternatively leave edge attrs and transform to vectors
                 # strip edge attributes as not used for learning
                 g_no_edge_attrs = nx.Graph()
 
                 # add nodes with attr tensor x reconstructed from nx graph's scalar primary_label
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
-                    if label >= num_node_classes:
-                        print(f"Node {n} of edit path graph {g.graph['edit_step']} between graphs {i}, {j} with "
-                              f"label {label} >= {num_node_classes}. ")
-                        counter += 1
-
-                    if label > max_label:
-                        max_label = label
-
-                    # todo: causes error as label >= num_node_classes for many nodes.
-                    #  to prevent error and get info on all nodes with labels >= 7, comment out the following lines:
                     d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
-                    #print(f"DEBUG: Transformed label {label} of node {n} graph {g.graph['edit_step']} between "
-                    #      f"{i}, {j} into {d['x']}")
                     g_no_edge_attrs.add_node(n, **d)
 
                 # add edges without attributes
@@ -128,6 +113,3 @@ def generate_all_edit_path_graphs(data_dir,
             file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
             # print(f"Saved pyg sequence between {i}, {j}, iteration {ep.iteration}")
-
-    #print(f"Number of node classes, equivalent to size of original feature tensor: {num_node_classes} \n ")
-    #print(f"Number of nodes with label >= {num_node_classes}: {counter} \n Max label: {max_label}")
