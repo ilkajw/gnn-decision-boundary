@@ -6,8 +6,8 @@ from analyse_utils import *
 if __name__ == "__main__":
 
     # todo: change to jupyter notebook?
-    #       differentiate between class 0, class 1 vor in-class paths,
-    #       differentiate between 0->1, 1->0 for between-class paths,
+    #       differentiate between class 0 / 1 for in-class paths,
+    #       differentiate between 0->1 / 1->0 for between-class paths,
     #       make first part a function
     # test test
     stats_per_path_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_same_vs_diff_class.json"
@@ -45,10 +45,10 @@ if __name__ == "__main__":
     # get lists of change count per path graph sequence for source and target
     # belonging to same or different classes
 
-    same_class_changes = get_num_changes_per_path(same_class_pairs, changes_per_path_dict)
-    same_class_0_changes = get_num_changes_per_path(same_class_0_pairs, changes_per_path_dict)
-    same_class_1_changes = get_num_changes_per_path(same_class_1_pairs, changes_per_path_dict)
-    diff_class_changes = get_num_changes_per_path(diff_class_pairs, changes_per_path_dict)
+    same_class_changes = get_num_changes_all_paths(same_class_pairs, changes_per_path_dict)
+    same_class_0_changes = get_num_changes_all_paths(same_class_0_pairs, changes_per_path_dict)
+    same_class_1_changes = get_num_changes_all_paths(same_class_1_pairs, changes_per_path_dict)
+    diff_class_changes = get_num_changes_all_paths(diff_class_pairs, changes_per_path_dict)
 
     #print(same_class_pairs)
     #print(same_class_changes)

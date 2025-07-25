@@ -380,7 +380,7 @@ def get_flip_steps_per_pair(input_dir, output_dir=None, output_fname=None, verbo
     return serializable_dict
 
 
-def get_num_changes_per_path(pairs, changes_dict):
+def get_num_changes_all_paths(pairs, changes_dict):
     counts = []
     for i, j in pairs:
         key = f"{i},{j}"
