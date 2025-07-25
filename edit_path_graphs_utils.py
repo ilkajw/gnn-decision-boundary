@@ -1,3 +1,4 @@
+import json
 import sys
 import os
 
@@ -55,7 +56,7 @@ def generate_all_edit_path_graphs(data_dir,
 
     # for reconstruction of node feature tensor x
     num_node_classes = dataset.unique_node_labels
-
+    insertions = []
     # create graphs from operations per (source graph, target graph)
     for (i, j), paths in edit_paths.items():
 
@@ -64,12 +65,20 @@ def generate_all_edit_path_graphs(data_dir,
             # create edit path graph sequence for path iteration between i, j
             sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
 
+            def node_match(n1, n2):
+                return n1['primary_label'] == n2['primary_label']
+
+            def edge_match(e1, e2):
+                return e1['label'] == e2['label']
+
             # todo: included to make sure the target graph is included for approximate paths.
             #  check in with florian if this is correct
+            # todo: make edge_match work within is_isomorph
             last_graph = sequence[-1]
-            last_graph_included = is_isomorphic(last_graph, nx_graphs[j])
+            last_graph_included = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
             if not last_graph_included:
                 sequence.append(nx_graphs[j])
+                insertions.append((i, j))
 
             # assign metadata to nx graphs
             for step, g in enumerate(sequence):
@@ -112,4 +121,6 @@ def generate_all_edit_path_graphs(data_dir,
             # save sequence to file
             file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
-            # print(f"Saved pyg sequence between {i}, {j}, iteration {ep.iteration}")
+
+    with open("data/MUTAG/test/last_graphs_inserted.json", "w") as f:
+        json.dump(insertions, f, indent=2)

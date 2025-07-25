@@ -25,9 +25,15 @@ def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_
     for (i, j), path_list in edit_paths.items():
 
         if path_list:
-            # todo: check! was path_list[0].distance before.
-            #  but distance is ged which is not equal to number of edit steps
-            distances[f"{i},{j}"] = len(path_list[0].all_operations)
+
+            # todo: this is not quite right as we compare the number of steps with a distance which is
+            #   not equal to the number of total steps as the default implementation does not weigh all edit steps
+            #   with one.
+            #   if we use len(path_list[0].all_operations) though we run into the following problem:
+            #   there are paths with len_all_ops = 0, but last graph (=source graph) != target graph, which is why
+            #   we get a sequence with 2 graphs with len_all_ops = 0. we then run into
+
+            distances[f"{i},{j}"] = path_list[0].distance
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
@@ -125,7 +131,13 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
 
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
 
+    with open("data/MUTAG/analysis/MUTAG_dist_per_pair.json", "r") as f:
+        distances = json.load(f)
+
+    zero_distance_pairs = {(114, 155), (114, 185), (155, 175), (175, 185), (25, 112)}
+
     for fname in os.listdir(input_dir):
+
         if not fname.endswith(".pt"):
             continue
 
@@ -134,6 +146,10 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
             continue
 
         i, j = int(match.group(1)), int(match.group(2))
+
+        # todo: for debugging only
+        #if not (i, j) in zero_distance_pairs and (j, i) not in zero_distance_pairs:
+        #    continue
 
         # filter for graph pairs from the given index set only
         if (i, j) not in idx_pairs_set and (j, i) not in idx_pairs_set:
@@ -153,6 +169,12 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
                 continue
 
             if prev_pred is not None and pred != prev_pred:
+
+                # todo: for debugging only
+                if distances[f"{i},{j}"] == 0:
+                    print(f"Distance 0 for {i}, {j} and ran into condition")
+                    break
+
                 rel_step = g.edit_step/distances[f"{i},{j}"]
                 decile = int(min(rel_step * 10, 9))
                 class_changes_per_decile[decile] += 1
@@ -252,6 +274,9 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
     Returns:
         dict: {num_flips: count} showing how many paths have that many flips.
     """
+    same_class_odd_flips = []
+    diff_class_even_flips = []
+
 
     # load flip data
     with open(flips_input_path) as f:
@@ -268,16 +293,25 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
             continue
 
         num_flips = len(flips)
-        flip_histogram[num_flips] += 1
+        if same_class and num_flips % 2 == 1:
+            same_class_odd_flips.append((i, j))
 
-        if same_class and flip_histogram[1] > 0:
-            print(f"DEBUG: ERROR: {i}, {j} of same class, but have flip 1 > 0.")
+        if not same_class and num_flips % 2 == 0:
+            diff_class_even_flips.append((i, j))
+
+        flip_histogram[num_flips] += 1
 
     # optionally save
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as f:
             json.dump(dict(flip_histogram), f, indent=2)
+    if same_class:
+        with open("data/MUTAG/test/same_class_odd_flips.json", "w") as f:
+            json.dump(same_class_odd_flips, f, indent=2)
+    if not same_class:
+        with open("data/MUTAG/test/diff_class_even_flips.json", "w") as f:
+            json.dump(diff_class_even_flips, f, indent=2)
 
     return dict(flip_histogram)
 

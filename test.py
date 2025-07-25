@@ -44,7 +44,11 @@ if __name__ == "__main__":
 
             # check isomorphism of last graph and target graph
             last_graph = sequence[-1]
-            last_graph_included = is_isomorphic(last_graph, nx_graphs[j])
+            
+            def node_match(n1, n2):
+                return n1['primary_label'] == n2['primary_label']
+
+            last_graph_included = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
 
             # collect info on sequences without target graph,
             # and len graph sequence vs num operations (should be diff 1)

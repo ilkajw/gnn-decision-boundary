@@ -12,9 +12,9 @@ if __name__ == "__main__":
 
     train_model = False
     predict_dataset = False
-    gen_edit_path_graphs = True
-    predict_edit_paths = False
-    add_meta_data = False
+    gen_edit_path_graphs = False
+    predict_edit_paths = True
+    add_meta_data_to_path_preds = True
 
     if train_model:
         train_and_choose_model(dataset=dataset,
@@ -41,7 +41,7 @@ if __name__ == "__main__":
                                           output_dir=f"data/{DATASET_NAME}/predictions",
                                           output_fname=f"{DATASET_NAME}_edit_path_predictions.json")
 
-    if add_meta_data:
+    if add_meta_data_to_path_preds:
         add_metadata_to_edit_path_predictions(pred_dict_path=f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_edit_path_predictions.json",
                                               base_pred_path=f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json",
                                               split_path=f"model/best_split.json",
