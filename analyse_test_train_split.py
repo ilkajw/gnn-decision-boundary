@@ -9,7 +9,7 @@ from index_sets_utils import graph_index_pairs_diff_class, graph_index_pairs_sam
 
 if __name__ == "__main__":
 
-    # todo: change to jupyter notebook?
+    # todo: shorten this file by function definition
     #  per path logic into function?
     #  add same/diff class differentiation to train/test set analysis as todos noted below
     #  get histogram as for same vs diff
@@ -68,6 +68,8 @@ if __name__ == "__main__":
     train_test_same_1 = {pair for pair in train_test_pairs if pair in same_class_1_pairs}
     train_test_diff = {pair for pair in train_test_pairs if pair in diff_class_pairs}
 
+    # count changes for paths in sets
+
     train_train_same_class_flips = get_num_changes_all_paths(train_train_same, changes_dict)
     train_train_same_class_0_flips = get_num_changes_all_paths(train_train_same_0, changes_dict)
     train_train_same_class_1_flips = get_num_changes_all_paths(train_train_same_1, changes_dict)
@@ -82,6 +84,8 @@ if __name__ == "__main__":
     train_test_same_class_0_flips = get_num_changes_all_paths(train_test_same_0, changes_dict)
     train_test_same_class_1_flips = get_num_changes_all_paths(train_test_same_1, changes_dict)
     train_test_diff_class_flips = get_num_changes_all_paths(train_test_diff, changes_dict)
+
+    # take statistics
 
     stats_train_test_diff_same = {
         'same': {
@@ -153,12 +157,14 @@ if __name__ == "__main__":
             }
         }
     }
+
     with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_train_vs_test_same_vs_diff_stats.json", "w") as f:
         json.dump(stats_train_test_diff_same, f, indent=2)
 
     print(stats_train_test_diff_same)
 
     # ---------------------------------- PER STEP ANALYSIS -------------------------------------------------------
+    # todo: execute with index sets filtered for same vs diff class
 
     get_abs_flips_per_edit_step(
         idx_pairs_set=train_train_pairs,
@@ -172,7 +178,8 @@ if __name__ == "__main__":
         output_dir=f"data/{DATASET_NAME}/analysis",
         output_fname=f"{DATASET_NAME}_changes_per_edit_step_test_test.json")
 
-    changes_per_step_test_test = get_abs_flips_per_edit_step(
+    # count absolute numbers of changes happening per decile
+    get_abs_flips_per_edit_step(
         idx_pairs_set=test_test_pairs,
         input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
         output_dir=f"data/{DATASET_NAME}/analysis",

@@ -27,11 +27,11 @@ def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_
         if path_list:
 
             # todo: this is not quite right as we compare the number of steps with a distance which is
-            #   not equal to the number of total steps as the default implementation does not weigh all edit steps
+            #   not equal to the number of total steps because the default implementation does not weigh all edit steps
             #   with one.
-            #   if we use len(path_list[0].all_operations) though we run into the following problem:
+            #   if we use len(path_list[0].all_operations) though, we run into the following problem:
             #   there are paths with len_all_ops = 0, but last graph (=source graph) != target graph, which is why
-            #   we get a sequence with 2 graphs with len_all_ops = 0. we then run into
+            #   we get a sequence with 2 graphs with len_all_ops = 0.
 
             distances[f"{i},{j}"] = path_list[0].distance
 
@@ -110,7 +110,7 @@ def get_abs_flips_per_edit_step(idx_pairs_set, input_dir, output_dir=None, outpu
 def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
 
     """
-    Counts class changes at each edit step across all edit path sequences with predictions.
+    Counts class changes per decile across all edit path sequences with predictions.
 
     Args:
         :param input_dir: Directory with .pt files containing prediction-augmented PyG graphs.
@@ -130,9 +130,6 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
     class_changes_per_decile = {decile: 0 for decile in range(10)}
 
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
-
-    with open("data/MUTAG/analysis/MUTAG_dist_per_pair.json", "r") as f:
-        distances = json.load(f)
 
     zero_distance_pairs = {(114, 155), (114, 185), (155, 175), (175, 185), (25, 112)}
 
@@ -173,7 +170,7 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
                 # todo: for debugging only
                 if distances[f"{i},{j}"] == 0:
                     print(f"Distance 0 for {i}, {j} and ran into condition")
-                    break
+                    continue
 
                 rel_step = g.edit_step/distances[f"{i},{j}"]
                 decile = int(min(rel_step * 10, 9))
@@ -262,6 +259,7 @@ def get_rel_flips_per_decile(idx_pair_set, dist_input_path, flips_input_path, ou
 
     return average_distribution
 
+
 def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, same_class = False):
     """
     For a given set of index pairs, count how many paths have 0, 1, 2, ... flips.
@@ -276,7 +274,6 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
     """
     same_class_odd_flips = []
     diff_class_even_flips = []
-
 
     # load flip data
     with open(flips_input_path) as f:
@@ -314,6 +311,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
             json.dump(diff_class_even_flips, f, indent=2)
 
     return dict(flip_histogram)
+
 
 def get_flip_steps_per_pair(input_dir, output_dir=None, output_fname=None, verbose=False):
 
@@ -391,3 +389,160 @@ def get_num_changes_all_paths(pairs, changes_dict):
         else:
             continue
     return counts
+
+
+def get_paths_per_num_changes(input_path, output_path, index_set=None):
+
+    # load flip history per path
+    with open(input_path, "r") as f:
+        flips_per_path = json.load(f)
+
+    d = defaultdict(list)
+
+    for path, flips in flips_per_path.items():
+
+        if index_set is not None:
+            if (i, j) not in index_set and (j, i) not in index_set:
+                continue
+
+        num_flips = len(flips)
+        i, j = path.split(",")
+        i = int(i)
+        j = int(j)
+        d[num_flips].append((i, j))
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(d, f, indent=2)
+
+    return d
+
+
+def get_rel_flips_per_decile_by_k(
+    max_k,
+    dist_input_path,
+    flips_input_path,
+    idx_pair_set=None,
+    output_dir=None,
+    output_prefix=None,
+    include_paths=False,
+):
+    """
+    For each k in {1..max_k}, compute the relative distribution of flips across deciles
+    considering only paths with exactly k flips.
+
+    Args:
+        max_k (int): Maximum number of flips to consider (k starts at 1).
+        dist_input_path (str): JSON path mapping "i,j" -> distance.
+        flips_input_path (str): JSON path mapping "i,j" -> [[step, new_label], ...].
+        idx_pair_set (set[tuple[int,int]] | None): Optional filter of allowed index pairs.
+        output_dir (str | None): If given (and output_prefix given), saves results as JSON.
+        output_prefix (str | None): Prefix for output file names (without extension).
+        include_paths (bool): If True, also returns/saves the paths and their flip steps per k.
+
+    Returns:
+        dict: {
+            str(k): {
+                "num_paths": int,
+                "avg_proportion": {"0": float, ..., "9": float},  # mean per-decile proportion across paths
+                "abs_counts": {"0": int, ..., "9": int},          # total flip counts across all paths with k flips
+                "paths": [ {"pair": [i, j], "flips": [[step, lbl], ...]} ]  # only if include_paths=True
+            },
+            ...
+        }
+    """
+    # load distances
+    with open(dist_input_path, "r") as f:
+        distances = json.load(f)
+
+    # load flip steps per path
+    with open(flips_input_path, "r") as f:
+        flips_per_path = json.load(f)
+
+    # buckets per k
+    per_k_accumulator = {
+        k: {
+            "proportions": [],      # list of length-10 lists (per-path normalized decile proportions)
+            "abs_counts": [0]*10,   # absolute flip counts aggregated over all paths with k flips
+            "paths": []             # (optional) list of {"pair": [i,j], "flips": [...]}
+        }
+        for k in range(1, max_k + 1)
+    }
+
+    def get_distance(i, j):
+        fwd = f"{i},{j}"
+        bwd = f"{j},{i}"
+        if fwd in distances:
+            return distances[fwd]
+        if bwd in distances:
+            return distances[bwd]
+        return None
+
+    for pair_str, flips in flips_per_path.items():
+        if not flips:
+            continue
+
+        i, j = map(int, pair_str.split(","))
+
+        # optional pair filter
+        if idx_pair_set is not None and (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
+            continue
+
+        k = len(flips)
+        if k < 1 or k > max_k:
+            continue
+
+        dist = get_distance(i, j)
+        if dist is None or dist == 0:
+            # skip if no distance (shouldn't happen after your precalcs) or zero to avoid /0
+            continue
+
+        # count flips into deciles for THIS path
+        decile_counts = [0]*10
+        for step, _label in flips:
+            rel = step / dist
+            d = int(min(rel * 10, 9))
+            decile_counts[d] += 1
+
+        total_flips = sum(decile_counts)
+        if total_flips == 0:
+            continue
+
+        # normalize to proportions for THIS path
+        proportions = [c / total_flips for c in decile_counts]
+
+        # accumulate
+        per_k_accumulator[k]["proportions"].append(proportions)
+        per_k_accumulator[k]["abs_counts"] = [
+            a + b for a, b in zip(per_k_accumulator[k]["abs_counts"], decile_counts)
+        ]
+        if include_paths:
+            per_k_accumulator[k]["paths"].append({"pair": [i, j], "flips": flips})
+
+    # compute averages & build result
+    result = {}
+    for k in range(1, max_k + 1):
+        props = per_k_accumulator[k]["proportions"]
+        if props:
+            # mean over paths (per decile)
+            avg = [float(np.mean([p[d] for p in props])) for d in range(10)]
+        else:
+            avg = [0.0]*10
+
+        entry = {
+            "num_paths": len(props),
+            "avg_proportion": {str(d): avg[d] for d in range(10)},
+            "abs_counts": {str(d): int(per_k_accumulator[k]["abs_counts"][d]) for d in range(10)},
+        }
+        if include_paths:
+            entry["paths"] = per_k_accumulator[k]["paths"]
+        result[str(k)] = entry
+
+    # optional save
+    if output_dir and output_prefix:
+        os.makedirs(output_dir, exist_ok=True)
+        with open(os.path.join(output_dir, f"{output_prefix}_per_k_deciles.json"), "w") as f:
+            json.dump(result, f, indent=2)
+
+    return result
+

@@ -94,7 +94,7 @@ if __name__ == "__main__":
     same_class_distinguish = False
 
     if abs_calc:
-
+        # per edit step:
         get_abs_flips_per_edit_step(
             idx_pairs_set=same_class_pairs,
             input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
@@ -126,6 +126,7 @@ if __name__ == "__main__":
             output_fname=f"{DATASET_NAME}_changes_per_decile_same_class.json"
         )
 
+        # per decile:
         get_abs_flips_per_decile(
             idx_pairs_set=same_class_0_pairs,
             input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
@@ -149,6 +150,7 @@ if __name__ == "__main__":
 
     if rel_calc:
 
+        # todo: implement rel flips per edit step?
         get_rel_flips_per_decile(
             idx_pair_set=same_class_pairs,
             dist_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json",
