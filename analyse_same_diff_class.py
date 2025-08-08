@@ -5,10 +5,6 @@ from analyse_utils import *
 
 if __name__ == "__main__":
 
-    # todo: change to jupyter notebook?
-    #       differentiate between class 0 / 1 for in-class paths,
-    #       differentiate between 0->1 / 1->0 for between-class paths,
-    #       make first part a function
     # test test
     stats_per_path_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path_same_vs_diff_class.json"
     stats_per_step_save_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_edit_step_same_vs_diff_class.json"
@@ -57,6 +53,7 @@ if __name__ == "__main__":
     #print(diff_class_changes)
 
     # calculate statistics
+    # todo: keep this
     stats_changes_per_path = {
         "same_class": {
             "num_paths": len(same_class_changes),
@@ -88,118 +85,61 @@ if __name__ == "__main__":
         json.dump(stats_changes_per_path, f, indent=2)
 
     # --------------------PER EDIT STEP ANALYSIS------------------------------------
-    abs_calc = True
-    rel_calc = True
-    num = True
-    same_class_distinguish = False
 
-    if abs_calc:
-        # per edit step:
-        get_abs_flips_per_edit_step(
-            idx_pairs_set=same_class_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class.json")
+    get_abs_flips_per_edit_step(
+        idx_pairs_set=same_class_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class.json")
 
-        get_abs_flips_per_edit_step(
-            idx_pairs_set=same_class_0_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class_0.json")
+    get_abs_flips_per_edit_step(
+        idx_pairs_set=same_class_0_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class_0.json")
 
-        get_abs_flips_per_edit_step(
-            idx_pairs_set=same_class_1_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class_1.json")
+    get_abs_flips_per_edit_step(
+        idx_pairs_set=same_class_1_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_same_class_1.json")
 
-        get_abs_flips_per_edit_step(
-            idx_pairs_set=diff_class_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_edit_step_diff_class.json")
+    get_abs_flips_per_edit_step(
+        idx_pairs_set=diff_class_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_edit_step_diff_class.json")
 
-        get_abs_flips_per_decile(
-            idx_pairs_set=same_class_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_decile_same_class.json"
-        )
+    # -------------------------- PER DECILE ANALYSIS --------------------------------------------
 
-        # per decile:
-        get_abs_flips_per_decile(
-            idx_pairs_set=same_class_0_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_decile_same_class_0.json"
-        )
+    get_abs_flips_per_decile(
+        idx_pairs_set=same_class_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_decile_same_class.json"
+    )
 
-        get_abs_flips_per_decile(
-            idx_pairs_set=same_class_1_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_decile_same_class_1.json"
-        )
+    get_abs_flips_per_decile(
+        idx_pairs_set=same_class_0_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_decile_same_class_0.json"
+    )
 
-        get_abs_flips_per_decile(
-            idx_pairs_set=diff_class_pairs,
-            input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
-            output_dir=f"data/{DATASET_NAME}/analysis",
-            output_fname=f"{DATASET_NAME}_changes_per_decile_diff_class.json"
-        )
+    get_abs_flips_per_decile(
+        idx_pairs_set=same_class_1_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_decile_same_class_1.json"
+    )
 
-    if rel_calc:
+    get_abs_flips_per_decile(
+        idx_pairs_set=diff_class_pairs,
+        input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
+        output_dir=f"data/{DATASET_NAME}/analysis",
+        output_fname=f"{DATASET_NAME}_changes_per_decile_diff_class.json"
+    )
 
-        # todo: implement rel flips per edit step?
-        get_rel_flips_per_decile(
-            idx_pair_set=same_class_pairs,
-            dist_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json",
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_rel_flips_per_decile_same_class.json")
 
-        get_rel_flips_per_decile(
-            idx_pair_set=same_class_0_pairs,
-            dist_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json",
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_rel_flips_per_decile_same_class_0.json")
 
-        get_rel_flips_per_decile(
-            idx_pair_set=same_class_1_pairs,
-            dist_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json",
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_rel_flips_per_decile_same_class_1.json")
-
-        get_rel_flips_per_decile(
-            idx_pair_set=diff_class_pairs,
-            dist_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json",
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_rel_flips_per_decile_diff_class.json")
-
-    if num:
-
-        count_paths_by_num_flips(
-            idx_pair_set=same_class_pairs,
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_paths_per_num_flips_same_class.json",
-            same_class=True)
-
-        count_paths_by_num_flips(
-            idx_pair_set=diff_class_pairs,
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_paths_per_num_flips_diff_class.json",
-            same_class=False)
-
-    if same_class_distinguish:
-
-        count_paths_by_num_flips(
-            idx_pair_set=same_class_1_pairs,
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_paths_per_num_flips_same_class_1.json",
-            same_class=True)
-
-        count_paths_by_num_flips(
-            idx_pair_set=same_class_0_pairs,
-            flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",
-            output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_paths_per_num_flips_same_class_0.json",
-            same_class=True)
 

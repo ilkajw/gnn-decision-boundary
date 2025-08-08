@@ -5,10 +5,20 @@ import os
 from config import DATASET_NAME
 
 
+def load_split_sets(split_path):
+    """Return train/test index sets from best_split.json."""
+    with open(split_path, "r") as f:
+        split = json.load(f)
+    train = set(split["train_idx"])
+    test = set(split["test_idx"])
+    return train, test
+
+def cut_pairs(base_pairs, allowed_pairs):
+    """Intersection: keep only pairs that are both in base_pairs and allowed_pairs."""
+    return base_pairs & allowed_pairs
+
 def graphs_correctly_classified(dataset_name):
-
-    """Returns the indices of all MUTAG graphs classified correctly by our GAT model."""
-
+    """Returns the indices of all graphs classified correctly by GAT model."""
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
     # todo: not very intuitive for this to happen in this function.
