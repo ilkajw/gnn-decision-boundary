@@ -1,5 +1,4 @@
-# editpath_inmemory_dataset.py
-
+import math
 import os
 import json
 import torch
@@ -9,42 +8,43 @@ from torch.serialization import add_safe_globals
 
 class EditPathGraphsDataset(InMemoryDataset):
     """
-    Loads all .pt edit-path sequences (each a list[Data]) and flattens them
-    into a single InMemoryDataset with a label y per graph.
+    Builds an in-memory dataset from per-path .pt sequences (lists of PyG Data),
+    assigning a label per graph according to label_mode:
 
-    Labeling modes:
-      - "same_only": keep only graphs from paths whose source and target share the same true label;
-                     assign that label to all steps.
-      - "source":    assign the source graph's true label to every step.
-      - "target":    assign the target graph's true label to every step.
-      - "pseudo":    use per-graph model prediction already stored on the Data as `prediction`
-                     (optionally filter by probability threshold via `min_prob`).
+      - "same_only": keep only same-class paths; y = common class (0/1)
+      - "source":    y = source true label
+      - "target":    y = target true label
+      - "pseudo":    y = model prediction on the graph (optionally min_prob filter)
+      - "interpolate": soft labels based on path progress t in [0,1]
+           * interpolation="linear"  -> y_soft = (1-t)*y_src + t*y_tgt
+           * interpolation="sigmoid" -> y_soft = σ(k*(t-0.5)) for 0→1, 1-σ(k*(t-0.5)) for 1→0
     """
-    # todo: add filtering for certain index sets to build_list
 
     def __init__(
-        self,
-        seq_dir,                       # directory with .pt files (each: list[Data])
-        base_pred_path,                # JSON with original dataset true labels; keys are string indices
-        label_mode="same_only",        # "same_only" | "source" | "target" | "pseudo"
-        min_prob=None,                 # for "pseudo": keep only graphs with probability >= min_prob (if provided)
-        transform=None,
-        pre_transform=None,
-        verbose=True,
+            self,
+            seq_dir,
+            base_pred_path,
+            label_mode="same_only",
+            interpolation="linear",  # used when label_mode == "interpolate"
+            k_sigmoid=12.0,  # slope for sigmoid interpolation
+            min_prob=None,  # used when label_mode == "pseudo"
+            transform=None,
+            pre_transform=None,
+            verbose=True,
     ):
         self.seq_dir = seq_dir
         self.base_pred_path = base_pred_path
         self.label_mode = label_mode
+        self.interpolation = interpolation
+        self.k_sigmoid = float(k_sigmoid)
         self.min_prob = min_prob
         self.verbose = verbose
         super().__init__(root=None, transform=transform, pre_transform=pre_transform)
 
-        # we build in-memory directly; no disk caching
         data_list = self._build_list()
         self.data, self.slices = self.collate(data_list)
         if self.verbose:
-            print(f"[EditPathGraphsDataset] Built dataset with {len(data_list)} graphs "
-                  f"from sequences in: {self.seq_dir}")
+            print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} | mode={self.label_mode}")
 
     # InMemoryDataset expects these
     @property
@@ -61,7 +61,7 @@ class EditPathGraphsDataset(InMemoryDataset):
     def process(self):
         pass
 
-    # ---------------- internal helpers ----------------
+    # -------------- internal helpers -------------------------
 
     def _load_base_labels(self):
         with open(self.base_pred_path, "r") as f:
@@ -69,39 +69,67 @@ class EditPathGraphsDataset(InMemoryDataset):
         # ensure int keys
         return {int(k): int(v["true_label"]) for k, v in base.items()}
 
-    def _label_for_graph(self, g, src_label, tgt_label):
+    def _t_from_graph(self, g):
+        # todo: prefer proper GED accumulation later; for now use edit_step / distance
+        dist = float(getattr(g, "distance", 0.0))
+        step = float(getattr(g, "edit_step", 0.0))
+        if dist <= 0.0:
+            return 0.0
+        return max(0.0, min(step / dist, 1.0))
+
+    def _interp_soft_label(self, y_src, y_tgt, t):
+        if self.interpolation == "linear":
+            return (1 - t) * y_src + t * y_tgt
+        elif self.interpolation == "sigmoid":
+            # 0->1 uses σ(k*(t-0.5)); 1->0 mirrors it
+            if y_src == y_tgt:
+                return float(y_src)
+            if y_src == 0 and y_tgt == 1:
+                return 1.0 / (1.0 + math.exp(-self.k_sigmoid * (t - 0.5)))
+            if y_src == 1 and y_tgt == 0:
+                return 1.0 - 1.0 / (1.0 + math.exp(-self.k_sigmoid * (t - 0.5)))
+            print("fallback (shouldn't happen for binary)")
+            return (1 - t) * y_src + t * y_tgt
+        else:
+            raise ValueError(f"Unknown interpolation: {self.interpolation}")
+
+    def _label_for_graph(self, g, y_src, y_tgt):
+        # optionally only use paths between same labels
         if self.label_mode == "same_only":
-            # only used if caller checks same-class earlier; here we just pick the common label
-            assert src_label == tgt_label, "Expected same class in 'same_only' mode."
-            return src_label
+            assert y_src == y_tgt
+            return float(y_src)
         elif self.label_mode == "source":
-            return src_label
+            return float(y_src)
         elif self.label_mode == "target":
-            return tgt_label
+            return float(y_tgt)
         elif self.label_mode == "pseudo":
             # use `prediction` on g
-            pred = int(getattr(g, "prediction", -1))
+            pred = getattr(g, "prediction", None)
+            if pred is None:
+                return None
             if self.min_prob is not None:
                 prob = float(getattr(g, "probability", 0.0))
                 if prob < self.min_prob:
                     return None  # skip low-confidence samples
-            return pred if pred in (0, 1) else None
+            return float(int(pred))
+        elif self.label_mode == "interpolate":
+            t = self._t_from_graph(g)
+            return float(self._interp_soft_label(y_src, y_tgt, t))
         else:
             raise ValueError(f"Unknown label_mode: {self.label_mode}")
 
     def _build_list(self):
+        from torch_geometric.data import Data as PYGData
+        add_safe_globals([PYGData])  # safe load of serialized data
+
         base_labels = self._load_base_labels()
+        files = sorted([f for f in os.listdir(self.seq_dir) if f.endswith(".pt")])
 
-        add_safe_globals([Data])  # safe load of serialized data
-        files = [f for f in os.listdir(self.seq_dir) if f.endswith(".pt")]
-        files.sort()
-
-        keep_only_same = (self.label_mode == "same_only")
-
+        keep_same_only = (self.label_mode == "same_only")
         data_list = []
+
         for fname in files:
-            path = os.path.join(self.seq_dir, fname)
-            seq = torch.load(path, weights_only=False)
+            seq = torch.load(os.path.join(self.seq_dir, fname), weights_only=False)
 
             # per-sequence metadata (same for all graphs in seq)
             if not seq:
@@ -109,37 +137,36 @@ class EditPathGraphsDataset(InMemoryDataset):
             g0 = seq[0]
             i = int(getattr(g0, "source_idx", -1))
             j = int(getattr(g0, "target_idx", -1))
-
             if i not in base_labels or j not in base_labels:
-                if self.verbose:
-                    print(f"[WARN] Missing base label for {i} or {j} in {fname}; skipping sequence.")
+                if self.verbose: print(f"[WARN] missing base label for {i} or {j} in {fname}")
                 continue
 
-            src_label = base_labels[i]
-            tgt_label = base_labels[j]
+            y_src = base_labels[i]
+            y_tgt = base_labels[j]
 
             # optional: keep only same-class sequences for clean supervision
-            if keep_only_same and src_label != tgt_label:
+            if keep_same_only and y_src != y_tgt:
                 continue
 
             # add each graph with y
             for g in seq:
-                y = self._label_for_graph(g, src_label, tgt_label)
-                if y is None:
-                    continue  # pseudo with low prob
+                y_soft = self._label_for_graph(g, y_src, y_tgt)
+                if y_soft is None:
+                    continue  # pseudo with low prob left out
 
                 # clone minimal fields; attach y
                 out = Data(
                     x=g.x,
                     edge_index=g.edge_index,
-                    y=torch.tensor([y], dtype=torch.long),
+                    # BCEWithLogitsLoss with float targets in [0,1]
+                    y=torch.tensor([y_soft], dtype=torch.float),
                 )
 
-                # (optional) carry over useful metadata
-                for key in ("edit_step", "source_idx", "target_idx", "iteration", "distance", "prediction", "probability"):
+                # keep metadata
+                for key in (
+                "edit_step", "source_idx", "target_idx", "iteration", "distance", "prediction", "probability"):
                     if hasattr(g, key):
                         setattr(out, key, getattr(g, key))
-
                 data_list.append(out)
 
         return data_list
