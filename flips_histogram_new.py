@@ -1,5 +1,3 @@
-# flip_histogram_analysis.py
-
 import os
 import json
 
@@ -10,9 +8,9 @@ from index_sets_utils import build_index_set_cuts
 if __name__ == "__main__":
 
     # inputs
-    split_path   = "model/best_split.json"  # adjust if needed
-    flips_input  = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json"
-    out_dir      = f"data/{DATASET_NAME}/analysis"
+    split_path = "model/best_split.json"  # adjust if needed
+    flips_input = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json"
+    out_dir = f"data/{DATASET_NAME}/analysis"
     os.makedirs(out_dir, exist_ok=True)
 
     # build all index-set cuts (same/diff + train/train, test/test, train/test)
@@ -63,7 +61,7 @@ if __name__ == "__main__":
         )
         combined[key] = hist
 
-    # save merged histograms
+    # save merged histogram
     combined_path = os.path.join(out_dir, f"{DATASET_NAME}_num_paths_per_num_flips_ALL_CUTS.json")
     with open(combined_path, "w") as f:
         json.dump(combined, f, indent=2)

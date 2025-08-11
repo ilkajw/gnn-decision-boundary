@@ -190,74 +190,80 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
     return serializable_dict
 
 
-def get_rel_flips_per_decile(idx_pair_set, dist_input_path, flips_input_path, output_path=None):
+def flip_distribution_by_indexset(idx_pair_set, dist_input_path, flips_input_path, output_path=None):
 
-    # load distances of all paths
+    # load
     with open(dist_input_path) as f:
         distances = json.load(f)
-
-    # load flips per path
     with open(flips_input_path) as f:
         flips_per_path = json.load(f)
 
-    # initialize storage for per-decile relative flip counts
-    decile_accumulator = defaultdict(list)  # decile -> list of per-path flip proportions
+    # accumulators
+    per_decile_per_path = defaultdict(list)  # d -> [proportions from each path]
+    abs_counts = [0]*10                      # global flip totals per decile
+    num_paths = 0
 
-    # iterate over each graph pair
+    def get_distance(i, j):
+        s1, s2 = f"{i},{j}", f"{j},{i}"
+        return distances.get(s1, distances.get(s2))
+
     for pair_str, flips in flips_per_path.items():
-
         if not flips:
-            continue  # no flips
-
+            continue
         i, j = map(int, pair_str.split(","))
-
         if (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
             continue
 
-        key_forward = f"{i},{j}"
-        key_backward = f"{j},{i}"
-
-        if key_forward in distances:
-            dist = distances[key_forward]
-        elif key_backward in distances:
-            dist = distances[key_backward]
-        else:
-            print(f"dist not available for key {key_forward}. shouldnt happen")
-            continue  # skip if distance not available
-
-        if dist == 0:
-            continue  # avoid division by zero
-
-        # count how many flips fall into each decile for this path
-        decile_counts = defaultdict(int)
-        for step, _ in flips:
-            rel_step = step / dist
-            decile = int(min(rel_step * 10, 9))
-            decile_counts[decile] += 1
-
-        # count all flips per path for normalization
-        total_flips = sum(decile_counts.values())
-        if total_flips == 0:
+        dist = get_distance(i, j)
+        if not dist:
             continue
 
-        # normalize per-path and accumulate
-        for d in range(10):
-            proportion = decile_counts[d] / total_flips if d in decile_counts else 0
-            decile_accumulator[d].append(proportion)
+        # per-path decile counts
+        decile_counts = [0]*10
+        for step, _ in flips:
+            rel = step / dist
+            d = int(min(rel * 10, 9))  # 0..9, clamp 1.0 to 9
+            decile_counts[d] += 1
 
-    # compute average proportion per decile over all paths
-    average_distribution = {
-        str(d): float(np.mean(decile_accumulator[d])) if decile_accumulator[d] else 0.0
+        total = sum(decile_counts)
+        if total == 0:
+            continue
+
+        # per-path proportions with equal path weight
+        for d in range(10):
+            per_decile_per_path[d].append(decile_counts[d] / total)
+
+        # global absolute accumulation (flip weight)
+        for d in range(10):
+            abs_counts[d] += decile_counts[d]
+
+        num_paths += 1
+
+    # average per-path
+    avg_per_path = {
+        str(d): (float(np.mean(per_decile_per_path[d])) if per_decile_per_path[d] else 0.0)
         for d in range(10)
     }
 
-    # save global distribution
+    # global flip-weighted distribution
+    total_abs = sum(abs_counts)
+    global_proportion = {
+        str(d): (abs_counts[d] / total_abs if total_abs else 0.0) for d in range(10)
+    }
+
+    result = {
+        "num_paths": num_paths,
+        "avg_per_path": avg_per_path,
+        "abs_counts": {str(d): int(abs_counts[d]) for d in range(10)},
+        "global_proportion": global_proportion,
+    }
+
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as f:
-            json.dump(average_distribution, f, indent=2)
+            json.dump(result, f, indent=2)
 
-    return average_distribution
+    return result
 
 
 def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, same_class = False):
@@ -427,64 +433,25 @@ def get_rel_flips_per_decile_by_k(
     output_prefix=None,
     include_paths=False,
 ):
-    """
-    For each k in {1..max_k}, compute the relative distribution of flips across deciles
-    considering only paths with exactly k flips.
-
-    Args:
-        max_k (int): Maximum number of flips to consider (k starts at 1).
-        dist_input_path (str): JSON path mapping "i,j" -> distance.
-        flips_input_path (str): JSON path mapping "i,j" -> [[step, new_label], ...].
-        idx_pair_set (set[tuple[int,int]] | None): Optional filter of allowed index pairs.
-        output_dir (str | None): If given (and output_prefix given), saves results as JSON.
-        output_prefix (str | None): Prefix for output file names (without extension).
-        include_paths (bool): If True, also returns/saves the paths and their flip steps per k.
-
-    Returns:
-        dict: {
-            str(k): {
-                "num_paths": int,
-                "avg_proportion": {"0": float, ..., "9": float},  # mean per-decile proportion across paths
-                "abs_counts": {"0": int, ..., "9": int},          # total flip counts across all paths with k flips
-                "paths": [ {"pair": [i, j], "flips": [[step, lbl], ...]} ]  # only if include_paths=True
-            },
-            ...
-        }
-    """
-    # load distances
+    # load
     with open(dist_input_path, "r") as f:
         distances = json.load(f)
-
-    # load flip steps per path
     with open(flips_input_path, "r") as f:
         flips_per_path = json.load(f)
 
-    # buckets per k
-    per_k_accumulator = {
-        k: {
-            "proportions": [],      # list of length-10 lists (per-path normalized decile proportions)
-            "abs_counts": [0]*10,   # absolute flip counts aggregated over all paths with k flips
-            "paths": []             # (optional) list of {"pair": [i,j], "flips": [...]}
-        }
-        for k in range(1, max_k + 1)
-    }
-
     def get_distance(i, j):
-        fwd = f"{i},{j}"
-        bwd = f"{j},{i}"
-        if fwd in distances:
-            return distances[fwd]
-        if bwd in distances:
-            return distances[bwd]
-        return None
+        s1, s2 = f"{i},{j}", f"{j},{i}"
+        return distances.get(s1, distances.get(s2))
+
+    # accumulators
+    abs_counts_by_k = {k: [0]*10 for k in range(1, max_k+1)}
+    paths_by_k = {k: [] for k in range(1, max_k+1)} if include_paths else None
+    num_paths_by_k = defaultdict(int)
 
     for pair_str, flips in flips_per_path.items():
         if not flips:
             continue
-
         i, j = map(int, pair_str.split(","))
-
-        # optional pair filter
         if idx_pair_set is not None and (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
             continue
 
@@ -493,56 +460,56 @@ def get_rel_flips_per_decile_by_k(
             continue
 
         dist = get_distance(i, j)
-        if dist is None or dist == 0:
-            # skip if no distance (shouldn't happen after your precalcs) or zero to avoid /0
+        if not dist:  # None or 0
             continue
 
-        # count flips into deciles for THIS path
+        # per-path decile counts
         decile_counts = [0]*10
-        for step, _label in flips:
+        for step, _lbl in flips:
             rel = step / dist
-            d = int(min(rel * 10, 9))
+            d = int(min(rel * 10, 9))  # bin 0..9, clamp 1.0 to 9
             decile_counts[d] += 1
 
         total_flips = sum(decile_counts)
         if total_flips == 0:
             continue
 
-        # normalize to proportions for THIS path
-        proportions = [c / total_flips for c in decile_counts]
+        # accumulate absolutes
+        acc = abs_counts_by_k[k]
+        for d in range(10):
+            acc[d] += decile_counts[d]
 
-        # accumulate
-        per_k_accumulator[k]["proportions"].append(proportions)
-        per_k_accumulator[k]["abs_counts"] = [
-            a + b for a, b in zip(per_k_accumulator[k]["abs_counts"], decile_counts)
-        ]
+        num_paths_by_k[k] += 1
         if include_paths:
-            per_k_accumulator[k]["paths"].append({"pair": [i, j], "flips": flips})
+            paths_by_k[k].append({"pair": [i, j], "flips": flips})
 
-    # compute averages & build result
+    # build result
     result = {}
-    for k in range(1, max_k + 1):
-        props = per_k_accumulator[k]["proportions"]
-        if props:
-            # mean over paths (per decile)
-            avg = [float(np.mean([p[d] for p in props])) for d in range(10)]
+    for k in range(1, max_k+1):
+        abs_counts = abs_counts_by_k[k]
+        total_abs = sum(abs_counts)
+        if total_abs > 0:
+            global_prop = [c / total_abs for c in abs_counts]
         else:
-            avg = [0.0]*10
+            global_prop = [0.0]*10
 
+        # store relative and absolute values per-k
         entry = {
-            "num_paths": len(props),
-            "avg_proportion": {str(d): avg[d] for d in range(10)},
-            "abs_counts": {str(d): int(per_k_accumulator[k]["abs_counts"][d]) for d in range(10)},
+            "num_paths": int(num_paths_by_k[k]),
+            "avg_proportion": {str(d): float(global_prop[d]) for d in range(10)},
+            "abs_counts": {str(d): int(abs_counts[d]) for d in range(10)},
+            "abs_distribution": {str(d): int(abs_counts[d]) for d in range(10)},
         }
+        # optionally add set of contributing paths
         if include_paths:
-            entry["paths"] = per_k_accumulator[k]["paths"]
+            entry["paths"] = paths_by_k[k]
         result[str(k)] = entry
 
-    # optional save
     if output_dir and output_prefix:
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, f"{output_prefix}_per_k_deciles.json"), "w") as f:
             json.dump(result, f, indent=2)
 
     return result
+
 
