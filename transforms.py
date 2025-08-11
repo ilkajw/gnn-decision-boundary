@@ -18,3 +18,11 @@ def to_float_y(domain_flag: int | None = None):
             data.source = torch.tensor([domain_flag], dtype=torch.long)
         return data
     return _tf
+
+
+def drop_edge_attr():
+    def _tf(data):
+        if 'edge_attr' in data:
+            del data.edge_attr  # remove attribute from the Data object
+        return data
+    return _tf

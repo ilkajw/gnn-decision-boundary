@@ -1,17 +1,21 @@
 from torch.utils.data import ConcatDataset
 from torch_geometric.data import DataLoader
 from torch_geometric.datasets import TUDataset
+from torch_geometric.transforms import Compose
 
 from EditPathGraphDataset import FlatGraphDataset
 from config import DATASET_NAME, ROOT
 from dataset_utils import save_dataset_as_inmemory_pt
-from transforms import to_float_y
+from transforms import to_float_y, drop_edge_attr
 
 if __name__ == "__main__":
 
     # load original dataset with cast y->float, tag domain=0
-    org_ds = TUDataset(root=ROOT, name=DATASET_NAME, transform=to_float_y(domain_flag=0))
-
+    org_ds = TUDataset(
+        root=ROOT,
+        name=DATASET_NAME,
+        transform=Compose([to_float_y(domain_flag=0), drop_edge_attr()])
+    )
     # load previously build edit-path dataset
     edit_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset.pt"
     edit_ds = FlatGraphDataset(saved_path=edit_pt, verbose=True)

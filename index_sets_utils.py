@@ -14,17 +14,82 @@ def load_split_sets(split_path):
     return train, test
 
 
+def pairs_within(idx_set: set[int]) -> set[tuple[int, int]]:
+    """All unordered pairs within one set."""
+    return {tuple(sorted(p)) for p in itertools.combinations(idx_set, 2)}
+
+
+def pairs_across(a_set: set[int], b_set: set[int]) -> set[tuple[int, int]]:
+    """All unordered pairs across two disjoint sets."""
+    return {tuple(sorted((i, j))) for i in a_set for j in b_set if i != j}
+
+
 def cut_pairs(base_pairs, allowed_pairs):
     """Intersection: keep only pairs that are both in base_pairs and allowed_pairs."""
     return base_pairs & allowed_pairs
+
+
+def build_index_set_cuts(dataset_name: str, correctly_classified_only: bool, split_path: str) -> dict[str, set[tuple[int,int]]]:
+    """
+    Returns a dict of pair-sets covering:
+      - same_class_all / same_class_0_all / same_class_1_all / diff_class_all
+      - train_train_same / train_train_diff / test_test_same / test_test_diff / train_test_same / train_test_diff
+      - same-class (0/1) variants for each split bucket
+    """
+    # label-based global sets
+    diff_class_pairs = graph_index_pairs_diff_class(
+        dataset_name=dataset_name,
+        correctly_classified_only=correctly_classified_only,
+        save_path=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs_diff_class.json",
+    )
+    same_class_pairs, same_class_0_pairs, same_class_1_pairs = graph_index_pairs_same_class(
+        dataset_name=dataset_name,
+        correctly_classified_only=correctly_classified_only,
+        save_dir=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs",
+    )
+
+    # train/test ids
+    train_set, test_set = load_split_sets(split_path)
+
+    # structural buckets
+    tt_pairs = pairs_within(train_set)              # train–train
+    uu_pairs = pairs_within(test_set)               # test–test
+    tu_pairs = pairs_across(train_set, test_set)    # train–test
+
+    # cuts between same/diff and test-test/train-train/test-train
+    cuts = {
+        # global label sets
+        "same_class_all":   same_class_pairs,
+        "same_class_0_all": same_class_0_pairs,
+        "same_class_1_all": same_class_1_pairs,
+        "diff_class_all":   diff_class_pairs,
+
+        # train–train
+        "train_train_same":  cut_pairs(tt_pairs, same_class_pairs),
+        "train_train_diff":  cut_pairs(tt_pairs, diff_class_pairs),
+        "train_train_same_0": cut_pairs(tt_pairs, same_class_0_pairs),
+        "train_train_same_1": cut_pairs(tt_pairs, same_class_1_pairs),
+
+        # test–test
+        "test_test_same":   cut_pairs(uu_pairs, same_class_pairs),
+        "test_test_diff":   cut_pairs(uu_pairs, diff_class_pairs),
+        "test_test_same_0": cut_pairs(uu_pairs, same_class_0_pairs),
+        "test_test_same_1": cut_pairs(uu_pairs, same_class_1_pairs),
+
+        # train–test
+        "train_test_same":   cut_pairs(tu_pairs, same_class_pairs),
+        "train_test_diff":   cut_pairs(tu_pairs, diff_class_pairs),
+        "train_test_same_0": cut_pairs(tu_pairs, same_class_0_pairs),
+        "train_test_same_1": cut_pairs(tu_pairs, same_class_1_pairs),
+    }
+
+    return cuts
 
 
 def graphs_correctly_classified(dataset_name):
     """Returns the indices of all graphs classified correctly by GAT model."""
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
-    # todo: not very intuitive for this to happen in this function.
-    #  better add filtering into scripts
     correct_idxs = [int(i) for i, entry in predictions.items() if entry["correct"]]
 
     return correct_idxs
