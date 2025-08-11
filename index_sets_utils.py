@@ -13,9 +13,11 @@ def load_split_sets(split_path):
     test = set(split["test_idx"])
     return train, test
 
+
 def cut_pairs(base_pairs, allowed_pairs):
     """Intersection: keep only pairs that are both in base_pairs and allowed_pairs."""
     return base_pairs & allowed_pairs
+
 
 def graphs_correctly_classified(dataset_name):
     """Returns the indices of all graphs classified correctly by GAT model."""
