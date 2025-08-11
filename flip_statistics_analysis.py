@@ -9,7 +9,10 @@ from index_sets_utils import graph_index_pairs_diff_class, graph_index_pairs_sam
 
 if __name__ == "__main__":
 
-    # todo: construct sets with helpers from index_sets_utils. filter for train/test too
+    # todo: construct sets with helpers from index_sets_utils
+
+    # ---------------------------- create index sets ------------------------------
+
     with open("model/best_split.json") as f:
         split = json.load(f)
 
@@ -19,7 +22,8 @@ if __name__ == "__main__":
     with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json") as f:
         changes_dict = json.load(f)
 
-    # create index sets of train and test graphs
+    # train vs. test split
+
     train_set = set(split["train_idx"])
     test_set = set(split["test_idx"])
 
@@ -27,8 +31,8 @@ if __name__ == "__main__":
     test_test_pairs = {tuple(sorted((i, j))) for i, j in itertools.combinations(test_set, 2)}
     train_test_pairs = {tuple(sorted((i, j))) for i, j in itertools.product(train_set, test_set) if i != j}
 
-    # load index sets same vs diff lass to filter
-    # todo: could just be read in from file
+    # same vs. diff class
+
     diff_class_pairs = graph_index_pairs_diff_class(
         dataset_name=DATASET_NAME,
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
@@ -40,6 +44,7 @@ if __name__ == "__main__":
         save_dir=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs")
 
     # filter train-train, test-test, train-test for same vs diff class paths
+
     train_train_same = {pair for pair in train_train_pairs if pair in same_class_pairs}
     train_train_same_0 = {pair for pair in train_train_pairs if pair in same_class_0_pairs}
     train_train_same_1 = {pair for pair in train_train_pairs if pair in same_class_1_pairs}
@@ -55,8 +60,7 @@ if __name__ == "__main__":
     train_test_same_1 = {pair for pair in train_test_pairs if pair in same_class_1_pairs}
     train_test_diff = {pair for pair in train_test_pairs if pair in diff_class_pairs}
 
-
-    # count changes for paths in sets
+    # -------------------- count flips per index set -----------------------------------------
 
     train_train_same_class_flips = get_num_changes_all_paths(train_train_same, changes_dict)
     train_train_same_class_0_flips = get_num_changes_all_paths(train_train_same_0, changes_dict)
@@ -73,8 +77,10 @@ if __name__ == "__main__":
     train_test_same_class_1_flips = get_num_changes_all_paths(train_test_same_1, changes_dict)
     train_test_diff_class_flips = get_num_changes_all_paths(train_test_diff, changes_dict)
 
-    # take statistics
-    # todo: incorporate same vs diff without train/test filtering. code for that is still in same_diff_analysis file.
+    # ------------------------- calculate statistics ---------------------------------------
+
+    # todo: include same vs diff without train/test filtering.
+    #  code for that is still in same_diff_analysis file.
 
     stats_train_test_diff_same = {
         'same': {
@@ -146,3 +152,4 @@ if __name__ == "__main__":
             }
         }
     }
+    

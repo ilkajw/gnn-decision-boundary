@@ -1,9 +1,18 @@
 import math
 import os
 import json
+from pathlib import Path
+
 import torch
 from torch_geometric.data import InMemoryDataset, Data
 from torch.serialization import add_safe_globals
+from torch_geometric.data.data import DataEdgeAttr
+
+from config import DATASET_NAME
+
+
+def _ensure_dir(path):
+    Path(os.path.dirname(path) or ".").mkdir(parents=True, exist_ok=True)
 
 
 class EditPathGraphsDataset(InMemoryDataset):
@@ -39,7 +48,8 @@ class EditPathGraphsDataset(InMemoryDataset):
         self.k_sigmoid = float(k_sigmoid)
         self.min_prob = min_prob
         self.verbose = verbose
-        super().__init__(root=None, transform=transform, pre_transform=pre_transform)
+        root_dir = os.path.abspath(f"data/{DATASET_NAME}/processed/_editpath_inmem_root")
+        super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
 
         data_list = self._build_list()
         self.data, self.slices = self.collate(data_list)
@@ -164,9 +174,68 @@ class EditPathGraphsDataset(InMemoryDataset):
 
                 # keep metadata
                 for key in (
-                "edit_step", "source_idx", "target_idx", "iteration", "distance", "prediction", "probability"):
+                        "edit_step", "source_idx", "target_idx", "iteration", "distance", "prediction", "probability"):
                     if hasattr(g, key):
                         setattr(out, key, getattr(g, key))
                 data_list.append(out)
 
         return data_list
+
+    def save(self, output_path, meta_path=None):
+        """
+        Save the collated PyG dataset (data + slices) to a single .pt file.
+        Optionally save JSON meta for reproducibility.
+        """
+        _ensure_dir(output_path)
+        torch.save((self.data, self.slices), output_path)
+
+        if meta_path:
+            _ensure_dir(meta_path)
+            meta = {
+                "seq_dir": self.seq_dir,
+                "base_pred_path": self.base_pred_path,
+                "label_mode": self.label_mode,
+                "interpolation": getattr(self, "interpolation", None),
+                "k_sigmoid": getattr(self, "k_sigmoid", None),
+                "min_prob": self.min_prob,
+                "num_graphs": self.len(),
+            }
+            with open(meta_path, "w") as f:
+                json.dump(meta, f, indent=2)
+        if self.verbose:
+            print(f"[EditPathGraphsDataset] Saved dataset to {output_path}"
+                  f"{' and meta to ' + meta_path if meta_path else ''}")
+
+
+class FlatGraphDataset(InMemoryDataset):
+    """
+    Lightweight dataset to load a previously saved (data, slices) .pt file
+    to avoid rebuilding from sequences for training/evaluation.
+    """
+
+    def __init__(self, saved_path, transform=None, pre_transform=None, verbose=True):
+        self.saved_path = saved_path
+        self.verbose = verbose
+        root_dir = os.path.join(os.path.dirname(saved_path) or ".", "_flat_root")
+        os.makedirs(root_dir, exist_ok=True)
+        super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
+
+        add_safe_globals([Data, DataEdgeAttr])
+        self.data, self.slices = torch.load(saved_path, weights_only=False)
+
+        if self.verbose:
+            try:
+                n = self.len()
+            except Exception:
+                n = "?"
+            print(f"[FlatGraphDataset] Loaded {n} graphs from {saved_path}")
+
+    @property
+    def raw_file_names(self): return []
+
+    @property
+    def processed_file_names(self): return []
+
+    def download(self): pass
+
+    def process(self): pass

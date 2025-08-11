@@ -3,7 +3,10 @@ from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
 from index_sets_utils import graph_index_pairs_diff_class, graph_index_pairs_same_class
 
 if __name__ == "__main__":
-    # todo: construct sets with helpers from index_sets_utils. filter for test/train too
+
+    # todo: construct sets with helpers from index_sets_utils, including same/diff + test/train
+
+    # -------------------------- create index sets -------------------------------------
 
     diff_class_pairs = graph_index_pairs_diff_class(dataset_name=DATASET_NAME,
                                                     correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
@@ -13,6 +16,8 @@ if __name__ == "__main__":
         dataset_name=DATASET_NAME,
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         save_dir=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs")
+
+    # ----------------- calculate flip distributions per index set ---------------------------
 
     get_rel_flips_per_decile(
         idx_pair_set=same_class_pairs,
