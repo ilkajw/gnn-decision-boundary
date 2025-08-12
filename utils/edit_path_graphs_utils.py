@@ -5,7 +5,7 @@ import os
 
 
 # add submodule root to Python path
-submodule_path = os.path.abspath("external")
+submodule_path = os.path.abspath("../external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
 
@@ -122,5 +122,5 @@ def generate_all_edit_path_graphs(data_dir,
             file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
-    with open("data/MUTAG/test/last_graphs_inserted.json", "w") as f:
+    with open("../data/MUTAG/test/last_graphs_inserted.json", "w") as f:
         json.dump(last_graph_insertions, f, indent=2)

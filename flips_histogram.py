@@ -1,9 +1,9 @@
 import os
 import json
 
-from analyse_utils import count_paths_by_num_flips
+from utils.analyse_utils import count_paths_by_num_flips
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from index_sets_utils import build_index_set_cuts
+from utils.index_sets_utils import build_index_set_cuts
 
 
 def to_relative(counts_dict):

@@ -2,8 +2,8 @@ import torch.nn.functional as func
 import random
 import numpy as np
 
-from predict_utils import *
-from edit_path_graphs_utils import *
+from utils.predict_utils import *
+from utils.edit_path_graphs_utils import *
 from sklearn.model_selection import StratifiedKFold
 
 

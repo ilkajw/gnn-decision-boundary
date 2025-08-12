@@ -1,6 +1,6 @@
-from analyse_utils import count_paths_by_num_flips
+from utils.analyse_utils import count_paths_by_num_flips
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from index_sets_utils import graph_index_pairs_same_class, graph_index_pairs_diff_class
+from utils.index_sets_utils import graph_index_pairs_same_class, graph_index_pairs_diff_class
 
 if __name__ == "__main__":
 

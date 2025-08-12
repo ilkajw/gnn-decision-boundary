@@ -1,10 +1,13 @@
-from analyse_utils import get_distance_per_pair, get_flip_steps_per_pair
+from utils.analyse_utils import get_distance_per_path, get_flip_steps_per_pair, get_num_ops_per_path
 from config import DATASET_NAME
 
 if __name__ == "__main__":
 
-    get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
+    get_distance_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
                           output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json")
+
+    get_num_ops_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
+                         output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_pair.json")
 
     get_flip_steps_per_pair(input_dir=f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions",
                             output_dir=f"data/{DATASET_NAME}/analysis",

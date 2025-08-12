@@ -1,14 +1,19 @@
 import os
 
-from analyse_utils import flip_distribution_by_indexset
-from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from index_sets_utils import build_index_set_cuts
+from utils.analyse_utils import flip_distribution_by_indexset
+from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
+from utils.index_sets_utils import build_index_set_cuts
 
 if __name__ == "__main__":
 
     # inputs
     split_path = "model/best_split.json"
-    dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"
+    if DISTANCE_MODE == "cost_function":
+        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"
+    elif DISTANCE_MODE == "operations_count":
+        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_pair.json"
+    else:
+        print("Provide valid param for DISTANCE MODE in config.py.")
     flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json"
     out_dir = f"data/{DATASET_NAME}/analysis"
     os.makedirs(out_dir, exist_ok=True)

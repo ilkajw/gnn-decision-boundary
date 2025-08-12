@@ -1,7 +1,6 @@
-import numpy as np
-from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from index_sets_utils import *
-from analyse_utils import *
+from config import CORRECTLY_CLASSIFIED_ONLY
+from utils.index_sets_utils import *
+from utils.analyse_utils import *
 
 if __name__ == "__main__":
 

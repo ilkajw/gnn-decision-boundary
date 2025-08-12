@@ -1,4 +1,4 @@
-from analyse_utils import *
+from utils.analyse_utils import *
 from config import DATASET_NAME
 
 if __name__ == "__main__":

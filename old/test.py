@@ -2,7 +2,7 @@
 import os
 import sys
 
-submodule_path = os.path.abspath("external")
+submodule_path = os.path.abspath("../external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
 
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     # load edit path operations
     edit_paths = load_edit_paths_from_file(db_name='MUTAG',
-                                           file_path="external/pg_gnn_edit_paths/example_paths_MUTAG")
+                                           file_path="../external/pg_gnn_edit_paths/example_paths_MUTAG")
 
     # load nx graphs from original dataset
     dataset = GraphDataset(root="external/pg_gnn_edit_paths/example_paths_MUTAG",
@@ -87,15 +87,15 @@ if __name__ == "__main__":
     }
 
     # save results
-    os.makedirs("data/MUTAG/test", exist_ok=True)
-    with open("data/MUTAG/test/last_graph_missing_details.json", "w") as f:
+    os.makedirs("../data/MUTAG/test", exist_ok=True)
+    with open("../data/MUTAG/test/last_graph_missing_details.json", "w") as f:
         json.dump(last_graph_missing_dict, f, indent=2)
 
-    with open("data/MUTAG/test/last_graph_missing_diff.json", "w") as f:
+    with open("../data/MUTAG/test/last_graph_missing_diff.json", "w") as f:
         json.dump(diff_missing, f, indent=2)
 
-    with open("data/MUTAG/test/last_graph_included_details.json", "w") as f:
+    with open("../data/MUTAG/test/last_graph_included_details.json", "w") as f:
         json.dump(last_graph_included_dict, f, indent=2)
 
-    with open("data/MUTAG/test/last_graph_included_diff.json", "w") as f:
+    with open("../data/MUTAG/test/last_graph_included_diff.json", "w") as f:
         json.dump(diff_included, f, indent=2)

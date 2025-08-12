@@ -2,7 +2,7 @@ import sys
 import os
 
 # add submodule root to Python path
-submodule_path = os.path.abspath("external")
+submodule_path = os.path.abspath("../external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
 
@@ -15,37 +15,37 @@ from config import DATASET_NAME
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
-def get_distance_per_pair(mode, input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
+def get_distance_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
                           output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"):
 
     edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
                                            file_path=input_path)
     distances = {}
-
     for (i, j), path_list in edit_paths.items():
-
         if path_list:
-
-            # todo: this is not quite right as we compare the number of steps with a distance which is
-            #   not equal to the number of total steps because the default implementation does not weigh all edit steps
-            #   with one.
-            #   if we use len(path_list[0].all_operations) though, we run into the following problem:
-            #   there are paths with len_all_ops = 0, but last graph (=source graph) != target graph, which is why
-            #   we get a sequence with 2 graphs with len_all_ops = 0.
-            if mode == "cost_function":
-                distances[f"{i},{j}"] = path_list[0].distance
-            else:
-                # todo: check if this is reasonable for all cases (with last graph insertion and without)
-                distances[f"{i},{j}"] = len(path_list[0].all_operations) if len(path_list[0].all_operations) > 0 else 1
-
+            distances[f"{i},{j}"] = path_list[0].distance
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(distances, f, indent=2)
 
     return distances
 
-def update_edit_step_acc_to_cost_function():
-    pass
+
+def get_num_ops_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
+                         output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_pair.json"):
+
+    edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
+                                           file_path=input_path)
+    num_ops = {}
+    for (i, j), path_list in edit_paths.items():
+        if path_list:
+            num_ops[f"{i},{j}"] = len(path_list[0].all_operations) if len(path_list[0].all_operations) > 0 else 1
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(num_ops, f, indent=2)
+
+    return num_ops
+
 
 # todo: why output dir and fname given? merge to one arg? see below for solution for earlier assumed problem
 def get_abs_flips_per_edit_step(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
@@ -113,7 +113,8 @@ def get_abs_flips_per_edit_step(idx_pairs_set, input_dir, output_dir=None, outpu
     return changes_dict
 
 
-def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
+
+def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None, distance_mode="cumulative_cost"):
 
     """
     Counts class changes per decile across all edit path sequences with predictions.
@@ -127,17 +128,23 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
         dict: Mapping edit step → number of class changes at that step.
 
     """
-
-    # load precalculated dict (i,j) -> edit distance
-    with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json") as f:
-        distances = json.load(f)
+    # load data for a measure on total path weighting, per-cost function or per-operation count
+    if distance_mode == "cost_function":
+        # load precalculated dict (i,j) -> edit distance
+        with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json") as f:
+            distances = json.load(f)
+    elif distance_mode == "operations_count":
+        # load precalculated dict (i,j) -> number of operations
+        with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num ops_per_pair.json") as f:
+            num_ops = json.load(f)
+    else:
+        print("Choose a valid param for distance_mode: 'cost_function' or 'operations_count'")
+        return
 
     # initialize dict to store number of class changes per decile
     class_changes_per_decile = {decile: 0 for decile in range(10)}
 
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
-
-    zero_distance_pairs = {(114, 155), (114, 185), (155, 175), (175, 185), (25, 112)}
 
     for fname in os.listdir(input_dir):
 
@@ -149,10 +156,6 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
             continue
 
         i, j = int(match.group(1)), int(match.group(2))
-
-        # todo: for debugging only
-        #if not (i, j) in zero_distance_pairs and (j, i) not in zero_distance_pairs:
-        #    continue
 
         # filter for graph pairs from the given index set only
         if (i, j) not in idx_pairs_set and (j, i) not in idx_pairs_set:
@@ -173,12 +176,11 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
 
             if prev_pred is not None and pred != prev_pred:
 
-                # todo: for debugging only
-                if distances[f"{i},{j}"] == 0:
-                    print(f"Distance 0 for {i}, {j} and ran into condition")
-                    continue
+                if distance_mode == "cost_function":
+                    rel_step = g.cumulative_cost/distances[f"{i},{j}"]
+                else:
+                    rel_step = g.edit_step/num_ops[f"{i},{j}"]  # todo: check if this works
 
-                rel_step = g.edit_step/distances[f"{i},{j}"]
                 decile = int(min(rel_step * 10, 9))
                 class_changes_per_decile[decile] += 1
 
@@ -316,10 +318,10 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
         with open(output_path, "w") as f:
             json.dump(dict(flip_histogram), f, indent=2)
     if same_class:
-        with open("data/MUTAG/test/same_class_odd_flips.json", "w") as f:
+        with open("../data/MUTAG/test/same_class_odd_flips.json", "w") as f:
             json.dump(same_class_odd_flips, f, indent=2)
     if not same_class:
-        with open("data/MUTAG/test/diff_class_even_flips.json", "w") as f:
+        with open("../data/MUTAG/test/diff_class_even_flips.json", "w") as f:
             json.dump(diff_class_even_flips, f, indent=2)
 
     return dict(flip_histogram)
