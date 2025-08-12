@@ -15,7 +15,7 @@ from config import DATASET_NAME
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
-def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
+def get_distance_per_pair(mode, input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
                           output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"):
 
     edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
@@ -32,14 +32,20 @@ def get_distance_per_pair(input_path=f"external/pg_gnn_edit_paths/example_paths_
             #   if we use len(path_list[0].all_operations) though, we run into the following problem:
             #   there are paths with len_all_ops = 0, but last graph (=source graph) != target graph, which is why
             #   we get a sequence with 2 graphs with len_all_ops = 0.
-
-            distances[f"{i},{j}"] = path_list[0].distance
+            if mode == "cost_function":
+                distances[f"{i},{j}"] = path_list[0].distance
+            else:
+                # todo: check if this is reasonable for all cases (with last graph insertion and without)
+                distances[f"{i},{j}"] = len(path_list[0].all_operations) if len(path_list[0].all_operations) > 0 else 1
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(distances, f, indent=2)
 
     return distances
+
+def update_edit_step_acc_to_cost_function():
+    pass
 
 # todo: why output dir and fname given? merge to one arg? see below for solution for earlier assumed problem
 def get_abs_flips_per_edit_step(idx_pairs_set, input_dir, output_dir=None, output_fname=None):

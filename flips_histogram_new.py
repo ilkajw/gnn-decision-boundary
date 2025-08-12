@@ -5,6 +5,16 @@ from analyse_utils import count_paths_by_num_flips
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
 from index_sets_utils import build_index_set_cuts
 
+
+def to_relative(counts_dict):
+    # counts_dict: {"0": int, "1": int, ...} or {0: int, 1: int, ...}
+    # Ensure keys are strings in output, mirroring your JSON style
+    total = sum(counts_dict.values())
+    if total == 0:
+        return {str(k): 0.0 for k in counts_dict.keys()}
+    return {str(k): (counts_dict[k] / total) for k in counts_dict.keys()}
+
+
 if __name__ == "__main__":
 
     # inputs
@@ -49,6 +59,7 @@ if __name__ == "__main__":
 
     # run histograms & save individual + combined
     combined = {}
+    combined_rel = {}
     for key, same_flag in keys_and_flags:
         idx_pair_set = cuts[key]
         out_path = os.path.join(out_dir, f"{DATASET_NAME}_num_paths_per_num_flips_{key}.json")
@@ -61,8 +72,23 @@ if __name__ == "__main__":
         )
         combined[key] = hist
 
+        # compute relative proportions and write to another file
+        rel = to_relative(hist)
+        rel_out_path = os.path.join(out_dir, f"{DATASET_NAME}_num_paths_per_num_flips_{key}_REL.json")
+        with open(rel_out_path, "w") as f:
+            json.dump(rel, f, indent=2)
+
+        # keep for combined relative output
+        combined_rel[key] = rel
+
     # save merged histogram
     combined_path = os.path.join(out_dir, f"{DATASET_NAME}_num_paths_per_num_flips_ALL_CUTS.json")
     with open(combined_path, "w") as f:
         json.dump(combined, f, indent=2)
     print(f"Saved combined histograms → {combined_path}")
+
+    # save merged (relative)
+    combined_rel_path = os.path.join(out_dir, f"{DATASET_NAME}_num_paths_per_num_flips_ALL_CUTS_REL.json")
+    with open(combined_rel_path, "w") as f:
+        json.dump(combined_rel, f, indent=2)
+    print(f"Saved combined (relative) → {combined_rel_path}")

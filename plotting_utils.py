@@ -2,11 +2,39 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Iterable, List
 import matplotlib.pyplot as plt
 
+from config import DATASET_NAME
 
-# ------------------ LOADERS ------------------
+
+# ------------------- helpers to access data files ----------------------------------
+
+# todo: check redundancy of functions
+
+def collect_existing_hist_files(cuts) -> Dict[str, str]:
+    label_to_file: Dict[str, str] = {}
+    for key in cuts:
+        path = histogram_file(key)
+        if os.path.exists(path):
+            label_to_file[key] = path
+        else:
+            print(f"[warn] Skipping missing histogram: {path}")
+    return label_to_file
+
+
+def histogram_file(key: str) -> str:
+    # matches your count_paths_by_num_flips(...) output naming
+    return os.path.join(
+        f"data/{DATASET_NAME}/analysis",
+        f"{DATASET_NAME}_num_paths_per_num_flips_{key}.json"
+    )
+
+
+def decile_file(key: str) -> str:
+    return os.path.join(f"data/{DATASET_NAME}/analysis",
+                        f"{DATASET_NAME}_rel_flips_per_decile_{key}.json")
+
 
 def load_histogram(path: str) -> Dict[int, int]:
     """
@@ -18,67 +46,79 @@ def load_histogram(path: str) -> Dict[int, int]:
     return {int(k): int(v) for k, v in data.items()}
 
 
-def load_decile_distribution(path: str) -> Dict[str, float]:
-    """
-    Load a decile -> value mapping from JSON.
-    Accepts keys as strings "0".."9". Values typically are proportions (sum ~1).
-    """
+def load_distribution_per_indexset(path: str, field: str = "avg_per_path", normalize_abs: bool = True):
     with open(path, "r") as f:
         d = json.load(f)
+    rec = d[field]
+    if field == "abs_counts" and normalize_abs:
+        total = sum(rec.values()) or 1
+        rec = {str(dd): rec.get(str(dd), 0) / total for dd in map(str, range(10))}
+    return {str(dd): float(rec.get(str(dd), 0.0)) for dd in range(10)}
 
-    if "avg_proportion" in d:
-        d = d["avg_proportion"]
 
-    return {str(k): float(v) for k, v in d.items() if str(k).isdigit()}
+# ------------------ helpers to plot for several index sets simultaneously -----------------------------
 
-
-# ------------------ PLOTTING: NUM FLIPS PER PATH ------------------
-
-def plot_num_flips_histograms_from_files(
-    label_to_file: Dict[str, str],
+def plot_histograms_for_cuts(
+    key_to_file: Dict[str, str],
+    cuts: List[str],
     normalize: bool = False,
-    title: str = "# Flips per Path",
+    title: Optional[str] = None,
     save_path: Optional[str] = None,
     show: bool = False,
 ):
     """
-    Load precomputed num_flips histograms from JSON files and plot them together.
-
-    Args:
-        label_to_file: {"train_train": "...json", "test_test": "...json", ...}
-        normalize: If True, bars show proportions.
-        title: Figure title.
-        save_path: If given, saves the figure there.
-        show: If True, calls plt.show().
+    Plot #flips-per-path histograms for a small selection of cuts (e.g., up to 3).
     """
-    # load all histograms
-    histograms = {label: load_histogram(path) for label, path in label_to_file.items()}
+    # filter + check
+    selected = {k: key_to_file[k] for k in cuts if k in key_to_file and os.path.exists(key_to_file[k])}
+    if not selected:
+        raise ValueError("None of the requested cuts have an existing histogram file.")
+    if len(selected) > 3:
+        print(f"⚠️ You selected {len(selected)} cuts; consider ≤3 for readability.")
 
+    # load
+    histograms = {label: load_histogram(path) for label, path in selected.items()}
     all_k = sorted({k for h in histograms.values() for k in h.keys()})
-    set_names = list(histograms.keys())
-    n_sets = len(set_names)
-    width = 0.8 / max(n_sets, 1)
+    names = list(histograms.keys())
+    n = len(names)
+    width = 0.8 / max(n, 1)
 
     # normalize if requested
-    processed = {}
+    proc = {}
     for name, h in histograms.items():
         if normalize:
             total = sum(h.values()) or 1
-            processed[name] = {k: (v / total) for k, v in h.items()}
+            proc[name] = {k: (v / total) for k, v in h.items()}
         else:
-            processed[name] = dict(h)
+            proc[name] = dict(h)
 
     # plot
     fig, ax = plt.subplots(figsize=(9, 5))
-    for idx, name in enumerate(set_names):
-        vals = [processed[name].get(k, 0) for k in all_k]
-        ax.bar([k + idx*width for k in range(len(all_k))], vals, width=width, label=name)
+    for idx, name in enumerate(names):
+        vals = [proc[name].get(k, 0) for k in all_k]
+        bars = ax.bar([x + idx * width for x in range(len(all_k))], vals, width=width, label=name)
 
-    ax.set_xticks([k + (n_sets-1)*width/2 for k in range(len(all_k))])
+        # annotate values on top of bars
+        for rect, y in zip(bars, vals):
+            if normalize:
+                label = f"{y:.2f}"
+            else:
+                label = f"{int(y)}"
+            ax.annotate(
+                label,
+                xy=(rect.get_x() + rect.get_width() / 2, y),
+                xytext=(0, 3),  # offset in points
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+    ax.set_xticks([x + (n-1)*width/2 for x in range(len(all_k))])
     ax.set_xticklabels([str(k) for k in all_k])
-    ax.set_xlabel("# flips")
+    ax.set_xlabel("# flips per path (k)")
     ax.set_ylabel("Proportion" if normalize else "Count")
-    ax.set_title(title)
+    ax.set_title(title or "Flips-per-path histogram")
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
@@ -90,39 +130,74 @@ def plot_num_flips_histograms_from_files(
     plt.close(fig)
 
 
-# ------------------ PLOTTING: RELATIVE DECILE DISTRIBUTIONS ------------------
-
-def plot_decile_distributions_from_files(
-    label_to_file: Dict[str, str],
-    title: str = "Relative Flip Distribution by Decile",
+def plot_deciles_for_cuts(
+    key_to_file: Dict[str, str],
+    cuts: List[str],
+    field: str = "global_proportion",   # or "avg_per_path" / "abs_counts"
+    normalize_abs: bool = False,         # only used if field == "abs_counts"
+    title: Optional[str] = None,
     save_path: Optional[str] = None,
     show: bool = False,
 ):
     """
-    Load precomputed relative decile distributions from JSON files and plot them.
-
-    Args:
-        label_to_file: {"same_class": "...json", "diff_class": "...json", ...}
-        title: Figure title.
-        save_path: If given, saves figure there.
-        show: If True, calls plt.show().
+    Plot decile distributions for a small selection of cuts (e.g., up to 3) as a grouped histogram
+    with value annotations on/above each bar.
     """
-    distributions = {label: load_decile_distribution(path) for label, path in label_to_file.items()}
+    # filter available files
+    selected = {k: key_to_file[k] for k in cuts if k in key_to_file and os.path.exists(key_to_file[k])}
+    if not selected:
+        raise ValueError("None of the requested cuts have an existing decile file.")
+    if len(selected) > 3:
+        print(f"⚠️ You selected {len(selected)} cuts. Consider ≤3 for readability.")
+    if len(selected) < len(cuts):
+        print(f"⚠️ Cuts is: {cuts}. Selected is: {selected.keys()}.")
 
-    xs = list(range(10))
+    xs = list(range(10))  # deciles 0..9
+    names = list(selected.keys())
+    n = len(names)
+    width = 0.8 / max(n, 1)  # total cluster width ~0.8
 
-    fig, ax = plt.subplots(figsize=(9, 5))
-    for name, decmap in distributions.items():
-        ys = [float(decmap.get(str(k), 0.0)) for k in xs]
-        ax.plot(xs, ys, marker="o", label=name)
+    # load data
+    series = []
+    for name in names:
+        decmap = load_distribution_per_indexset(
+            selected[name], field=field, normalize_abs=normalize_abs
+        )
+        ys = [decmap[str(d)] for d in xs]
+        series.append((name, ys))
 
-    ax.set_xticks(xs)
-    ax.set_xticklabels([f"{10*k}-{10*(k+1)}%" for k in xs])
+    # plot grouped bars
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for idx, (name, ys) in enumerate(series):
+        xpos = [x + idx * width for x in xs]
+        bars = ax.bar(xpos, ys, width=width, label=name)
+
+        # annotate values on/above bars
+        for rect, y in zip(bars, ys):
+            if field == "abs_counts" and not normalize_abs:
+                label = f"{int(round(y))}"
+            else:
+                # proportions or normalized counts
+                label = f"{y:.2f}"
+            height = rect.get_height()
+            ax.annotate(
+                label,
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(0, 3),  # offset in points
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+    # nice ticks & labels
+    ax.set_xticks([x + (n - 1) * width / 2 for x in xs])
+    ax.set_xticklabels([f"{10*d}-{10*(d+1)}%" for d in xs])
     ax.set_xlabel("Edit-path decile (relative position)")
-    ax.set_ylabel("Proportion of flips")
-    ax.set_title(title)
+    ax.set_ylabel("Proportion" if field != "abs_counts" or normalize_abs else "Count")
+    ax.set_title(title or f"Decile distribution ({field})")
     ax.legend()
-    ax.grid(True, linestyle="--", alpha=0.3)
+    ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
     if save_path:
         Path(os.path.dirname(save_path) or ".").mkdir(parents=True, exist_ok=True)

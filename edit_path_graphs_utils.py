@@ -56,7 +56,7 @@ def generate_all_edit_path_graphs(data_dir,
 
     # for reconstruction of node feature tensor x
     num_node_classes = dataset.unique_node_labels
-    insertions = []
+    last_graph_insertions = []
     # create graphs from operations per (source graph, target graph)
     for (i, j), paths in edit_paths.items():
 
@@ -78,7 +78,7 @@ def generate_all_edit_path_graphs(data_dir,
             last_graph_included = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
             if not last_graph_included:
                 sequence.append(nx_graphs[j])
-                insertions.append((i, j))
+                last_graph_insertions.append((i, j))
 
             # assign metadata to nx graphs
             for step, g in enumerate(sequence):
@@ -123,4 +123,4 @@ def generate_all_edit_path_graphs(data_dir,
             torch.save(pyg_sequence, file_path)
 
     with open("data/MUTAG/test/last_graphs_inserted.json", "w") as f:
-        json.dump(insertions, f, indent=2)
+        json.dump(last_graph_insertions, f, indent=2)
