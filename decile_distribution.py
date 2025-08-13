@@ -1,8 +1,8 @@
 import os
 
-from utils.analyse_utils import flip_distribution_by_indexset
+from analyse_utils import flip_distribution_by_indexset
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
-from utils.index_sets_utils import build_index_set_cuts
+from index_sets_utils import build_index_set_cuts
 
 if __name__ == "__main__":
 

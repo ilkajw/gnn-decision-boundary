@@ -3,9 +3,9 @@ import json
 
 import numpy as np
 
-from utils.analyse_utils import get_num_changes_all_paths
+from analyse_utils import get_num_changes_all_paths
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from utils.index_sets_utils import graph_index_pairs_diff_class, graph_index_pairs_same_class
+from index_sets_utils import graph_index_pairs_diff_class, graph_index_pairs_same_class
 
 if __name__ == "__main__":
 

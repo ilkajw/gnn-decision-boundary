@@ -1,6 +1,6 @@
 import os
 
-from utils.plotting_utils import histogram_file, collect_existing_hist_files, decile_file, plot_deciles_for_cuts
+from plotting_utils import histogram_file, collect_existing_hist_files, decile_file, plot_deciles_for_cuts
 from config import DATASET_NAME
 
 # define input, output paths

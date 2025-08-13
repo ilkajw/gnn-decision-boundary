@@ -7,7 +7,7 @@ from torch.utils.data import Subset
 from torch_geometric.loader import DataLoader
 
 from EditPathGraphDataset import FlatGraphDataset
-from utils.training_utils import train_epoch
+from training_utils import train_epoch
 from model import GAT
 from config import DATASET_NAME, EPOCHS, LEARNING_RATE, BATCH_SIZE, HIDDEN_CHANNELS, HEADS, DROPOUT, K_FOLDS
 

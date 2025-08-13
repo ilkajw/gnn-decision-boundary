@@ -1,4 +1,4 @@
-from utils.analyse_utils import get_distance_per_path, get_flip_steps_per_pair, get_num_ops_per_path
+from analyse_utils import get_distance_per_path, get_flip_steps_per_pair, get_num_ops_per_path
 from config import DATASET_NAME
 
 if __name__ == "__main__":

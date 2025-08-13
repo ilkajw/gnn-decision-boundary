@@ -2,9 +2,9 @@ import os
 import json
 import numpy as np
 
-from utils.analyse_utils import get_num_changes_all_paths
+from analyse_utils import get_num_changes_all_paths
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from utils.index_sets_utils import build_index_set_cuts
+from index_sets_utils import build_index_set_cuts
 
 
 def stats_from_counts(counts):

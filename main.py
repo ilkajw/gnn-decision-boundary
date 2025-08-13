@@ -1,7 +1,7 @@
-from utils.predict_utils import *
-from utils.edit_path_graphs_utils import *
-from utils.training_utils import train_and_choose_model
-from utils.analyse_utils import *
+from predict_utils import *
+from edit_path_graphs_utils import *
+from training_utils import train_and_choose_model
+from analyse_utils import *
 
 
 if __name__ == "__main__":

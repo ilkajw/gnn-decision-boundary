@@ -2,7 +2,7 @@ import sys
 import os
 
 # add submodule root to Python path
-submodule_path = os.path.abspath("../external")
+submodule_path = os.path.abspath("external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
 
@@ -318,10 +318,10 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
         with open(output_path, "w") as f:
             json.dump(dict(flip_histogram), f, indent=2)
     if same_class:
-        with open("../data/MUTAG/test/same_class_odd_flips.json", "w") as f:
+        with open("data/MUTAG/test/same_class_odd_flips.json", "w") as f:
             json.dump(same_class_odd_flips, f, indent=2)
     if not same_class:
-        with open("../data/MUTAG/test/diff_class_even_flips.json", "w") as f:
+        with open("data/MUTAG/test/diff_class_even_flips.json", "w") as f:
             json.dump(diff_class_even_flips, f, indent=2)
 
     return dict(flip_histogram)

@@ -5,8 +5,8 @@ from torch_geometric.transforms import Compose
 
 from EditPathGraphDataset import FlatGraphDataset
 from config import DATASET_NAME, ROOT
-from utils.dataset_utils import save_dataset_as_inmemory_pt
-from utils.data_transform_utils import to_float_y, drop_edge_attr
+from dataset_utils import save_dataset_as_inmemory_pt
+from data_transform_utils import to_float_y, drop_edge_attr
 
 if __name__ == "__main__":
 
