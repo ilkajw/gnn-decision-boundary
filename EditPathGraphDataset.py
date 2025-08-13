@@ -1,9 +1,9 @@
 import math
 import os
 import json
-from pathlib import Path
-
 import torch
+
+from pathlib import Path
 from torch_geometric.data import InMemoryDataset, Data
 from torch.serialization import add_safe_globals
 from torch_geometric.data.data import DataEdgeAttr

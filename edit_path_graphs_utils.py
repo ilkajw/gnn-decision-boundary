@@ -1,27 +1,27 @@
-import json
 import sys
 import os
-
-from config import DATASET_NAME
 
 # add submodule root to Python path
 submodule_path = os.path.abspath("external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
 
-import networkx as nx
+import json
 import torch
+import networkx as nx
 import torch.nn.functional as F
-
-from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
-from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 from torch_geometric.utils import from_networkx
 from networkx import is_isomorphic
+
+from config import DATASET_NAME
+from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
+from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
+
 
 
 def generate_all_edit_path_graphs(data_dir,
                                   output_dir,
-                                  db_name="MUTAG",
+                                  db_name=f"{DATASET_NAME}",
                                   seed=42,
                                   fully_connected_only=True):
     """

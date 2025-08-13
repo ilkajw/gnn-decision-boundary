@@ -26,9 +26,9 @@ if __name__ == "__main__":
 
     # check
     loader = DataLoader(merged, batch_size=32, shuffle=True)
-    num_mutag = len(org_ds)
+    num_org = len(org_ds)
     num_edit = len(edit_ds)
-    print(f"Merged dataset: {num_mutag} (MUTAG) + {num_edit} (edit-path) = {len(merged)}")
+    print(f"Merged dataset: {num_org} ({DATASET_NAME}) + {num_edit} (edit-path) = {len(merged)}")
 
     # save merged dataset as a single (data, slices) .pt
 

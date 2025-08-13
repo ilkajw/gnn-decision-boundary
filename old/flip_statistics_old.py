@@ -39,7 +39,7 @@ if __name__ == "__main__":
         save_path=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs_diff_class.json")
 
     same_class_pairs, same_class_0_pairs, same_class_1_pairs = graph_index_pairs_same_class(
-        dataset_name=DATASET_NAME,
+        dataset=DATASET_NAME,
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         save_dir=f"data/{DATASET_NAME}/index_sets/{DATASET_NAME}_idx_pairs")
 

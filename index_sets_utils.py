@@ -2,7 +2,7 @@ import itertools
 import json
 import os
 
-from config import DATASET_NAME
+from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
 
 
 def load_split_sets(split_path):
@@ -29,7 +29,9 @@ def cut_pairs(base_pairs, allowed_pairs):
     return base_pairs & allowed_pairs
 
 
-def build_index_set_cuts(dataset_name: str, correctly_classified_only: bool, split_path: str) -> dict[str, set[tuple[int,int]]]:
+def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
+                         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
+                         split_path="model/best_split.json"):
     """
     Returns a dict of pair-sets covering:
       - same_class_all / same_class_0_all / same_class_1_all / diff_class_all
@@ -43,7 +45,7 @@ def build_index_set_cuts(dataset_name: str, correctly_classified_only: bool, spl
         save_path=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs_diff_class.json",
     )
     same_class_pairs, same_class_0_pairs, same_class_1_pairs = graph_index_pairs_same_class(
-        dataset_name=dataset_name,
+        dataset=dataset_name,
         correctly_classified_only=correctly_classified_only,
         save_dir=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs",
     )
@@ -86,7 +88,7 @@ def build_index_set_cuts(dataset_name: str, correctly_classified_only: bool, spl
     return cuts
 
 
-def graphs_correctly_classified(dataset_name):
+def graphs_correctly_classified(dataset_name=f"{DATASET_NAME}"):
     """Returns the indices of all graphs classified correctly by GAT model."""
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
@@ -96,35 +98,35 @@ def graphs_correctly_classified(dataset_name):
 
 
 # todo: potentially merge next two functions into 1 with same/diff argument
-def graph_index_pairs_same_class(dataset_name,
+def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
                                  correctly_classified_only=True,
                                  save_dir=None):
     """
-    Returns all index pairs (i, j) from MUTAG where both graphs are of the same class.
+    Returns all index pairs (i, j) from original dataset where both graphs are of the same class.
     If correctly_classified_only is True, only include graphs correctly classified by the model.
     Optionally saves the result to a JSON file.
 
     Args:
-        :param dataset_name: Name of graph dataset.
+        :param dataset: Name of graph dataset.
         :param correctly_classified_only: If True, only pairs of indices from correctly classified graphs
         will be considered.
         :param save_dir: File path where to save index pair list.
     """
 
-    # read in predictions of our model on MUTAG graphs
-    with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
+    # read in predictions of our model on graphs in original dats
+    with open(f"data/{dataset}/predictions/{dataset}_predictions.json") as f:
         predictions = json.load(f)
 
-    # filter graph indices
+    # optionally, filter for correctly classified graphs only
     if correctly_classified_only:
-        idxs = graphs_correctly_classified(dataset_name)
+        idxs = graphs_correctly_classified(dataset)
     else:
         idxs = list(map(int, predictions.keys()))
 
-    # map idx → label
+    # map graph idx → true label
     labels = {int(i): entry["true_label"] for i, entry in predictions.items() if int(i) in idxs}
 
-    # prepare sets
+    # build sets of graph pairs
     same_class_pairs = set()
     same_class_0_pairs = set()
     same_class_1_pairs = set()
@@ -137,12 +139,12 @@ def graph_index_pairs_same_class(dataset_name,
             elif labels[i] == 1:
                 same_class_1_pairs.add((i, j))
 
-    # optionally save all three same-class sets
+    # optionally, save all three same-class sets
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
 
         def save_set(pair_set, suffix):
-            file_path = os.path.join(save_dir, f"{DATASET_NAME}_idx_pairs_{suffix}.json")
+            file_path = os.path.join(save_dir, f"{dataset}_idx_pairs_{suffix}.json")
             with open(file_path, "w") as f:
                 json.dump(sorted(list(pair_set)), f, indent=2)
             print(f"Saved {len(pair_set)} graph pairs to {file_path}")
@@ -154,12 +156,12 @@ def graph_index_pairs_same_class(dataset_name,
     return same_class_pairs, same_class_0_pairs, same_class_1_pairs
 
 
-def graph_index_pairs_diff_class(dataset_name,
+def graph_index_pairs_diff_class(dataset_name=f"{DATASET_NAME}",
                                  correctly_classified_only=True,
                                  save_path=None):
     """
-    Returns all index pairs (i, j) from MUTAG where the graphs are of different classes.
-    If correctly_classified_only is True, only include graphs correctly classified by the model.
+    Returns all index pairs (i, j) from original datatset where the graphs are of different classes.
+    If correctly_classified_only is True, only graphs correctly classified by the model are included.
     Optionally saves the result to a JSON file.
 
     Args:
@@ -169,27 +171,27 @@ def graph_index_pairs_diff_class(dataset_name,
         :param save_path: File path where to save index pair list.
     """
 
-    # read in predictions of our model on MUTAG graphs
+    # read in predictions of our model on original dataset graphs
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
 
-    # filter graph indexes, if only correctly classified graphs should be considered
+    # optionally, filter for correctly classified graphs only
     if correctly_classified_only:
         correct_idxs = graphs_correctly_classified(dataset_name)
         idxs = correct_idxs
     else:
         idxs = list(map(int, predictions.keys()))
 
-    # build dictionary of idx → label, potentially filtered for correct classifications
+    # build dictionary of graph idx → true label
     labels = {int(i): entry["true_label"] for i, entry in predictions.items() if int(i) in idxs}
 
-    # generate pairs with same label
+    # generate set of all graph pairs
     pairs = set()
     for i, j in itertools.combinations(sorted(labels.keys()), 2):
         if labels[i] != labels[j]:
             pairs.add((i, j))
 
-    # optionally, save result to file
+    # optionally, save set to file
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "w") as f:

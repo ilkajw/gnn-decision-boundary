@@ -19,7 +19,7 @@ def save_dataset_as_inmemory_pt(dataset, save_pt_path: str, meta_path: str | Non
     # collect all Data objects (this will apply transforms)
     data_list = [dataset[i] for i in range(len(dataset))]
 
-    # tiny InMemoryDataset to access `collate`
+    # InMemoryDataset to access `collate`
     class _Collator(InMemoryDataset):
         def __init__(self, data_list):
             # Give a harmless root; silence logs
