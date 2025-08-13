@@ -5,7 +5,9 @@ if __name__ == "__main__":
 
     # calculate the distribution of flips per set of paths having k = 1, 2, 3, ... flips
 
-    paths_per_num_flips = get_rel_flips_per_decile_by_k(
+    # TODO: IS THIS THE WRONG FUNCTION???
+
+    paths_per_num_flips = flips_distribution_over_deciles_by_num_flips(
         max_k=8,
         dist_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json",
         flips_input_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json",

@@ -1,6 +1,6 @@
 import os
 
-from analyse_utils import flip_distribution_by_indexset
+from analyse_utils import flip_distribution_over_deciles_by_indexset
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         pair_set = cuts[k]
         out_path = os.path.join(out_dir, f"{DATASET_NAME}_rel_flips_per_decile_{k}.json")
         print(f"Computing decile distribution for {k} ({len(pair_set)} pairs)")
-        flip_distribution_by_indexset(
+        flip_distribution_over_deciles_by_indexset(
             idx_pair_set=pair_set,
             dist_input_path=dist_path,
             flips_input_path=flips_path,

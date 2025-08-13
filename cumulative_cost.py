@@ -241,8 +241,8 @@ if __name__ == "__main__":
         cost_field="cumulative_cost",
     )
 
-    #add_cumulative_cost_to_pyg_sequence_metadata(
-    #    cum_costs=cum_costs,
-    #    root_dir=fr"data\{DATASET_NAME}\predictions\edit_path_graphs_with_predictions",
-    #    cost_field="cumulative_cost",
-    #)
+    add_cumulative_cost_to_pyg_sequence_metadata(
+        cum_costs=cum_costs,
+        root_dir=fr"data\{DATASET_NAME}\predictions\edit_path_graphs_with_predictions",
+        cost_field="cumulative_cost",
+    )
