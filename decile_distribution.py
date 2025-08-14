@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from analyse_utils import flip_distribution_over_deciles_by_indexset
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             "split_path": split_path,
             "dist_path": dist_path,
             "flips_path": flips_path,
-            "generated_at": datetime.utcnow().isoformat() + "Z"
+            "generated_at": datetime.now(timezone.utc).isoformat()
         },
         "global": all_stats,
         "per_index_set": per_set_stats,

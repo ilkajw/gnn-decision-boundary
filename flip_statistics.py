@@ -36,8 +36,6 @@ if __name__ == "__main__":
     else:
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
 
-
-
     # load precomputed flip history per path
     with open(flips_path, "r") as f:
         flips_dict = json.load(f)
@@ -62,7 +60,7 @@ if __name__ == "__main__":
         pair_set = cuts[key]
         counts = get_num_changes_all_paths(pair_set, flips_dict)  # list: number of flips per path
         results[key] = stats_from_counts(counts)
-
+    # todo: add meta data to data
     # save + print summary
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2)

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from analyse_utils import *
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
@@ -74,7 +74,7 @@ if __name__ == "__main__":
             "dist_path": dist_path,
             "flips_path": flips_path,
             "max_num_flips": MAX_K,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         },
         "global": global_stats,  # whatever structure the function returns
         "per_index_set": per_index_set  # same structure per key (+num_pairs)

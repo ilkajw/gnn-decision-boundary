@@ -1,7 +1,7 @@
 import os
 import json
 
-from datetime import datetime
+from datetime import datetime, timezone
 from analyse_utils import count_paths_by_num_flips
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts
@@ -29,8 +29,6 @@ if __name__ == "__main__":
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
     else:
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
-
-
 
     # build all index-set cuts (same/diff + train/train, test/test, train/test)
     cuts = build_index_set_cuts(
@@ -75,7 +73,7 @@ if __name__ == "__main__":
             "correctly_classified_only": CORRECTLY_CLASSIFIED_ONLY,
             "split_path": split_path,
             "flips_path": flips_path,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(timezone.utc).isoformat()
         },
         "results": {}
     }
