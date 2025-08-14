@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+from datetime import datetime, timezone
 
 from analyse_utils import get_num_changes_all_paths
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
@@ -59,9 +60,24 @@ if __name__ == "__main__":
     for key in keys:
         pair_set = cuts[key]
         counts = get_num_changes_all_paths(pair_set, flips_dict)  # list: number of flips per path
-        results[key] = stats_from_counts(counts)
-    # todo: add meta data to data
+        results[key] = {
+            "num_pairs": int(len(pair_set)),
+            **stats_from_counts(counts),
+        }
+
+    data = {
+        "meta": {
+            "dataset": DATASET_NAME,
+            "distance_mode": DISTANCE_MODE,
+            "correctly_classified_only": CORRECTLY_CLASSIFIED_ONLY,
+            "split_path": split_path,
+            "flips_path": flips_path,
+            "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        },
+        "per_index_set": results,
+    }
+
     # save + print summary
     with open(out_path, "w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(data, f, indent=2)
     print(f"Saved flip statistics for {len(keys)} cuts → {out_path}")
