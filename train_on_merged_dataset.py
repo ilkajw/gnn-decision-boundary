@@ -143,9 +143,9 @@ if __name__ == "__main__":
                         "epoch": epoch
                     })
 
-            if epoch % 10 == 0 or epoch == 1 or epoch == EPOCHS:
-                print(f"Fold {fold_idx} | Epoch {epoch:03d} | "
-                      f"train {train_loss:.4f} | test {test_loss:.4f} | test_acc {test_acc:.3f}")
+            #if epoch % 10 == 0 or epoch == 1 or epoch == EPOCHS:
+            print(f"Fold {fold_idx} | Epoch {epoch:03d} | "
+                  f"train {train_loss:.4f} | test {test_loss:.4f} | test_acc {test_acc:.3f}")
 
         # save per-fold info
         fold_dir = os.path.join(out_dir, f"fold_{fold_idx:02d}")

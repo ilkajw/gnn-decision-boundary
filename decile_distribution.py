@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 
 from analyse_utils import flip_distribution_over_deciles_by_indexset
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
@@ -7,7 +8,17 @@ from index_sets_utils import build_index_set_cuts
 
 if __name__ == "__main__":
 
-    # inputs
+    # define output path
+
+    # output path
+    out_dir = f"data/{DATASET_NAME}/analysis/decile_distribution/by_{DISTANCE_MODE}"
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(
+        out_dir,
+        f"{DATASET_NAME}_flip_distribution_STATS_by_{DISTANCE_MODE}.json"
+    )
+
+    # define inputs
     split_path = "model/best_split.json"
 
     # retrieve data according to distance mode (cost vs. num_ops)
@@ -17,9 +28,6 @@ if __name__ == "__main__":
     else:
         dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
-
-    out_dir = f"data/{DATASET_NAME}/analysis/decile_distribution/by_{DISTANCE_MODE}"
-    os.makedirs(out_dir, exist_ok=True)
 
     # build all cut index sets (same/diff class + train-train / test-test / train-test)
     cuts = build_index_set_cuts(
@@ -56,19 +64,26 @@ if __name__ == "__main__":
 
     # combine info on all index sets
     combined = {
-        "dataset": DATASET_NAME,
-        "distance_mode": DISTANCE_MODE,
+        "meta": {
+            "dataset": DATASET_NAME,
+            "distance_mode": DISTANCE_MODE,
+            "correctly_classified_only": CORRECTLY_CLASSIFIED_ONLY,
+            "split_path": split_path,
+            "dist_path": dist_path,
+            "flips_path": flips_path,
+            "generated_at": datetime.utcnow().isoformat() + "Z"
+        },
         "global": all_stats,
         "per_index_set": per_set_stats,
     }
 
     # save
-    combined_path = os.path.join(
+    out_path = os.path.join(
         out_dir,
-        f"{DATASET_NAME}_flip_distribution_STATS_by_{DISTANCE_MODE}_combined.json"
+        f"{DATASET_NAME}_flip_distribution_STATS_by_{DISTANCE_MODE}.json"
     )
     os.makedirs(out_dir, exist_ok=True)
-    with open(combined_path, "w") as f:
+    with open(out_path, "w") as f:
         json.dump(combined, f, indent=2)
 
-    print(f"Saved combined flip distribution stats to {combined_path}")
+    print(f"Saved combined flip distribution stats to {out_path}")

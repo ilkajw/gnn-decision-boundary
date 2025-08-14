@@ -22,7 +22,12 @@ def stats_from_counts(counts):
 
 if __name__ == "__main__":
 
-    # inputs
+    # define output path
+    out_path = f"data/{DATASET_NAME}/analysis/flip_statistics/by_{DISTANCE_MODE}/" \
+               f"{DATASET_NAME}_flip_stats_by_{DISTANCE_MODE}.json"
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    # define inputs
     split_path = "model/best_split.json"
 
     # retrieve flip info per path according to distance mode
@@ -31,10 +36,7 @@ if __name__ == "__main__":
     else:
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
 
-    out_path = f"data/{DATASET_NAME}/analysis/statistics/by_{DISTANCE_MODE}/" \
-               f"{DATASET_NAME}_flip_stats_by_{DISTANCE_MODE}_all_idxsets.json"
 
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     # load precomputed flip history per path
     with open(flips_path, "r") as f:

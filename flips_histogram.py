@@ -1,6 +1,7 @@
 import os
 import json
 
+from datetime import datetime
 from analyse_utils import count_paths_by_num_flips
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts
@@ -16,7 +17,12 @@ def to_relative(counts_dict):
 
 if __name__ == "__main__":
 
-    # inputs
+    # define output path
+    out_dir = f"data/{DATASET_NAME}/analysis/flip_histograms/by_{DISTANCE_MODE}"
+    one_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_by_{DISTANCE_MODE}.json")
+    os.makedirs(out_dir, exist_ok=True)
+
+    # define inputs
     split_path = "model/best_split.json"
 
     if DISTANCE_MODE == "cost":
@@ -24,8 +30,7 @@ if __name__ == "__main__":
     else:
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
 
-    out_dir = f"data/{DATASET_NAME}/analysis/num_flip_histogram/by_{DISTANCE_MODE}"
-    os.makedirs(out_dir, exist_ok=True)
+
 
     # build all index-set cuts (same/diff + train/train, test/test, train/test)
     cuts = build_index_set_cuts(
@@ -63,39 +68,37 @@ if __name__ == "__main__":
 
     # run histograms & save individual + combined
 
-    combined = {}
-    combined_rel = {}
+    combined = {
+        "meta": {
+            "dataset": DATASET_NAME,
+            "distance_mode": DISTANCE_MODE,
+            "correctly_classified_only": CORRECTLY_CLASSIFIED_ONLY,
+            "split_path": split_path,
+            "flips_path": flips_path,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        },
+        "results": {}
+    }
 
     for key, same_flag in keys_and_flags:
         idx_pair_set = cuts[key]
-        out_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{key}.json")
         print(f"→ counting flips histogram for {key} ({len(idx_pair_set)} pairs)")
-        hist = count_paths_by_num_flips(
+        hist_abs = count_paths_by_num_flips(
             idx_pair_set=idx_pair_set,
             flips_input_path=flips_path,
-            output_path=out_path,
+            output_path=None,
             same_class=same_flag,
         )
-        combined[key] = hist
 
-        # compute relative proportions and write to another file
-        rel = to_relative(hist)
-        rel_out_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_{key}.json")
-        with open(rel_out_path, "w") as f:
-            json.dump(rel, f, indent=2)
+        hist_rel = to_relative(hist_abs)
 
-        # keep for combined relative output
-        combined_rel[key] = rel
+        combined["results"][key] = {
+            "num_pairs": len(idx_pair_set),
+            "hist_abs": hist_abs,  # {num_flips: count}
+            "hist_rel": hist_rel,  # {num_flips: proportion}
+        }
 
-    # save merged histogram
-    combined_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_all.json")
-    with open(combined_path, "w") as f:
+    one_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_by_{DISTANCE_MODE}.json")
+    with open(one_path, "w") as f:
         json.dump(combined, f, indent=2)
-    print(f"Saved combined histograms → {combined_path}")
-
-    # save merged (relative)
-    combined_rel_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_all.json")
-    with open(combined_rel_path, "w") as f:
-        json.dump(combined_rel, f, indent=2)
-    print(f"Saved combined (relative) → {combined_rel_path}")
-
+    print(f"Saved consolidated results → {one_path}")
