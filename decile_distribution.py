@@ -9,8 +9,6 @@ from index_sets_utils import build_index_set_cuts
 if __name__ == "__main__":
 
     # define output path
-
-    # output path
     out_dir = f"data/{DATASET_NAME}/analysis/decile_distribution/by_{DISTANCE_MODE}"
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(
@@ -42,15 +40,17 @@ if __name__ == "__main__":
         "same_test_test",  "same_0_test_test",  "same_1_test_test",  "diff_test_test",
         "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
+    # todo: filter global by classified crrectly like sets
+    # ------------------------------ global distribution --------------------------
 
-    # global distribution
     all_stats = flip_distribution_over_deciles_by_indexset(
         idx_pair_set=None,
         dist_input_path=dist_path,
         flips_input_path=flips_path
     )
 
-    # per index set distribution
+    # ---------------------------- per index set distribution -----------------------
+
     per_set_stats = {}
     for key in keys:
         idx_set = cuts[key]
@@ -77,7 +77,8 @@ if __name__ == "__main__":
         "per_index_set": per_set_stats,
     }
 
-    # save
+    # ----------------------- save ----------------------------------------
+
     out_path = os.path.join(
         out_dir,
         f"{DATASET_NAME}_flip_distribution_STATS_by_{DISTANCE_MODE}.json"

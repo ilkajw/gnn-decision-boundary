@@ -88,7 +88,7 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
     return cuts
 
 
-def graphs_correctly_classified(dataset_name=f"{DATASET_NAME}"):
+def graphs_correctly_classified(dataset_name=DATASET_NAME):
     """Returns the indices of all original graphs classified correctly by GAT model."""
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
@@ -112,7 +112,7 @@ def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
         :param save_dir: File path where to save index pair list.
     """
 
-    # read in predictions of our model on graphs in original dats
+    # read in predictions of our model on graphs in original dataset
     with open(f"data/{dataset}/predictions/{dataset}_predictions.json") as f:
         predictions = json.load(f)
 

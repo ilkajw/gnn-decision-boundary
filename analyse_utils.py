@@ -1,6 +1,8 @@
 import sys
 import os
 
+from index_sets_utils import graphs_correctly_classified
+
 # add submodule root to Python path
 submodule_path = os.path.abspath("external")
 if submodule_path not in sys.path:
@@ -11,7 +13,7 @@ import re
 import torch
 import numpy as np
 from collections import defaultdict
-from config import DATASET_NAME, DISTANCE_MODE
+from config import DATASET_NAME, DISTANCE_MODE, CORRECTLY_CLASSIFIED_ONLY
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
@@ -197,7 +199,7 @@ def get_num_changes_all_paths(pairs, changes_dict):
 def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, same_class=False):
     """
     For a given set of index pairs, count how many paths have 0, 1, 2, ... flips.
-
+<
     Args:
         idx_pair_set (set of tuples): Set of (i, j) graph index pairs to consider.
         flips_input_path (str): Path to JSON file with flip data like {"i,j": [[step, label], ...], ...}
@@ -252,6 +254,9 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
 
 def flip_distribution_over_deciles_by_indexset(idx_pair_set, dist_input_path, flips_input_path, output_path=None):
 
+    if CORRECTLY_CLASSIFIED_ONLY:
+        correct = graphs_correctly_classified()
+
     # load
     with open(dist_input_path) as f:
         distances = json.load(f)
@@ -275,6 +280,12 @@ def flip_distribution_over_deciles_by_indexset(idx_pair_set, dist_input_path, fl
         if idx_pair_set is not None:
             if (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
                 continue
+
+        # filter for correctness. for index_sets, these have already been filtered
+        if idx_pair_set is None:
+            if CORRECTLY_CLASSIFIED_ONLY:
+                if i not in correct or j not in correct:
+                    continue
 
         dist = get_distance(i, j)
         if not dist:
@@ -334,8 +345,12 @@ def flip_distribution_over_deciles_by_num_flips(
     flips_input_path,
     idx_pair_set=None,
     output_path=None,
-    include_paths=False,
+    include_paths=False
 ):
+    # to filter if needed
+    if CORRECTLY_CLASSIFIED_ONLY:
+        correct = graphs_correctly_classified()
+
     # load
     with open(dist_input_path, "r") as f:
         distances = json.load(f)
@@ -355,15 +370,26 @@ def flip_distribution_over_deciles_by_num_flips(
         if not flips:
             continue
         i, j = map(int, pair_str.split(","))
+
+        # filter for index set
         if idx_pair_set is not None and (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
             continue
 
+        # filter for correctness. for index_sets, these have already been filtered
+        if idx_pair_set is None:
+            if CORRECTLY_CLASSIFIED_ONLY:
+                if i not in correct or j not in correct:
+                    continue
+
+        # only consider num flips up to k
         k = len(flips)
         if k < 1 or k > max_num_flips:
             continue
 
+        # get path distance of i, j according to distance mode
         dist = get_distance(i, j)
         if not dist:  # None or 0
+            print(f"[WARN] missing distance for {i}, {j}")
             continue
 
         # per-path decile counts
