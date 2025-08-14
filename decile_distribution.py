@@ -1,3 +1,4 @@
+import json
 import os
 
 from analyse_utils import flip_distribution_over_deciles_by_indexset
@@ -34,13 +35,40 @@ if __name__ == "__main__":
         "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
 
-    for k in keys:
-        pair_set = cuts[k]
-        out_path = os.path.join(out_dir, f"{DATASET_NAME}_decile_distribution_{k}.json")
-        print(f"Computing decile distribution for {k} ({len(pair_set)} pairs)")
-        flip_distribution_over_deciles_by_indexset(
-            idx_pair_set=pair_set,
+    # global distribution
+    all_stats = flip_distribution_over_deciles_by_indexset(
+        idx_pair_set=None,
+        dist_input_path=dist_path,
+        flips_input_path=flips_path
+    )
+
+    # per index set distribution
+    per_set_stats = {}
+    for key in keys:
+        idx_set = cuts[key]
+        print(f"Computing decile distribution for {key} ({len(idx_set)} pairs)")
+        per_set_stats[key] = flip_distribution_over_deciles_by_indexset(
+            idx_pair_set=idx_set,
             dist_input_path=dist_path,
             flips_input_path=flips_path,
-            output_path=out_path,
+            output_path=None,
         )
+
+    # combine info on all index sets
+    combined = {
+        "dataset": DATASET_NAME,
+        "distance_mode": DISTANCE_MODE,
+        "global": all_stats,
+        "per_index_set": per_set_stats,
+    }
+
+    # save
+    combined_path = os.path.join(
+        out_dir,
+        f"{DATASET_NAME}_flip_distribution_STATS_by_{DISTANCE_MODE}_combined.json"
+    )
+    os.makedirs(out_dir, exist_ok=True)
+    with open(combined_path, "w") as f:
+        json.dump(combined, f, indent=2)
+
+    print(f"Saved combined flip distribution stats to {combined_path}")

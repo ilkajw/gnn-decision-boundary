@@ -72,12 +72,15 @@ def _align_costs_to_seq(seq, costs):
     cost_len = len(c)
 
     # todo: how to handle best?
-    # handle paths where target graph included, currently repeats final cost
+    # handle paths where target graph included,
+    # assign additional cost 0.0 for last graph to underestimate true cost
     if max_edit_step == cost_len:
         return c + [c[-1]], "padded cost (+1)"
-    # this should not happen
+
+    # todo: this should not happen
     if max_edit_step > cost_len:
         return c, f"[error] max_edit_step {max_edit_step} > len_costs ({cost_len}+1={cost_len+1})."
+
     else:
         return c, None
 
@@ -125,7 +128,7 @@ def add_cumulative_cost_to_pyg_sequence_metadata(
             key = (j, i)
         if key not in cum_costs:
             skipped_no_costs += 1
-            print(f"[warn] no cum_costs for pair {(i, j)} (file: {fname}); skipping.")
+            print(f"[warn] no cum_costs for pair {(i, j)} (file: {fname}). skipping.")
             continue
 
         # load sequence object
@@ -165,8 +168,9 @@ def add_cumulative_cost_to_pyg_sequence_metadata(
                 )
             #
             setattr(g, cost_field, float(costs_aligned[step_idx]))
-            # also store explicit index for later reference
+
             # todo: this is for safety only, should not be necessary
+            # also store explicit index for later reference
             if not hasattr(g, "edit_step_index"):
                 setattr(g, "edit_step_index", int(step_idx))
 
@@ -214,10 +218,12 @@ def add_cumulative_cost_to_predictions_metadata(
 
         # get cumulative cost list for pair
         c = cum_costs[key]
-        # happens for approx paths with last graph inserted. currently last cost will be assigned for inserted graph
+
+        # todo: how to handle best?
+        # for approx paths with last graph inserted, assign additional cost 0.0 to underestimate true cost
         if step_idx >= len(c):
-            step_idx -= 1  # todo: how to handle best?
-        # assign cum cost to entry
+            step_idx -= 1
+
         e[cost_field] = float(c[step_idx])
         updated.append(e)
 

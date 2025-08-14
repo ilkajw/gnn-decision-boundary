@@ -271,8 +271,10 @@ def flip_distribution_over_deciles_by_indexset(idx_pair_set, dist_input_path, fl
         if not flips:
             continue
         i, j = map(int, pair_str.split(","))
-        if (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
-            continue
+
+        if idx_pair_set is not None:
+            if (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
+                continue
 
         dist = get_distance(i, j)
         if not dist:
