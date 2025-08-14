@@ -6,7 +6,6 @@ from index_sets_utils import build_index_set_cuts
 
 if __name__ == "__main__":
 
-    # todo: add index set discrimination?
     # define output path
     out_path = f"data/{DATASET_NAME}/analysis/num_paths_per_num_flips/{DISTANCE_MODE}/" \
                f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
@@ -43,8 +42,8 @@ if __name__ == "__main__":
         max_num_flips=MAX_K,
         dist_input_path=dist_path,
         flips_input_path=flips_path,
-        output_path=None,  # do not write per-call files
-        idx_pair_set=None,  # <-- requires optional arg support (see below)
+        output_path=None,
+        idx_pair_set=None,
     )
 
     # -------------------- per index set -------------------------
@@ -56,8 +55,8 @@ if __name__ == "__main__":
             max_num_flips=MAX_K,
             dist_input_path=dist_path,
             flips_input_path=flips_path,
-            output_path=None,  # single-file policy
-            idx_pair_set=idx_set,  # <-- filter to this cut
+            output_path=None,
+            idx_pair_set=idx_set,
         )
         per_index_set[key] = {
             "num_pairs": len(idx_set),
@@ -76,8 +75,8 @@ if __name__ == "__main__":
             "max_num_flips": MAX_K,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         },
-        "global": global_stats,  # whatever structure the function returns
-        "per_index_set": per_index_set  # same structure per key (+num_pairs)
+        "global": global_stats,
+        "per_index_set": per_index_set
     }
 
     with open(out_path, "w") as f:
