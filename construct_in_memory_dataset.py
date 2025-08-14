@@ -5,7 +5,7 @@ from config import DATASET_NAME
 if __name__ == "__main__":
 
     # build dataset in memory from per-path sequences
-    seq_dir = f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions"
+    seq_dir = f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
     base_pred_path = f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
 
     ds = EditPathGraphsDataset(
@@ -15,7 +15,8 @@ if __name__ == "__main__":
         interpolation="linear",
         k_sigmoid=12.0,
         min_prob=None,
-        verbose=True,
+        drop_endpoints=True,
+        verbose=True
     )
 
     print("In-memory dataset length:", len(ds))

@@ -8,7 +8,7 @@ from torch_geometric.data import InMemoryDataset, Data
 from torch.serialization import add_safe_globals
 from torch_geometric.data.data import DataEdgeAttr
 
-from config import DATASET_NAME
+from config import DATASET_NAME, DISTANCE_MODE
 
 
 def _ensure_dir(path):
@@ -39,7 +39,8 @@ class EditPathGraphsDataset(InMemoryDataset):
             min_prob=None,  # used when label_mode == "pseudo"
             transform=None,
             pre_transform=None,
-            verbose=True,
+            drop_endpoints=True,
+            verbose=True
     ):
         self.seq_dir = seq_dir
         self.base_pred_path = base_pred_path
@@ -47,6 +48,7 @@ class EditPathGraphsDataset(InMemoryDataset):
         self.interpolation = interpolation
         self.k_sigmoid = float(k_sigmoid)
         self.min_prob = min_prob
+        self.drop_endpoints = drop_endpoints
         self.verbose = verbose
         root_dir = os.path.abspath(f"data/{DATASET_NAME}/processed/_editpath_inmem_root")
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
@@ -58,18 +60,14 @@ class EditPathGraphsDataset(InMemoryDataset):
 
     # InMemoryDataset expects these
     @property
-    def raw_file_names(self):
-        return []
+    def raw_file_names(self): return []
 
     @property
-    def processed_file_names(self):
-        return []
+    def processed_file_names(self): return []
 
-    def download(self):
-        pass
+    def download(self): pass
 
-    def process(self):
-        pass
+    def process(self): pass
 
     # -------------- internal helpers -------------------------
 
@@ -80,11 +78,13 @@ class EditPathGraphsDataset(InMemoryDataset):
         return {int(k): int(v["true_label"]) for k, v in base.items()}
 
     def _t_from_graph(self, g):
-        # todo: prefer proper GED accumulation later; for now use edit_step / distance
-        dist = float(getattr(g, "distance", 0.0))
-        step = float(getattr(g, "edit_step", 0.0))
-        if dist <= 0.0:
-            return 0.0
+        # todo: works?
+        if DISTANCE_MODE == "cost":
+            dist = float(getattr(g, "distance", 0.0))
+            step = float(getattr(g, "cumulative_cost", 0.0))
+        else:
+            dist = float(getattr(g, "num_all_ops", 0.0))
+            step = float(getattr(g, "edit_step", 0.0))
         return max(0.0, min(step / dist, 1.0))
 
     def _interp_soft_label(self, y_src, y_tgt, t):
@@ -98,7 +98,7 @@ class EditPathGraphsDataset(InMemoryDataset):
                 return 1.0 / (1.0 + math.exp(-self.k_sigmoid * (t - 0.5)))
             if y_src == 1 and y_tgt == 0:
                 return 1.0 - 1.0 / (1.0 + math.exp(-self.k_sigmoid * (t - 0.5)))
-            print("fallback (shouldn't happen for binary)")
+            print(f"[WARN] Source label {y_src}, target label {y_tgt}: one is not binary.")
             return (1 - t) * y_src + t * y_tgt
         else:
             raise ValueError(f"Unknown interpolation: {self.interpolation}")
@@ -130,54 +130,91 @@ class EditPathGraphsDataset(InMemoryDataset):
 
     def _build_list(self):
         from torch_geometric.data import Data as PYGData
-        add_safe_globals([PYGData])  # safe load of serialized data
+        add_safe_globals([PYGData])
 
+        # load predictions of original datatset graphs
         base_labels = self._load_base_labels()
+
+        # load list of graph sequence filenames
         files = sorted([f for f in os.listdir(self.seq_dir) if f.endswith(".pt")])
 
+        # optionally keep only graphs between same classes
         keep_same_only = (self.label_mode == "same_only")
+
         data_list = []
+        no_intermediates = []
 
         for fname in files:
             seq = torch.load(os.path.join(self.seq_dir, fname), weights_only=False)
-
-            # per-sequence metadata (same for all graphs in seq)
             if not seq:
+                print(f"[WARN] missing graph sequence for {i} or {j} expected to be in {fname}")
                 continue
+
+            # extract source and target label to infer labels
             g0 = seq[0]
             i = int(getattr(g0, "source_idx", -1))
             j = int(getattr(g0, "target_idx", -1))
             if i not in base_labels or j not in base_labels:
                 if self.verbose: print(f"[WARN] missing base label for {i} or {j} in {fname}")
                 continue
-
             y_src = base_labels[i]
             y_tgt = base_labels[j]
 
-            # optional: keep only same-class sequences for clean supervision
+            # optional: keep only same-class sequences
             if keep_same_only and y_src != y_tgt:
                 continue
 
-            # add each graph with y
-            for g in seq:
+            # drop the source and target graph
+            if self.drop_endpoints:
+                if len(seq) <= 2:
+                    no_intermediates.append((i, j))
+                    # no edit path graphs remain -> skip this sequence
+                    if self.verbose:
+                        print(f"[INFO] {fname}: dropped endpoints and found no intermediate graphs.")
+                    seq_iter = []
+                else:
+                    seq_iter = seq[1:-1]
+            else:
+                seq_iter = seq
+
+            # add each path graph with its inferred label
+            for g in seq_iter:
                 y_soft = self._label_for_graph(g, y_src, y_tgt)
                 if y_soft is None:
                     continue  # pseudo with low prob left out
 
-                # clone minimal fields; attach y
                 out = Data(
                     x=g.x,
                     edge_index=g.edge_index,
-                    # BCEWithLogitsLoss with float targets in [0,1]
                     y=torch.tensor([y_soft], dtype=torch.float),
                 )
 
-                # keep metadata
+                # keep metadata (copy from g if present)
                 for key in (
-                        "edit_step", "source_idx", "target_idx", "iteration", "distance", "prediction", "probability"):
+                    "edit_step", "cumulative_cost", "source_idx", "target_idx", "iteration",
+                    "distance", "prediction", "probability", "num_all_ops"
+                ):
                     if hasattr(g, key):
                         setattr(out, key, getattr(g, key))
+
+                    else:
+                        print(f"[WARN] missing attribute {key} at edit step {g.edit_step} between {i}, {j}.")
+
+                # if some metadata only exists on g0/g_last, optional backfill:
+                # todo: probably to be deleted
+
+                if not hasattr(out, "distance") and hasattr(g0, "distance"):
+                    out.distance = getattr(g0, "distance")
+                # todo: add back in after graph generation
+                #if not hasattr(out, "num_all_ops") and hasattr(g0, "num_all_ops"):
+                #    out.num_all_ops = getattr(g0, "num_all_ops")
+
                 data_list.append(out)
+
+        os.makedirs(f"data/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
+        with open(f"data/{DATASET_NAME}/analysis/no_intermediates/"
+                  f"{DATASET_NAME}_no_intermediate_graphs_at_dataset_build.json", "w") as f:
+            json.dump(no_intermediates, f, indent=2)
 
         return data_list
 

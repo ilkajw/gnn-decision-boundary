@@ -67,33 +67,32 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
         "diff_class_all":   diff_class_pairs,
 
         # train–train
-        "train_train_same":  cut_pairs(tt_pairs, same_class_pairs),
-        "train_train_diff":  cut_pairs(tt_pairs, diff_class_pairs),
-        "train_train_same_0": cut_pairs(tt_pairs, same_class_0_pairs),
-        "train_train_same_1": cut_pairs(tt_pairs, same_class_1_pairs),
+        "same_train_train":  cut_pairs(tt_pairs, same_class_pairs),
+        "diff_train_train":  cut_pairs(tt_pairs, diff_class_pairs),
+        "same_0_train_train": cut_pairs(tt_pairs, same_class_0_pairs),
+        "same_1_train_train": cut_pairs(tt_pairs, same_class_1_pairs),
 
         # test–test
-        "test_test_same":   cut_pairs(uu_pairs, same_class_pairs),
-        "test_test_diff":   cut_pairs(uu_pairs, diff_class_pairs),
-        "test_test_same_0": cut_pairs(uu_pairs, same_class_0_pairs),
-        "test_test_same_1": cut_pairs(uu_pairs, same_class_1_pairs),
+        "same_test_test":   cut_pairs(uu_pairs, same_class_pairs),
+        "diff_test_test":   cut_pairs(uu_pairs, diff_class_pairs),
+        "same_0_test_test": cut_pairs(uu_pairs, same_class_0_pairs),
+        "same_1_test_test": cut_pairs(uu_pairs, same_class_1_pairs),
 
         # train–test
-        "train_test_same":   cut_pairs(tu_pairs, same_class_pairs),
-        "train_test_diff":   cut_pairs(tu_pairs, diff_class_pairs),
-        "train_test_same_0": cut_pairs(tu_pairs, same_class_0_pairs),
-        "train_test_same_1": cut_pairs(tu_pairs, same_class_1_pairs),
+        "same_train_test":   cut_pairs(tu_pairs, same_class_pairs),
+        "diff_train_test":   cut_pairs(tu_pairs, diff_class_pairs),
+        "same_0_train_test": cut_pairs(tu_pairs, same_class_0_pairs),
+        "same_1_train_test": cut_pairs(tu_pairs, same_class_1_pairs),
     }
 
     return cuts
 
 
 def graphs_correctly_classified(dataset_name=f"{DATASET_NAME}"):
-    """Returns the indices of all graphs classified correctly by GAT model."""
+    """Returns the indices of all original graphs classified correctly by GAT model."""
     with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
     correct_idxs = [int(i) for i, entry in predictions.items() if entry["correct"]]
-
     return correct_idxs
 
 

@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from torch_geometric.utils import from_networkx
 from networkx import is_isomorphic
 
-from config import DATASET_NAME
+from config import DATASET_NAME, FULLY_CONNECTED_ONLY
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
@@ -21,9 +21,9 @@ from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
 def generate_all_edit_path_graphs(data_dir,
                                   output_dir,
-                                  db_name=f"{DATASET_NAME}",
+                                  db_name=DATASET_NAME,
                                   seed=42,
-                                  fully_connected_only=True):
+                                  fully_connected_only=FULLY_CONNECTED_ONLY):
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.
@@ -57,6 +57,7 @@ def generate_all_edit_path_graphs(data_dir,
     # for reconstruction of node feature tensor x
     num_node_classes = dataset.unique_node_labels
     last_graph_insertions = []
+    no_intermediates = []
     # create graphs from operations per (source graph, target graph)
     for (i, j), paths in edit_paths.items():
 
@@ -68,12 +69,13 @@ def generate_all_edit_path_graphs(data_dir,
             def node_match(n1, n2):
                 return n1['primary_label'] == n2['primary_label']
 
+            # todo: needed? see below
             def edge_match(e1, e2):
                 return e1['label'] == e2['label']
 
             # todo: included to make sure the target graph is included for approximate paths.
             #  check in with florian if this is correct
-            # todo: make edge_match work within is_isomorph
+            #  make edge_match work within is_isomorph?
             last_graph = sequence[-1]
             last_graph_included = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
             if not last_graph_included:
@@ -87,10 +89,17 @@ def generate_all_edit_path_graphs(data_dir,
                 g.graph['target_idx'] = j
                 g.graph['iteration'] = ep.iteration
                 g.graph['distance'] = ep.distance
+                # todo: how handled best?
+                if last_graph_included:
+                    g.graph['num_all_ops'] = len(ep.all_operations)
+                else:
+                    g.graph['num_all_ops'] = len(ep.all_operations) + 1
 
             # filter for fully connected graphs
             if fully_connected_only:
                 sequence = [g for g in sequence if nx.is_connected(g)]
+                if len(sequence) <= 2:
+                    no_intermediates.append((i, j))
 
             # drop edge attrs, convert to pyg objects, copy metadata
             pyg_sequence = []
@@ -122,5 +131,10 @@ def generate_all_edit_path_graphs(data_dir,
             file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
-    with open(f"data/{DATASET_NAME}/test/last_graphs_inserted.json", "w") as f:
+    with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
+
+    os.makedirs(f"data/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
+    with open(f"data/{DATASET_NAME}/analysis/no_intermediates/"
+              f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
+        json.dump(no_intermediates, f, indent=2)

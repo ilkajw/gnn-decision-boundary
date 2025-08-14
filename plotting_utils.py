@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Optional, Iterable, List
 import matplotlib.pyplot as plt
 
-from config import DATASET_NAME
+from config import DATASET_NAME, DISTANCE_MODE
 
 
 # ------------------- helpers to access data files ----------------------------------
@@ -23,17 +23,15 @@ def collect_existing_hist_files(cuts) -> Dict[str, str]:
     return label_to_file
 
 
-def histogram_file(key: str) -> str:
+def histogram_file(key) -> str:
     # matches your count_paths_by_num_flips(...) output naming
-    return os.path.join(
-        f"data/{DATASET_NAME}/analysis",
-        f"{DATASET_NAME}_num_paths_per_num_flips_{key}.json"
-    )
+        return os.path.join(f"data/{DATASET_NAME}/analysis/num_flip_histogram/by_{DISTANCE_MODE}/"
+                            f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{key}.json")
 
 
 def decile_file(key: str) -> str:
-    return os.path.join(f"data/{DATASET_NAME}/analysis",
-                        f"{DATASET_NAME}_rel_flips_per_decile_{key}.json")
+    return os.path.join(f"data/{DATASET_NAME}/analysis/decile_distribution",
+                        f"{DATASET_NAME}_decile_distribution_{key}.json")
 
 
 def load_histogram(path: str) -> Dict[int, int]:

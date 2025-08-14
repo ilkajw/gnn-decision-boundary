@@ -11,14 +11,14 @@ import re
 import torch
 import numpy as np
 from collections import defaultdict
-from config import DATASET_NAME
+from config import DATASET_NAME, DISTANCE_MODE
 from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
 # ---------------------------- for precalculations ------------------------------------
 
 def get_distance_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
-                          output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"):
+                          output_path=f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_dist_per_path.json"):
 
     edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
                                            file_path=input_path)
@@ -34,7 +34,7 @@ def get_distance_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_
 
 
 def get_num_ops_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
-                         output_path=f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_pair.json"):
+                         output_path=f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_num_ops_per_path.json"):
 
     edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
                                            file_path=input_path)
@@ -49,7 +49,7 @@ def get_num_ops_per_path(input_path=f"external/pg_gnn_edit_paths/example_paths_{
     return num_ops
 
 
-def flip_occurrences_per_path(input_dir, output_dir=None, output_fname=None, verbose=False):
+def flip_occurrences_per_path_edit_step(input_dir, output_dir=None, output_fname=None, verbose=False):
 
     """
     Tracks classification changes along edit paths for each graph pair.
@@ -97,7 +97,7 @@ def flip_occurrences_per_path(input_dir, output_dir=None, output_fname=None, ver
 
             prev_pred = pred
 
-            changes_dict[(i, j)] = change_steps
+        changes_dict[(i, j)] = change_steps
 
         if verbose:
             print(f"Processed: {fname} | Changes: {change_steps}")
@@ -109,7 +109,72 @@ def flip_occurrences_per_path(input_dir, output_dir=None, output_fname=None, ver
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, output_fname), "w") as f:
             json.dump(serializable_dict, f, indent=2)
-        print("Saved changes per pair dict")
+        print("Saved changes per path by edit step.")
+
+    return serializable_dict
+
+
+def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=None, verbose=False):
+
+    """
+    Tracks classification changes along edit paths for each graph pair.
+
+    Returns a dictionary:
+        (i, j) → list of (cumulative_cost, new_class)
+
+    Args:
+        :param input_dir: Directory with .pt files containing prediction-augmented PyG graphs.
+        :param verbose: If True, print progress.
+        :param output_dir: Directory to save dictionary of classification changes per sequence to.
+        :param output_fname: Name of file to save to.
+    """
+
+    pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
+    changes_dict = {}
+
+    for fname in os.listdir(input_dir):
+        if not fname.endswith(".pt"):
+            continue
+
+        # extract indices from existing files of predicted graph sequences
+        match = pattern.match(fname)
+        if not match:
+            continue
+
+        i, j = int(match.group(1)), int(match.group(2))
+        filepath = os.path.join(input_dir, fname)
+
+        sequence = torch.load(filepath, weights_only=False)
+        prev_pred = None
+        change_steps = []
+
+        # loop through each sequence from i to j and track at which steps changes happen to which class
+        for step, g in enumerate(sequence):
+
+            if not hasattr(g, "prediction"):
+                print(f"Missing prediction of graph at edit step {g.cumulative_cost} in file {fname}")
+                continue
+
+            pred = getattr(g, "prediction", None)
+
+            if prev_pred is not None and pred != prev_pred:
+                change_steps.append((g.cumulative_cost, pred))
+
+            prev_pred = pred
+
+        changes_dict[(i, j)] = change_steps
+
+        if verbose:
+            print(f"Processed: {fname} | Changes: {change_steps}")
+
+    serializable_dict = {f"{i},{j}": val for (i, j), val in changes_dict.items()}
+
+    # optionally save dict
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        with open(os.path.join(output_dir, output_fname), "w") as f:
+            json.dump(serializable_dict, f, indent=2)
+        print("Saved changes per path by cost.")
 
     return serializable_dict
 
@@ -261,13 +326,12 @@ def flip_distribution_over_deciles_by_indexset(idx_pair_set, dist_input_path, fl
     return result
 
 
-def flips_distribution_over_deciles_by_num_flips(
-    max_k,
+def flip_distribution_over_deciles_by_num_flips(
+    max_num_flips,
     dist_input_path,
     flips_input_path,
     idx_pair_set=None,
-    output_dir=None,
-    output_prefix=None,
+    output_path=None,
     include_paths=False,
 ):
     # load
@@ -281,8 +345,8 @@ def flips_distribution_over_deciles_by_num_flips(
         return distances.get(s1, distances.get(s2))
 
     # accumulators
-    abs_counts_by_k = {k: [0]*10 for k in range(1, max_k+1)}
-    paths_by_k = {k: [] for k in range(1, max_k+1)} if include_paths else None
+    abs_counts_by_k = {k: [0]*10 for k in range(1, max_num_flips + 1)}
+    paths_by_k = {k: [] for k in range(1, max_num_flips + 1)} if include_paths else None
     num_paths_by_k = defaultdict(int)
 
     for pair_str, flips in flips_per_path.items():
@@ -293,7 +357,7 @@ def flips_distribution_over_deciles_by_num_flips(
             continue
 
         k = len(flips)
-        if k < 1 or k > max_k:
+        if k < 1 or k > max_num_flips:
             continue
 
         dist = get_distance(i, j)
@@ -322,7 +386,7 @@ def flips_distribution_over_deciles_by_num_flips(
 
     # build result
     result = {}
-    for k in range(1, max_k+1):
+    for k in range(1, max_num_flips + 1):
         abs_counts = abs_counts_by_k[k]
         total_abs = sum(abs_counts)
         if total_abs > 0:
@@ -342,9 +406,9 @@ def flips_distribution_over_deciles_by_num_flips(
             entry["paths"] = paths_by_k[k]
         result[str(k)] = entry
 
-    if output_dir and output_prefix:
-        os.makedirs(output_dir, exist_ok=True)
-        with open(os.path.join(output_dir, f"{output_prefix}_per_k_deciles.json"), "w") as f:
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
             json.dump(result, f, indent=2)
 
     return result
@@ -368,17 +432,14 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
 
     """
     # load data for a measure on total path weighting, per-cost function or per-operation count
-    if distance_mode == "cost_function":
+    if distance_mode == "cost":
         # load precalculated dict (i,j) -> edit distance
-        with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json") as f:
+        with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_dist_per_path.json") as f:
             distances = json.load(f)
-    elif distance_mode == "operations_count":
-        # load precalculated dict (i,j) -> number of operations
-        with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num ops_per_pair.json") as f:
-            num_ops = json.load(f)
     else:
-        print("Choose a valid param for distance_mode: 'cost_function' or 'operations_count'")
-        return
+        # load precalculated dict (i,j) -> number of operations
+        with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_num ops_per_path.json") as f:
+            num_ops = json.load(f)
 
     # initialize dict to store number of class changes per decile
     class_changes_per_decile = {decile: 0 for decile in range(10)}
@@ -415,7 +476,7 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
 
             if prev_pred is not None and pred != prev_pred:
 
-                if distance_mode == "cost_function":
+                if distance_mode == "cost":
                     rel_step = g.cumulative_cost/distances[f"{i},{j}"]
                 else:
                     rel_step = g.edit_step/num_ops[f"{i},{j}"]  # todo: check if this works

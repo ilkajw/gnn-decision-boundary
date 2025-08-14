@@ -12,6 +12,6 @@ ROOT = './data/'
 DATASET_NAME = 'MUTAG'
 
 # analysis parameters
-DISTANCE_MODE = "cost_function"
+DISTANCE_MODE = "cost"  # or "num_ops"
 CORRECTLY_CLASSIFIED_ONLY = True  # to only consider edit path graphs which are fully connected, hence plausible
 FULLY_CONNECTED_ONLY = True  # to only consider paths with correctly classified source and target

@@ -3,17 +3,20 @@ import json
 import numpy as np
 
 from analyse_utils import get_num_changes_all_paths
-from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
+from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts
 
 
 def stats_from_counts(counts):
     if not counts:
-        return {"num_paths": 0, "mean": 0.0, "std": 0.0}
+        return {"num_paths": 0, "mean": 0.0, "median": 0.0, "std": 0.0, "min": 0, "max": 0}
     return {
         "num_paths": len(counts),
         "mean": float(np.mean(counts)),
+        "median": float(np.median(counts)),
         "std": float(np.std(counts)),
+        "min": float(np.min(counts)),
+        "max": float(np.max(counts))
     }
 
 
@@ -21,13 +24,21 @@ if __name__ == "__main__":
 
     # inputs
     split_path = "model/best_split.json"
-    flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json"
-    out_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_stats_all_cuts.json"
+
+    # retrieve flip info per path according to distance mode
+    if DISTANCE_MODE == "cost":
+        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+    else:
+        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+
+    out_path = f"data/{DATASET_NAME}/analysis/statistics/by_{DISTANCE_MODE}/" \
+               f"{DATASET_NAME}_flip_stats_by_{DISTANCE_MODE}_all_idxsets.json"
+
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     # load precomputed flip history per path
     with open(flips_path, "r") as f:
-        changes_dict = json.load(f)
+        flips_dict = json.load(f)
 
     # build all pair-set cuts
     cuts = build_index_set_cuts(
@@ -37,24 +48,20 @@ if __name__ == "__main__":
     )
 
     # keys for index sets
-    cut_keys = [
-        # global by label
+    keys = [
         "same_class_all", "same_class_0_all", "same_class_1_all", "diff_class_all",
-        # train–train
-        "train_train_same", "train_train_same_0", "train_train_same_1", "train_train_diff",
-        # test–test
-        "test_test_same",  "test_test_same_0",  "test_test_same_1",  "test_test_diff",
-        # train–test
-        "train_test_same", "train_test_same_0", "train_test_same_1", "train_test_diff",
+        "same_train_train", "same_0_train_train", "same_1_train_train", "diff_train_train",
+        "same_test_test", "same_0_test_test", "same_1_test_test", "diff_test_test",
+        "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
 
     results = {}
-    for key in cut_keys:
+    for key in keys:
         pair_set = cuts[key]
-        counts = get_num_changes_all_paths(pair_set, changes_dict)  # list: number of flips per path
+        counts = get_num_changes_all_paths(pair_set, flips_dict)  # list: number of flips per path
         results[key] = stats_from_counts(counts)
 
     # save + print summary
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"Saved flip statistics for {len(cut_keys)} cuts → {out_path}")
+    print(f"Saved flip statistics for {len(keys)} cuts → {out_path}")

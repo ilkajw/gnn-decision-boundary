@@ -8,14 +8,16 @@ if __name__ == "__main__":
 
     # inputs
     split_path = "model/best_split.json"
-    if DISTANCE_MODE == "cost_function":
-        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_pair.json"
-    elif DISTANCE_MODE == "operations_count":
-        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_pair.json"
+
+    # retrieve data according to distance mode (cost vs. num_ops)
+    if DISTANCE_MODE == "cost":
+        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
     else:
-        print("Provide valid param for DISTANCE MODE in config.py.")
-    flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_changes_per_path.json"
-    out_dir = f"data/{DATASET_NAME}/analysis"
+        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
+        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+
+    out_dir = f"data/{DATASET_NAME}/analysis/decile_distribution/by_{DISTANCE_MODE}"
     os.makedirs(out_dir, exist_ok=True)
 
     # build all cut index sets (same/diff class + train-train / test-test / train-test)
@@ -27,14 +29,14 @@ if __name__ == "__main__":
 
     keys = [
         "same_class_all", "same_class_0_all", "same_class_1_all", "diff_class_all",
-        "train_train_same", "train_train_same_0", "train_train_same_1", "train_train_diff",
-        "test_test_same",  "test_test_same_0",  "test_test_same_1",  "test_test_diff",
-        "train_test_same", "train_test_same_0", "train_test_same_1", "train_test_diff",
+        "same_train_train", "same_0_train_train", "same_1_train_train", "diff_train_train",
+        "same_test_test",  "same_0_test_test",  "same_1_test_test",  "diff_test_test",
+        "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
 
     for k in keys:
         pair_set = cuts[k]
-        out_path = os.path.join(out_dir, f"{DATASET_NAME}_rel_flips_per_decile_{k}.json")
+        out_path = os.path.join(out_dir, f"{DATASET_NAME}_decile_distribution_{k}.json")
         print(f"Computing decile distribution for {k} ({len(pair_set)} pairs)")
         flip_distribution_over_deciles_by_indexset(
             idx_pair_set=pair_set,
