@@ -40,7 +40,7 @@ if __name__ == "__main__":
         "same_test_test",  "same_0_test_test",  "same_1_test_test",  "diff_test_test",
         "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
-    # todo: filter global by classified crrectly like sets
+
     # ------------------------------ global distribution --------------------------
 
     all_stats = flip_distribution_over_deciles_by_indexset(

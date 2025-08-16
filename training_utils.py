@@ -7,6 +7,12 @@ from edit_path_graphs_utils import *
 from sklearn.model_selection import StratifiedKFold
 
 
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
 def train_epoch(model, loader, optimizer, device):
     model.train()
     total_loss = 0
@@ -22,18 +28,20 @@ def train_epoch(model, loader, optimizer, device):
     return total_loss / len(loader)  # average loss over batches
 
 
-# evaluate accuracy on original dataset
-def evaluate_accuracy(model, loader, device):
+# evaluate accuracy
+def evaluate_accuracy(model, loader, device, thr=0.5):
     model.eval()
-    correct = 0
+    correct, n = 0, 0
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            out = model(data.x, data.edge_index, data.batch)
-            probs = torch.sigmoid(out.view(-1))
-            pred = (probs > 0.5).long()
-            correct += (pred == data.y).sum().item()
-    return correct / len(loader.dataset)  # return accuracy
+            logits = model(data.x, data.edge_index, data.batch).view(-1)
+            probs = torch.sigmoid(logits)
+            pred = (probs > thr).long()                         # predicted hard labels
+            y_hard = (data.y.float().view(-1) > thr).long()     # target hard labels
+            correct += (pred == y_hard).sum().item()
+            n += y_hard.numel()
+    return correct / max(1, n)
 
 
 def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname, verbose=False):

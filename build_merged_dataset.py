@@ -4,7 +4,7 @@ from torch_geometric.datasets import TUDataset
 from torch_geometric.transforms import Compose
 
 from EditPathGraphDataset import FlatGraphDataset
-from config import DATASET_NAME, ROOT
+from config import DATASET_NAME, ROOT, LABEL_MODE
 from dataset_utils import save_dataset_as_inmemory_pt
 from data_transform_utils import to_float_y, drop_edge_attr
 
@@ -17,7 +17,7 @@ if __name__ == "__main__":
         transform=Compose([to_float_y(domain_flag=0), drop_edge_attr()])
     )
     # load previously build edit-path dataset
-    edit_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset.pt"
+    edit_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}.pt"
     edit_ds = FlatGraphDataset(saved_path=edit_pt, verbose=True)
     edit_ds.transform = to_float_y(domain_flag=1)  # ensure y is float + tag domain=1 when accessed
 
