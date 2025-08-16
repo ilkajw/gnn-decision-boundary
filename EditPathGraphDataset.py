@@ -35,12 +35,13 @@ class EditPathGraphsDataset(InMemoryDataset):
             base_pred_path,
             label_mode="same_only",
             interpolation="linear",  # used when label_mode == "interpolate"
-            k_sigmoid=12.0,  # slope for sigmoid interpolation
-            min_prob=None,  # used when label_mode == "pseudo"
+            k_sigmoid=12.0,          # slope for sigmoid interpolation
+            min_prob=None,           # used when label_mode == "pseudo"
             transform=None,
             pre_transform=None,
             drop_endpoints=True,
-            verbose=True
+            verbose=True,
+            small=False  # keep only paths with 0 or 1 flips
     ):
         self.seq_dir = seq_dir
         self.base_pred_path = base_pred_path
@@ -50,13 +51,16 @@ class EditPathGraphsDataset(InMemoryDataset):
         self.min_prob = min_prob
         self.drop_endpoints = drop_endpoints
         self.verbose = verbose
+        self.enforce_flip_pattern = bool(small)  # NEW
+
         root_dir = os.path.abspath(f"data/{DATASET_NAME}/processed/_editpath_inmem_root")
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
 
         data_list = self._build_list()
         self.data, self.slices = self.collate(data_list)
         if self.verbose:
-            print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} | mode={self.label_mode}")
+            print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} | "
+                  f"mode={self.label_mode} | flip_filter={self.enforce_flip_pattern}")
 
     # InMemoryDataset expects these
     @property
@@ -85,7 +89,7 @@ class EditPathGraphsDataset(InMemoryDataset):
         else:
             dist = float(getattr(g, "num_all_ops", 0.0))
             step = float(getattr(g, "edit_step", 0.0))
-        return max(0.0, min(step / dist, 1.0))
+        return max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
 
     def _interp_soft_label(self, y_src, y_tgt, t):
         if self.interpolation == "linear":
@@ -128,11 +132,34 @@ class EditPathGraphsDataset(InMemoryDataset):
         else:
             raise ValueError(f"Unknown label_mode: {self.label_mode}")
 
+    def _count_prediction_flips(self, seq):
+        """
+        Count how many times the binary 'prediction' changes along the sequence.
+        Uses only elements that have a 'prediction' attribute; requires at least 2.
+        Returns an integer flip count, or None if insufficient data.
+        """
+        preds = []
+        for g in seq:
+            if hasattr(g, "prediction") and getattr(g, "prediction") is not None:
+                try:
+                    preds.append(int(getattr(g, "prediction")))
+                except Exception:
+                    pass
+        if len(preds) < 2:
+            return None
+        flips = 0
+        prev = preds[0]
+        for p in preds[1:]:
+            if p != prev:
+                flips += 1
+            prev = p
+        return flips
+
     def _build_list(self):
         from torch_geometric.data import Data as PYGData
         add_safe_globals([PYGData])
 
-        # load predictions of original datatset graphs
+        # load predictions of original dataset graphs
         base_labels = self._load_base_labels()
 
         # load list of graph sequence filenames
@@ -147,7 +174,7 @@ class EditPathGraphsDataset(InMemoryDataset):
         for fname in files:
             seq = torch.load(os.path.join(self.seq_dir, fname), weights_only=False)
             if not seq:
-                print(f"[WARN] missing graph sequence for {i} or {j} expected to be in {fname}")
+                print(f"[WARN] missing graph sequence expected in {fname}")
                 continue
 
             # extract source and target label to infer labels
@@ -164,14 +191,27 @@ class EditPathGraphsDataset(InMemoryDataset):
             if keep_same_only and y_src != y_tgt:
                 continue
 
-            # drop the source and target graph
+            # filter for paths with 0 or 1 flips only
+            if self.enforce_flip_pattern:
+                flips = self._count_prediction_flips(seq)
+                if flips is None:
+                    if self.verbose:
+                        print(f"[INFO] {fname}: cannot determine flips (need >=2 predictions). skipping path.")
+                    continue
+                want_flips = 0 if (y_src == y_tgt) else 1
+                if flips != want_flips:
+                    if self.verbose:
+                        print(f"[INFO] {fname}: flips={flips}, condition={want_flips}. path filtered out.")
+                    continue
+
+            # drop source and target graph from sequence (already in original dataset)
             if self.drop_endpoints:
                 if len(seq) <= 2:
                     no_intermediates.append((i, j))
                     # no edit path graphs remain -> skip this sequence
                     if self.verbose:
-                        print(f"[INFO] {fname}: dropped endpoints and found no intermediate graphs.")
-                    seq_iter = []
+                        print(f"[INFO] {fname}: dropped endpoints and found no intermediate graphs. skipping path.")
+                    continue
                 else:
                     seq_iter = seq[1:-1]
             else:
@@ -196,18 +236,16 @@ class EditPathGraphsDataset(InMemoryDataset):
                 ):
                     if hasattr(g, key):
                         setattr(out, key, getattr(g, key))
-
                     else:
-                        print(f"[WARN] missing attribute {key} at edit step {g.edit_step} between {i}, {j}.")
+                        print(f"[WARN] missing attribute {key} at edit step "
+                              f"{getattr(g, 'edit_step', '?')} between {i}, {j}.")
 
+                # todo: delete?
                 # if some metadata only exists on g0/g_last, optional backfill:
-                # todo: probably to be deleted
-
                 if not hasattr(out, "distance") and hasattr(g0, "distance"):
                     out.distance = getattr(g0, "distance")
-                # todo: add back in after graph generation
-                #if not hasattr(out, "num_all_ops") and hasattr(g0, "num_all_ops"):
-                #    out.num_all_ops = getattr(g0, "num_all_ops")
+                if not hasattr(out, "num_all_ops") and hasattr(g0, "num_all_ops"):
+                     out.num_all_ops = getattr(g0, "num_all_ops")
 
                 data_list.append(out)
 

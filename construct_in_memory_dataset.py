@@ -5,25 +5,27 @@ from config import DATASET_NAME
 if __name__ == "__main__":
 
     # build dataset in memory from per-path sequences
+    label_mode = "interpolate"
     seq_dir = f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
     base_pred_path = f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
 
     ds = EditPathGraphsDataset(
         seq_dir=seq_dir,
         base_pred_path=base_pred_path,
-        label_mode="interpolate",
+        label_mode=label_mode,
         interpolation="linear",
         k_sigmoid=12.0,
         min_prob=None,
         drop_endpoints=True,
-        verbose=True
+        verbose=True,
+        small=True
     )
 
     print("In-memory dataset length:", len(ds))
 
     # save collated dataset and metadata
-    save_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset.pt"
-    save_meta = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_meta.json"
+    save_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{label_mode}.pt"
+    save_meta = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{label_mode}_meta.json"
     ds.save(output_path=save_pt, meta_path=save_meta)
 
     # load and use in DataLoader

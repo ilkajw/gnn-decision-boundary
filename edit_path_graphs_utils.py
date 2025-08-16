@@ -69,16 +69,15 @@ def generate_all_edit_path_graphs(data_dir,
             def node_match(n1, n2):
                 return n1['primary_label'] == n2['primary_label']
 
-            # todo: needed? see below
+            # todo: needed for isomorphism test?
             def edge_match(e1, e2):
                 return e1['label'] == e2['label']
 
-            # todo: included to make sure the target graph is included for approximate paths.
-            #  check in with florian if this is correct
-            #  make edge_match work within is_isomorph?
+            # check if the target graph is included in sequence
+            # todo: include edges? what is the label to consider?
             last_graph = sequence[-1]
-            last_graph_included = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
-            if not last_graph_included:
+            last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
+            if not last_and_target_graph_isomorphic or len(sequence) < 2:
                 sequence.append(nx_graphs[j])
                 last_graph_insertions.append((i, j))
 
@@ -90,7 +89,7 @@ def generate_all_edit_path_graphs(data_dir,
                 g.graph['iteration'] = ep.iteration
                 g.graph['distance'] = ep.distance
                 # todo: how handled best?
-                if last_graph_included:
+                if last_and_target_graph_isomorphic:
                     g.graph['num_all_ops'] = len(ep.all_operations)
                 else:
                     g.graph['num_all_ops'] = len(ep.all_operations) + 1
