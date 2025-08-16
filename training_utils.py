@@ -1,6 +1,7 @@
 import torch.nn.functional as func
 import random
 import numpy as np
+import os, json
 
 from predict_utils import *
 from edit_path_graphs_utils import *
@@ -21,11 +22,11 @@ def train_epoch(model, loader, optimizer, device):
         data = data.to(device)
         optimizer.zero_grad()  # reset gradients
         out = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, results in [batch_size]
-        loss = func.binary_cross_entropy_with_logits(out, data.y.float())  # take error
+        loss = func.binary_cross_entropy_with_logits(out, data.y.float().view(-1))  # take error
         loss.backward()  # take gradients per backpropagation
         optimizer.step()  # update params
         total_loss += loss.item()  # accumulate loss over batches
-    return total_loss / len(loader)  # average loss over batches
+    return total_loss / max(1, len(loader))  # average loss over batches
 
 
 # evaluate accuracy
@@ -42,6 +43,21 @@ def evaluate_accuracy(model, loader, device, thr=0.5):
             correct += (pred == y_hard).sum().item()
             n += y_hard.numel()
     return correct / max(1, n)
+
+
+def evaluate_loss(model, loader, device):
+    """Eval BCE loss on a loader (averaged over batches) for logging only."""
+    model.eval()
+    total_loss, n_batches = 0.0, 0
+    with torch.no_grad():
+        for data in loader:
+            data = data.to(device)
+            logits = model(data.x, data.edge_index, data.batch).view(-1)
+            y = data.y.float().view(-1)
+            loss = F.binary_cross_entropy_with_logits(logits, y)
+            total_loss += loss.item()
+            n_batches += 1
+    return total_loss / max(1, n_batches)
 
 
 def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname, verbose=False):
@@ -71,9 +87,12 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
     accuracies = []
 
     # to track for saving the best performing model
-    best_acc = 0
+    best_acc = -1.0
     best_model_state = None
     best_split = None
+
+    # collect all fold histories/indices
+    fold_records = []
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), labels)):
 
@@ -97,22 +116,34 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
 
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
+        # collect history for this fold
+        hist = {"train_loss": [], "test_loss": [], "test_acc": [], "num_epochs": EPOCHS}
+
         # train model over epochs
         epoch_test_accuracies = []
+        
         for epoch in range(1, EPOCHS + 1):
             # train and evaluate training step
-            loss = train_epoch(model, train_loader, optimizer, device)
-            acc = evaluate_accuracy(model, test_loader, device)
-            epoch_test_accuracies.append(acc)
+            train_loss = train_epoch(model, train_loader, optimizer, device)
+            test_acc = evaluate_accuracy(model, test_loader, device)
+            test_loss = evaluate_loss(model, test_loader, device)  # log only
+
+            epoch_test_accuracies.append(test_acc)
+
+            # record curves
+            hist["train_loss"].append(float(train_loss))
+            hist["test_loss"].append(float(test_loss))
+            hist["test_acc"].append(float(test_acc))
+
             if verbose:
                 if epoch % 10 == 0:
-                    print(f"Epoch {epoch: 03d} | loss: {loss: .4f} | epoch {epoch: 03d} | acc: {acc: .4f}")
+                    print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} | test acc: {test_acc: .4f}")
 
             # track best model over folds and epochs
-            if acc > best_acc:
+            if test_acc > best_acc:
                 if verbose:
-                    print(f"\n New best is model trained over fold {fold + 1} in epoch {epoch} with acc {acc: .4f}")
-                best_acc = acc
+                    print(f"\n New best is model trained over fold {fold + 1} in epoch {epoch} with acc {test_acc: .4f}")
+                best_acc = test_acc
                 best_model_state = model.state_dict()
                 best_split = {'train_idx': train_idx.tolist(),
                               'test_idx': test_idx.tolist(),
@@ -123,7 +154,14 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         final_acc = evaluate_accuracy(model, test_loader, device)
         accuracies.append(final_acc)
         if verbose:
-            print(f"Fold {fold + 1} | Accuracy: {acc: .4f}")
+            print(f"Fold {fold + 1} | Accuracy: {test_acc: .4f}")
+
+        fold_records.append({
+            "fold": fold + 1,
+            "indices": {"train_idx": train_idx.tolist(), "test_idx": test_idx.tolist()},
+            "history": hist,
+            "final_accuracy": float(final_acc),
+        })
 
     # save best model
     os.makedirs(output_dir, exist_ok=True)
@@ -140,7 +178,8 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         "fold_accuracies": [float(a) for a in accuracies],
         "mean_accuracy": np.mean(accuracies),
         "std_accuracy": np.std(accuracies),
-        "best_model": best_split
+        "best_model": best_split,
+        "folds": fold_records
     }
     log_path = f"{output_dir}/{log_fname}"
     with open(log_path, "w") as f:
