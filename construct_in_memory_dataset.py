@@ -17,7 +17,7 @@ if __name__ == "__main__":
         min_prob=None,
         drop_endpoints=True,
         verbose=True,
-        small=True
+        min_flips=True
     )
 
     print("In-memory dataset length:", len(ds))

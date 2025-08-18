@@ -2,12 +2,12 @@
 
 import os
 import json
-import random
 import numpy as np
 import torch
 
 from torch_geometric.loader import DataLoader
 from sklearn.model_selection import StratifiedKFold
+from time import perf_counter
 
 from EditPathGraphDataset import FlatGraphDataset
 from model import GAT
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     VERBOSE = True
 
     model_fname = f"{DATASET_NAME}_model.pt"
-    split_fname = "split.json"
+    split_fname = "train_test_split.json"
     log_fname = "train_log.json"
 
     set_seed(42)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     os.makedirs(out_dir, exist_ok=True)
 
     model_path = os.path.join(out_dir, model_fname)
-    split_path = os.path.join(out_dir, split_fname)  # todo: save split path? currently not
+    split_path = os.path.join(out_dir, split_fname)
     log_path = os.path.join(out_dir, log_fname)
 
     # load merged dataset (original + edit-path graphs, collated)
@@ -104,22 +104,27 @@ if __name__ == "__main__":
 
         # train model over epochs
         for epoch in range(1, EPOCHS + 1):
+            epoch_t0 = perf_counter()
+
             train_loss = train_epoch(model, train_loader, optimizer, device)
             test_acc = evaluate_accuracy(model, test_loader, device)
             test_loss = evaluate_loss(model, test_loader, device)
+
+            epoch_sec = perf_counter() - epoch_t0  # whole epoch duration (train + eval)
+            m, s = divmod(epoch_sec, 60)
 
             # record curves
             hist["train_loss"].append(float(train_loss))
             hist["test_loss"].append(float(test_loss))
             hist["test_acc"].append(float(test_acc))
 
-            if VERBOSE and (epoch % 10 == 0):
-                print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} | test acc: {test_acc: .4f}")
+            if VERBOSE:
+                print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} | test acc: {test_acc: .4f} | time: {int(m): 02d}:{s: 06.3f}")
 
             # track best model over folds and epochs by accuracy
             if test_acc > best_acc:
                 if VERBOSE:
-                    print(f"\n New best is model trained over fold {fold} in epoch {epoch} with acc {test_acc: .4f}")
+                    print(f"New best is model trained over fold {fold} in epoch {epoch} with test acc {test_acc: .4f}")
                 best_acc = test_acc
                 best_model_state = model.state_dict()
                 best_split = {

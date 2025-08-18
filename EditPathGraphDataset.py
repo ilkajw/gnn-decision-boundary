@@ -41,7 +41,7 @@ class EditPathGraphsDataset(InMemoryDataset):
             pre_transform=None,
             drop_endpoints=True,
             verbose=True,
-            small=False  # keep only paths with 0 or 1 flips
+            min_flips=False  # keep only paths with 0 or 1 flips
     ):
         self.seq_dir = seq_dir
         self.base_pred_path = base_pred_path
@@ -51,7 +51,7 @@ class EditPathGraphsDataset(InMemoryDataset):
         self.min_prob = min_prob
         self.drop_endpoints = drop_endpoints
         self.verbose = verbose
-        self.enforce_flip_pattern = bool(small)  # NEW
+        self.min_flips = bool(min_flips)
 
         root_dir = os.path.abspath(f"data/{DATASET_NAME}/processed/_editpath_inmem_root")
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
@@ -60,7 +60,7 @@ class EditPathGraphsDataset(InMemoryDataset):
         self.data, self.slices = self.collate(data_list)
         if self.verbose:
             print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} | "
-                  f"mode={self.label_mode} | flip_filter={self.enforce_flip_pattern}")
+                  f"mode={self.label_mode} | flip_filter={self.min_flips}")
 
     # InMemoryDataset expects these
     @property
@@ -192,7 +192,7 @@ class EditPathGraphsDataset(InMemoryDataset):
                 continue
 
             # filter for paths with 0 or 1 flips only
-            if self.enforce_flip_pattern:
+            if self.min_flips:
                 flips = self._count_prediction_flips(seq)
                 if flips is None:
                     if self.verbose:

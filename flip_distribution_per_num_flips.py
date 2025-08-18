@@ -7,7 +7,7 @@ from index_sets_utils import build_index_set_cuts
 if __name__ == "__main__":
 
     # define output path
-    out_path = f"data/{DATASET_NAME}/analysis/num_paths_per_num_flips/{DISTANCE_MODE}/" \
+    out_path = f"data/{DATASET_NAME}/analysis/paths_per_num_flips/{DISTANCE_MODE}/" \
                f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 
     # define inputs

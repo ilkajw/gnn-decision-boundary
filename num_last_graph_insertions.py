@@ -38,3 +38,5 @@ for key in keys:
 # save
 with open(out_path, "w") as f:
     json.dump(insertions_per_idxset, f, indent=2)
+
+print(insertions_per_idxset)

@@ -1,7 +1,7 @@
 import torch.nn.functional as func
 import random
 import numpy as np
-import os, json
+
 
 from predict_utils import *
 from edit_path_graphs_utils import *
@@ -60,7 +60,7 @@ def evaluate_loss(model, loader, device):
     return total_loss / max(1, n_batches)
 
 
-def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname, verbose=False):
+def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fname, verbose=True):
     """
     Trains a GAT network with k-fold cross validation on MUTAG.
         Saves the best performing model over all folds and epochs.
@@ -142,7 +142,7 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
             # track best model over folds and epochs
             if test_acc > best_acc:
                 if verbose:
-                    print(f"\n New best is model trained over fold {fold + 1} in epoch {epoch} with acc {test_acc: .4f}")
+                    print(f"New best is model trained over fold {fold + 1} in epoch {epoch} with test acc {test_acc: .4f}")
                 best_acc = test_acc
                 best_model_state = model.state_dict()
                 best_split = {'train_idx': train_idx.tolist(),

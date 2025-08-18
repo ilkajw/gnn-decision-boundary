@@ -12,7 +12,7 @@ from config import DATASET_NAME, DISTANCE_MODE
 ANALYSIS_DIR = f"data/{DATASET_NAME}/analysis"
 IN_PATH = os.path.join(
     ANALYSIS_DIR,
-    f"num_paths_per_num_flips/{DISTANCE_MODE}",
+    f"paths_per_num_flips/{DISTANCE_MODE}",
     f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
 )
 PLOT_DIR = os.path.join(ANALYSIS_DIR, "plots", "num_flips_deciles", DISTANCE_MODE)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
     # -------------------------------- diff for k=1 ---------------------------------
 
-    diff_k1 = load_deciles_for_keys_at_k(IN_PATH, ["diff__class_all"], k=k, field=FIELD)
+    diff_k1 = load_deciles_for_keys_at_k(IN_PATH, ["diff_class_all"], k=k, field=FIELD)
     plot_deciles_from_dict(
         deciles=diff_k1,
         field=FIELD,

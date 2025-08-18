@@ -12,9 +12,9 @@ ROOT = './data/'
 DATASET_NAME = 'MUTAG'
 
 # analysis parameters
-DISTANCE_MODE = "cost"  # or "num_ops"
-CORRECTLY_CLASSIFIED_ONLY = True  # to only consider edit path graphs which are fully connected, hence plausible
-FULLY_CONNECTED_ONLY = True  # to only consider paths with correctly classified source and target
+DISTANCE_MODE = "cost"  # else edit_step/num_all_ops is distance measure
+CORRECTLY_CLASSIFIED_ONLY = True  # to only consider paths with correctly classified source and target
+FULLY_CONNECTED_ONLY = True  # to only consider edit path graphs which are fully connected, hence plausible
 
-# params for merged dataset
-LABEL_MODE = "interpolate"
+# merged dataset parameters
+LABEL_MODE = "same_only"

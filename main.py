@@ -9,8 +9,8 @@ if __name__ == "__main__":
     dataset = TUDataset(root=ROOT, name=DATASET_NAME)
 
     # todo: this is only temporary. add suitable logic to access parts of the pipeline
-    train_model = False
-    predict_dataset = False
+    train_model = True
+    predict_dataset = True
     gen_edit_path_graphs = True
     predict_edit_paths = True
     add_meta_data_to_path_preds = True
