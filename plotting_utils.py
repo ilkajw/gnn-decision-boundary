@@ -52,7 +52,8 @@ def load_histograms(keys: List[str], normalize: bool) -> Dict[str, Dict[int, flo
 
 def plot_histograms_from_dict(
     histograms: Dict[str, Dict[int, float]],
-    normalize: bool = False,
+    totals: Optional[Dict[str, int]] = None,
+    normalized: bool = False,
     title: Optional[str] = None,
     save_path: Optional[str] = None,
     show: bool = False,
@@ -68,29 +69,36 @@ def plot_histograms_from_dict(
 
     all_k = sorted({k for h in histograms.values() for k in h.keys()})
     names = list(histograms.keys())
-    n = len(names)
-    width = 0.8 / max(n, 1)
+    n_series = len(names)
+    width = 0.8 / max(n_series, 1)
 
     # fixed palette (blue, grey, yellow)
     colors = ["#1f77b4", '#808080', "#f2c94c"]
 
     fig, ax = plt.subplots(figsize=(9, 5))
+
     for idx, name in enumerate(names):
         vals = [histograms[name].get(k, 0.0) for k in all_k]
         xpos = [x + idx * width for x in range(len(all_k))]
 
+        if totals is not None and name in totals:
+            label_text = f"{name} (n={int(totals[name])})"
+        else:
+            label_text = name
+
+        # define plot bar per series
         bars = ax.bar(
             xpos,
             vals,
             width=width,
-            label=name,
-            color=colors[idx % len(colors)],  # directly set series color
+            label=label_text,
+            color=colors[idx % len(colors)],
             linewidth=0.5,
         )
 
-        # annotate values
+        # annotate values on bars
         for rect, y in zip(bars, vals):
-            label = f"{y:.2f}" if normalize else f"{int(y)}"
+            label = f"{y: .2f}" if normalized else f"{int(y)}"
             ax.annotate(
                 label,
                 xy=(rect.get_x() + rect.get_width() / 2, y),
@@ -101,12 +109,12 @@ def plot_histograms_from_dict(
                 fontsize=8,
             )
 
-    ax.set_xticks([x + (n - 1) * width / 2 for x in range(len(all_k))])
+    ax.set_xticks([x + (n_series - 1) * width / 2 for x in range(len(all_k))])
     ax.set_xticklabels([str(k) for k in all_k])
     ax.set_xlabel("Anzahl Flips")
-    ax.set_ylabel("Anteil Pfade" if normalize else "Anzahl Pfade")
-    #if title:
-    #    ax.set_title(title)
+    ax.set_ylabel("Anteil Pfade" if normalized else "Anzahl Pfade")
+    if title:
+        ax.set_title(title)
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
@@ -121,7 +129,6 @@ def plot_histograms_from_dict(
 # ----------------- new helpers for decile plotting ----------------------------
 
 def deciles_file() -> str:
-    # Matches the writer name in the new decile script
     return os.path.join(
         f"data/{DATASET_NAME}/analysis/decile_distribution/by_{DISTANCE_MODE}",
         f"{DATASET_NAME}_flip_distribution_STATS_by_{DISTANCE_MODE}.json"
