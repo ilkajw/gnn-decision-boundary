@@ -1,4 +1,3 @@
-# plot_num_flips_deciles.py
 import os
 import json
 from pathlib import Path
@@ -7,10 +6,10 @@ import matplotlib.pyplot as plt
 
 from config import DATASET_NAME, DISTANCE_MODE
 
-# ------------------------ paths -----------------------------
+# ---------- set input, output paths -----------
 
 ANALYSIS_DIR = f"data/{DATASET_NAME}/analysis"
-IN_PATH = os.path.join(
+INPUT_PATH = os.path.join(
     ANALYSIS_DIR,
     f"paths_per_num_flips/{DISTANCE_MODE}",
     f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
@@ -19,7 +18,7 @@ PLOT_DIR = os.path.join(ANALYSIS_DIR, "plots", "num_flips_deciles", DISTANCE_MOD
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
-# ---------------- loaders for your JSON shape ----------------
+# ---------------- helpers ----------------
 
 def _k_entry(rec: dict, k: int) -> Optional[dict]:
     """Return the entry for k (keys are strings '1', '2', ...)."""
@@ -75,13 +74,34 @@ def load_deciles_for_keys_at_k(
         out[name] = _deciles_from_entry(entry, field)
     return out
 
+def load_totals_for_keys_at_k(
+    json_path: str,
+    keys: List[str],
+    k: int,
+    from_global: bool = False,
+) -> Dict[str, int]:
+    """
+    Compute totals per series for a fixed k by summing the 'abs_counts' deciles.
+    Returns {series_name: total_count}.
+    """
+    dec_abs = load_deciles_for_keys_at_k(
+        json_path=json_path,
+        keys=keys,
+        k=k,
+        field="abs_counts",
+        from_global=from_global,
+    )
+    totals: Dict[str, int] = {}
+    for name, vals in dec_abs.items():
+        totals[name] = int(round(sum(vals)))
+    return totals
 
-# ------------------------- plotting --------------------------
 
 def plot_deciles_from_dict(
     deciles: Dict[str, List[float]],
-    field: str,
-    title: str,
+    field: str = "avg_proportion",  # or 'abs_counts' todo: check if correct
+    totals: Optional[Dict[str, int]] = None,
+    title: str = None,
     save_path: Optional[str] = None,
     show: bool = False,
 ):
@@ -95,23 +115,29 @@ def plot_deciles_from_dict(
 
     xs = list(range(10))
     names = list(deciles.keys())
-    n = len(names)
-    width = 0.8 / max(n, 1)
+    n_series = len(names)
+    width = 0.8 / max(n_series, 1)
 
     # color palette (blue, grey, yellow)
     colors = ["#1f77b4", '#808080', "#f2c94c"]
 
     fig, ax = plt.subplots(figsize=(10, 6))
+
     for idx, name in enumerate(names):
         ys = deciles[name]
         xpos = [x + idx * width for x in xs]
+
+        # define legend description, if available including number of contributing paths
+        label_name = name
+        if totals is not None and name in totals:
+            label_name = f"{name} (n={int(totals[name])})"
 
         bars = ax.bar(
             xpos,
             ys,
             width=width,
-            label=name,
-            color=colors[idx % len(colors)],  # assign series color
+            label=label_name,
+            color=colors[idx % len(colors)],
             linewidth=0.5,
         )
 
@@ -130,12 +156,12 @@ def plot_deciles_from_dict(
                 fontsize=8,
             )
 
-    ax.set_xticks([x + (n - 1) * width / 2 for x in xs])
+    ax.set_xticks([x + (n_series - 1) * width / 2 for x in xs])
     ax.set_xticklabels([f"{10*d}-{10*(d+1)}%" for d in xs])
     ax.set_xlabel("Edit-Pfad-Segment")
     ax.set_ylabel("Anteil Pfade" if field == "avg_proportion" else "Anzahl Pfade")
-    #if title:
-    #    ax.set_title(title)
+    if title:
+        ax.set_title(title)
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
@@ -147,50 +173,32 @@ def plot_deciles_from_dict(
     plt.close(fig)
 
 
-# --------------------------------------- run plots -------------------------------------------
+# --------------- run plotting ---------------
 
 if __name__ == "__main__":
 
     FIELD = "avg_proportion"  # or "abs_counts"
-
-    # todo: the next section is not needed anymore as we got an extra function for this
-    # ----------------------------- same_class_all for k=2 -------------------------------------
-    k = 2
-    same_all_k2 = load_deciles_for_keys_at_k(IN_PATH, ["same_class_all"], k=k, field=FIELD)
-    plot_deciles_from_dict(
-        deciles=same_all_k2,
-        field=FIELD,
-        title=f"{DATASET_NAME}: deciles for k={k} (same_class_all, {FIELD})",
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_same_all.png"),
-    )
-
-    # --------------------same: train–train vs test–test vs train–test for k=2 -----------------
-    same_keys = ["same_train_train", "same_test_test", "same_train_test"]
-    same_k2 = load_deciles_for_keys_at_k(IN_PATH, same_keys, k=k, field=FIELD)
-    plot_deciles_from_dict(
-        deciles=same_k2,
-        field=FIELD,
-        title=f"{DATASET_NAME}: deciles for k={k} (same: train/test/train–test, {FIELD})",
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_same_train_vs_test.png"),
-    )
-
-    # ------------------- diff: train–train vs test–test vs train–test for k=1 ------------------
     k = 1
-    diff_keys = ["diff_train_train", "diff_test_test", "diff_train_test"]
-    diff_k2 = load_deciles_for_keys_at_k(IN_PATH, diff_keys, k=k, field=FIELD)
-    plot_deciles_from_dict(
-        deciles=diff_k2,
-        field=FIELD,
-        title=f"Distribution over path deciles for k={k} flip",
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_diff_train_vs_test.png"),
-    )
 
-    # -------------------------------- diff for k=1 ---------------------------------
+    # -------------- diff for k=1 -------------
 
-    diff_k1 = load_deciles_for_keys_at_k(IN_PATH, ["diff_class_all"], k=k, field=FIELD)
+    diff_k1 = load_deciles_for_keys_at_k(INPUT_PATH, ["diff_class_all"], k=k, field=FIELD)
     plot_deciles_from_dict(
         deciles=diff_k1,
         field=FIELD,
-        title=f"Distribution over path deciles for k={k} flip",
+        title=None,
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_diff_all.png"),
     )
+
+    # ----------- diff: train–train vs test–test vs train–test for k=1 -------------
+
+    diff_keys = ["diff_train_train", "diff_test_test", "diff_train_test"]
+    diff_k2 = load_deciles_for_keys_at_k(INPUT_PATH, diff_keys, k=k, field=FIELD)
+    plot_deciles_from_dict(
+        deciles=diff_k2,
+        field=FIELD,
+        title=None,
+        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_diff_train_vs_test.png"),
+    )
+
+

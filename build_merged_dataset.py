@@ -10,23 +10,23 @@ from data_transform_utils import to_float_y, drop_edge_attr, tag_origin
 
 if __name__ == "__main__":
 
-    # load original dataset with cast y->float, tag as "org"
+    # load original dataset with cast y->float
     org_ds = TUDataset(
         root=ROOT,
         name=DATASET_NAME,
         transform=Compose([
             to_float_y(),
             drop_edge_attr(),
-            tag_origin("org")
+            tag_origin("org")  # tag as "org"
         ])
     )
 
-    # load previously build edit-path dataset, tag as "edit"
+    # load previously build edit-path dataset
     edit_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}.pt"
     edit_ds = FlatGraphDataset(saved_path=edit_pt, verbose=True)
     edit_ds.transform = Compose([
         to_float_y(),
-        tag_origin("edit")
+        tag_origin("edit")  # tag as "edit"
     ])
 
     # merge original dataset and edit-path dataset

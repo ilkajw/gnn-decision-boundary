@@ -1,13 +1,11 @@
-# plotting_two_flip_distribution.py
 import json
-import difflib
 from pathlib import Path
 import matplotlib.pyplot as plt
 
 from config import DATASET_NAME
 
-# ------------------------------------------------------------
-# CONFIG
+# --------------- config --------------------
+
 JSON_PATH = f"data/{DATASET_NAME}/analysis/flip_distributions/{DATASET_NAME}_first_second_flips_by_cost.json"
 SAVE_PATH = f"data/{DATASET_NAME}/analysis/plots/flip_distributions"
 SHOW_PLOTS = False
@@ -20,13 +18,13 @@ GROUPS_TO_PLOT = [
     "same_test_test",
     "same_train_test",
 ]
-# ------------------------------------------------------------
-
 
 if not SHOW_PLOTS:
     import matplotlib
     matplotlib.use("Agg")
 
+
+# -----------------helpers -----------------------
 
 def load_results(json_path: str | Path):
     with open(json_path, "r") as f:
@@ -111,7 +109,10 @@ def plot_overlay(group_name, group_data, save_dir: Path | None):
     plt.close(fig)
 
 
+# ---------------- run plotting ------------------
+
 if __name__ == "__main__":
+
     results = load_results(JSON_PATH)
     all_groups = list(results.keys())
     save_dir = Path(SAVE_PATH) if SAVE_PATH else None
@@ -119,17 +120,13 @@ if __name__ == "__main__":
     print("Available groups in JSON:", all_groups)
     print("Requested groups:", GROUPS_TO_PLOT)
 
-
     valid_groups = []
+
     for g in GROUPS_TO_PLOT:
         if g in results:
             valid_groups.append(g)
         else:
-            suggestion = difflib.get_close_matches(g, all_groups, n=1)
-            if suggestion:
-                print(f"⚠️  Group '{g}' not found. Did you mean '{suggestion[0]}'?")
-            else:
-                print(f"⚠️  Group '{g}' not found. Skipping.")
+            print(f"⚠️  Group '{g}' not found. Skipping.")
 
     if not valid_groups:
         raise SystemExit("No valid groups to plot. Please fix GROUPS_TO_PLOT.")
