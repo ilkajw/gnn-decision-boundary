@@ -1,21 +1,17 @@
 import torch
 
 
-def to_float_y(domain_flag: int | None = None):
+def to_float_y():
     """
     Returns a transform that casts y -> float tensor [0,1].
-    Optionally adds `data.source = domain_flag` (0 for original dataset, 1 for edit-path).
     """
     def _tf(data):
-        # y may be tensor([0]) long or 0-dim, make it float shape [1]
         y = data.y
         if not torch.is_floating_point(y):
             y = y.float()
-        if y.dim() == 0:
+        if y.dim() == 0:  # make sure it's at least shape [1]
             y = y.unsqueeze(0)
         data.y = y
-        if domain_flag is not None:
-            data.source = torch.tensor([domain_flag], dtype=torch.long)
         return data
     return _tf
 
@@ -26,3 +22,12 @@ def drop_edge_attr():
             del data.edge_attr  # remove attribute from the Data object
         return data
     return _tf
+
+
+def tag_origin(tag: str):
+    assert tag in ("org", "edit")
+    def _apply(data):
+        data.origin = tag           # "org" or "edit"
+        data.is_original = 1 if tag == "org" else 0
+        return data
+    return _apply

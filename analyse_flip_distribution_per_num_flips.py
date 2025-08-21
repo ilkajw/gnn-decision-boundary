@@ -14,14 +14,19 @@ if __name__ == "__main__":
     split_path = "model/best_split.json"
     MAX_K = 8
 
+    # todo: this had an old input file. run again!!
     # retrieve data according to distance mode
     if DISTANCE_MODE == "cost":
         dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cum_cost.json"
-    else:
+        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+    elif DISTANCE_MODE == "cost":
         dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
-
+    else:
+        print(f"[warn] config.DISTANCE_MODE has unexpected value {DISTANCE_MODE}. Expected 'cost' or 'num_ops."
+              f"Assuming 'cost.")
+        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
     cuts = build_index_set_cuts(
         dataset_name=DATASET_NAME,
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,

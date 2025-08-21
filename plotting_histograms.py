@@ -21,7 +21,7 @@ if __name__ == "__main__":
     plot_histograms_from_dict(
         histograms=h_abs,
         normalize=False,
-        title=f"{DATASET_NAME}: flips-per-path (absolute, by {DISTANCE_MODE})",
+        title=f"Flips per-path (by {DISTANCE_MODE})",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(compare)}.png"),
     )
 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     plot_histograms_from_dict(
         histograms=h_rel,
         normalize=True,
-        title=f"{DATASET_NAME}: flips-per-path (normalized, by {DISTANCE_MODE})",
+        title=f"Flips per-path (by {DISTANCE_MODE})",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(compare)}.png"),
     )
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     plot_histograms_from_dict(
         histograms=h_abs,
         normalize=False,
-        title=f"{DATASET_NAME}: flips-per-path (absolute, by {DISTANCE_MODE})",
+        title=f"Flips per-path (by {DISTANCE_MODE})",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(compare)}.png"),
     )
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     plot_histograms_from_dict(
         histograms=h_rel,
         normalize=True,
-        title=f"{DATASET_NAME}: flips-per-path (normalized, by {DISTANCE_MODE})",
+        title=f"Flips per-path (by {DISTANCE_MODE})",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(compare)}.png"),
     )
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     plot_histograms_from_dict(
         histograms=h_abs,
         normalize=False,
-        title=f"{DATASET_NAME}: flips-per-path (absolute, by {DISTANCE_MODE})",
+        title=f"Flips per-path (by {DISTANCE_MODE})",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(compare)}.png"),
     )
 
@@ -70,6 +70,6 @@ if __name__ == "__main__":
     plot_histograms_from_dict(
         histograms=h_rel,
         normalize=True,
-        title=f"{DATASET_NAME}: flips-per-path (normalized, by {DISTANCE_MODE})",
+        title=f"Flips per-path (by {DISTANCE_MODE})",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(compare)}.png"),
     )

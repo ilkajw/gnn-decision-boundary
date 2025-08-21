@@ -86,9 +86,14 @@ class EditPathGraphsDataset(InMemoryDataset):
         if DISTANCE_MODE == "cost":
             dist = float(getattr(g, "distance", 0.0))
             step = float(getattr(g, "cumulative_cost", 0.0))
-        else:
+        elif DISTANCE_MODE == "num_ops":
             dist = float(getattr(g, "num_all_ops", 0.0))
             step = float(getattr(g, "edit_step", 0.0))
+        else:
+            print(f"[warn] config.DISTANCE_MODE does have unexpected value {DISTANCE_MODE}. "
+                  f"'cost' or 'num_ops' expected. Assuming 'cost'.")
+            dist = float(getattr(g, "distance", 0.0))
+            step = float(getattr(g, "cumulative_cost", 0.0))
         return max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
 
     def _interp_soft_label(self, y_src, y_tgt, t):

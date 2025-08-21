@@ -17,7 +17,7 @@ class GAT(torch.nn.Module):
 
     def forward(self, x, edge_index, batch):
 
-        # GATv2 layers with relu activation
+        # GATv2 layers with elu activation
         x = F.elu(self.gat1(x, edge_index))
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = F.elu(self.gat2(x, edge_index))

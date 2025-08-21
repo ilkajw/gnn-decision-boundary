@@ -2,6 +2,12 @@ import torch.nn.functional as func
 import random
 import numpy as np
 
+import torch
+if hasattr(torch, "set_float32_matmul_precision"):
+    torch.set_float32_matmul_precision("highest")
+torch.backends.cuda.matmul.allow_tf32 = False
+torch.backends.cudnn.allow_tf32 = False
+torch.set_num_threads(1)
 
 from predict_utils import *
 from edit_path_graphs_utils import *
@@ -13,6 +19,7 @@ def set_seed(seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
 
 def train_epoch(model, loader, optimizer, device):
     model.train()
@@ -54,7 +61,7 @@ def evaluate_loss(model, loader, device):
             data = data.to(device)
             logits = model(data.x, data.edge_index, data.batch).view(-1)
             y = data.y.float().view(-1)
-            loss = F.binary_cross_entropy_with_logits(logits, y)
+            loss = func.binary_cross_entropy_with_logits(logits, y)
             total_loss += loss.item()
             n_batches += 1
     return total_loss / max(1, n_batches)
@@ -76,10 +83,10 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
             :param log_fname: Name of file to save k-fold cross validation training statistics.
             :param verbose: If True, training progress is printed.
     """
-
-    torch.manual_seed(42)
-    np.random.seed(42)
-    random.seed(42)
+    set_seed(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     labels = [data.y.item() for data in dataset]  # extract ground truth labels from data set
@@ -103,8 +110,16 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         train_dataset = dataset[train_idx.tolist()]
         test_dataset = dataset[test_idx.tolist()]
 
-        train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
+        g = torch.Generator()
+        g.manual_seed(42)
+        train_loader = DataLoader(train_dataset,
+                                  batch_size=BATCH_SIZE,
+                                  shuffle=True,
+                                  generator=g,
+                                  num_workers=0,
+                                  persistent_workers=False)
+        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False,
+                                 num_workers=0, persistent_workers=False)
 
         # init model
         model = GAT(
@@ -140,11 +155,11 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
                     print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} | test acc: {test_acc: .4f}")
 
             # track best model over folds and epochs
-            if test_acc > best_acc:
+            if round(float(test_acc), 6) > round(float(best_acc), 6):
                 if verbose:
                     print(f"New best is model trained over fold {fold + 1} in epoch {epoch} with test acc {test_acc: .4f}")
-                best_acc = test_acc
-                best_model_state = model.state_dict()
+                best_acc = float(test_acc)
+                best_model_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
                 best_split = {'train_idx': train_idx.tolist(),
                               'test_idx': test_idx.tolist(),
                               'fold': fold + 1,
@@ -154,7 +169,7 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         final_acc = evaluate_accuracy(model, test_loader, device)
         accuracies.append(final_acc)
         if verbose:
-            print(f"Fold {fold + 1} | Accuracy: {test_acc: .4f}")
+            print(f"Fold {fold + 1} | Accuracy: {final_acc: .4f}")
 
         fold_records.append({
             "fold": fold + 1,
@@ -174,16 +189,46 @@ def train_and_choose_model(dataset, output_dir, model_fname, split_fname, log_fn
         json.dump(best_split, f, indent=2)
 
     # log k-cv training statistics
-    log = {
+    #log = {
+    #    "fold_accuracies": [float(a) for a in accuracies],
+    #    "mean_accuracy": np.mean(accuracies),
+    #    "std_accuracy": np.std(accuracies),
+    #    "best_model": best_split,
+    #    "folds": fold_records
+    #}
+
+    summary = {
         "fold_accuracies": [float(a) for a in accuracies],
-        "mean_accuracy": np.mean(accuracies),
-        "std_accuracy": np.std(accuracies),
+        "mean_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
+        "std_accuracy": float(np.std(accuracies)) if accuracies else 0.0,
         "best_model": best_split,
+        "config": {
+            "K_FOLDS": K_FOLDS,
+            "EPOCHS": EPOCHS,
+            "LEARNING_RATE": LEARNING_RATE,
+            "BATCH_SIZE": BATCH_SIZE,
+            "HIDDEN_CHANNELS": HIDDEN_CHANNELS,
+            "HEADS": HEADS,
+            "DROPOUT": DROPOUT,
+            "device": str(device),
+            "dataset": DATASET_NAME,
+            "stratified": True,
+            "label_mode": LABEL_MODE,
+            "split_strategy": "Original training.",
+            "env": {
+                "torch": torch.__version__,
+                "cuda_available": torch.cuda.is_available(),
+                "cuda": getattr(torch.version, "cuda", None),
+                "cudnn": torch.backends.cudnn.version(),
+                "device": str(device)
+            },
+        },
         "folds": fold_records
     }
+
     log_path = f"{output_dir}/{log_fname}"
     with open(log_path, "w") as f:
-        json.dump(log, f, indent=2)
+        json.dump(summary, f, indent=2)
 
     if verbose:
         print(f"\n Average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")

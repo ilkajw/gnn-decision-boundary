@@ -1,38 +1,45 @@
 from torch.utils.data import ConcatDataset
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from torch_geometric.datasets import TUDataset
 from torch_geometric.transforms import Compose
 
 from EditPathGraphDataset import FlatGraphDataset
 from config import DATASET_NAME, ROOT, LABEL_MODE
 from dataset_utils import save_dataset_as_inmemory_pt
-from data_transform_utils import to_float_y, drop_edge_attr
+from data_transform_utils import to_float_y, drop_edge_attr, tag_origin
 
 if __name__ == "__main__":
 
-    # load original dataset with cast y->float, tag domain=0
+    # load original dataset with cast y->float, tag as "org"
     org_ds = TUDataset(
         root=ROOT,
         name=DATASET_NAME,
-        transform=Compose([to_float_y(domain_flag=0), drop_edge_attr()])
+        transform=Compose([
+            to_float_y(),
+            drop_edge_attr(),
+            tag_origin("org")
+        ])
     )
-    # load previously build edit-path dataset
+
+    # load previously build edit-path dataset, tag as "edit"
     edit_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}.pt"
     edit_ds = FlatGraphDataset(saved_path=edit_pt, verbose=True)
-    edit_ds.transform = to_float_y(domain_flag=1)  # ensure y is float + tag domain=1 when accessed
+    edit_ds.transform = Compose([
+        to_float_y(),
+        tag_origin("edit")
+    ])
 
     # merge original dataset and edit-path dataset
     merged = ConcatDataset([org_ds, edit_ds])
 
-    # check
+    # check with loader
     loader = DataLoader(merged, batch_size=32, shuffle=True)
     num_org = len(org_ds)
     num_edit = len(edit_ds)
     print(f"Merged dataset: {num_org} ({DATASET_NAME}) + {num_edit} (edit-path) = {len(merged)}")
 
     # save merged dataset as a single (data, slices) .pt
-
-    merged_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_merged_dataset.pt"
-    merged_meta = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_merged_dataset_meta.json"
+    merged_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_merged_dataset_tagged.pt"
+    merged_meta = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_merged_dataset_meta_tagged.json"
 
     save_dataset_as_inmemory_pt(merged, merged_pt, meta_path=merged_meta, verbose=True)

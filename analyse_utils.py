@@ -464,10 +464,15 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
         # load precalculated dict (i,j) -> edit distance
         with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_dist_per_path.json") as f:
             distances = json.load(f)
-    else:
+    elif distance_mode == "num_ops":
         # load precalculated dict (i,j) -> number of operations
         with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_num ops_per_path.json") as f:
             num_ops = json.load(f)
+    else:
+        print(f"[warn] given param for distance_mode or config.DISTANCE_MODE /default) does have unexpected "
+              f"value {DISTANCE_MODE}. 'cost' or 'num_ops' expected. Assuming 'cost'.")
+        with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_dist_per_path.json") as f:
+            distances = json.load(f)
 
     # initialize dict to store number of class changes per decile
     class_changes_per_decile = {decile: 0 for decile in range(10)}
@@ -506,9 +511,12 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
 
                 if distance_mode == "cost":
                     rel_step = g.cumulative_cost/distances[f"{i},{j}"]
-                else:
+                elif distance_mode == "num_ops":
                     rel_step = g.edit_step/num_ops[f"{i},{j}"]  # todo: check if this works
-
+                else:
+                    print(f"[warn] given param for distance_mode or config.DISTANCE_MODE (default) has unexpected "
+                          f"value {distance_mode}. Expected 'cost' or 'num_ops'. Assuming 'cost'.")
+                    rel_step = g.cumulative_cost / distances[f"{i},{j}"]
                 decile = int(min(rel_step * 10, 9))
                 class_changes_per_decile[decile] += 1
 

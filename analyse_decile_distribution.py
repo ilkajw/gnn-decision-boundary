@@ -23,9 +23,14 @@ if __name__ == "__main__":
     if DISTANCE_MODE == "cost":
         dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
-    else:
+    elif DISTANCE_MODE == "cost":
         dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
         flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+    else:
+        print(f"[warn] config.DISTANCE_MODE has unexpected value {DISTANCE_MODE}. Expected 'cost' or 'num_ops."
+              f"Assuming 'cost.")
+        dist_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
 
     # build all cut index sets (same/diff class + train-train / test-test / train-test)
     cuts = build_index_set_cuts(

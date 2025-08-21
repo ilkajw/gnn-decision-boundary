@@ -44,13 +44,15 @@ def plot_group(group_name, group_data, save_dir: Path | None):
     """Two bar charts (first + second flip) side by side, with value labels."""
     fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 
-    for ax, which in zip(axes, ["first", "second"]):
+    for ax, (i, which) in zip(axes, enumerate(["first", "second"], start=1)):
         dec, props = extract_props(group_data, which)
         bars = ax.bar(dec, props)
+        labels = [f"{d * 10}-{(d + 1) * 10}%" for d in dec]
         ax.set_xticks(dec)
-        ax.set_xlabel("Decile (0–9)")
-        ax.set_ylabel("Proportion")
-        ax.set_title(f"{which.title()} flip\nn={group_data['num_paths']}")
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xlabel("Pfad-Segment nach Kosten")
+        ax.set_ylabel("Anteil Pfade")
+        ax.set_title(f"Flip {i}")  # -> Flip 1 / Flip 2
         ax.grid(True, axis="y", linestyle=":", linewidth=0.5)
 
         # annotate each bar
@@ -65,7 +67,7 @@ def plot_group(group_name, group_data, save_dir: Path | None):
                 rotation=0,
             )
 
-    fig.suptitle(f"Flip distributions for {group_name}", fontsize=14)
+    fig.suptitle(f"Flip-Verteilung '{group_name}' (n={group_data['num_paths']})", fontsize=14)
     fig.tight_layout()
 
     if save_dir:
@@ -83,8 +85,8 @@ def plot_overlay(group_name, group_data, save_dir: Path | None):
     _, p_second = extract_props(group_data, "second")
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(dec, p_first, marker="o", label="First flip")
-    ax.plot(dec, p_second, marker="o", label="Second flip")
+    ax.plot(dec, p_first, marker="o", label="Flip 1")
+    ax.plot(dec, p_second, marker="o", label="Flip 2")
 
     # add text labels for each point
     for x, y in zip(dec, p_first):
@@ -93,9 +95,9 @@ def plot_overlay(group_name, group_data, save_dir: Path | None):
         ax.text(x, y, f"{y:.2f}", ha="center", va="bottom", fontsize=8)
 
     ax.set_xticks(dec)
-    ax.set_xlabel("Decile (0–9)")
-    ax.set_ylabel("Proportion")
-    ax.set_title(f"{group_name} — First vs Second (n={group_data['num_paths']})")
+    ax.set_xlabel("Dezil")
+    ax.set_ylabel("Anteil Pfade")
+    ax.set_title(f"{group_name} (n={group_data['num_paths']})")
     ax.grid(True, axis="y", linestyle=":", linewidth=0.5)
     ax.legend()
     fig.tight_layout()

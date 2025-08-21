@@ -61,6 +61,7 @@ def plot_histograms_from_dict(
     Plot #flips-per-path histograms from an in-memory dict
     {label -> {num_flips: value}}, where value is a count (if not normalized)
     or a proportion (if normalized).
+    Uses a fixed color palette: blue, orange, yellow.
     """
     if not histograms:
         raise ValueError("No histograms provided.")
@@ -70,11 +71,22 @@ def plot_histograms_from_dict(
     n = len(names)
     width = 0.8 / max(n, 1)
 
-    # (same visuals as your existing plotter)
+    # fixed palette (blue, grey, yellow)
+    colors = ["#1f77b4", '#808080', "#f2c94c"]
+
     fig, ax = plt.subplots(figsize=(9, 5))
     for idx, name in enumerate(names):
         vals = [histograms[name].get(k, 0.0) for k in all_k]
-        bars = ax.bar([x + idx * width for x in range(len(all_k))], vals, width=width, label=name)
+        xpos = [x + idx * width for x in range(len(all_k))]
+
+        bars = ax.bar(
+            xpos,
+            vals,
+            width=width,
+            label=name,
+            color=colors[idx % len(colors)],  # directly set series color
+            linewidth=0.5,
+        )
 
         # annotate values
         for rect, y in zip(bars, vals):
@@ -91,9 +103,10 @@ def plot_histograms_from_dict(
 
     ax.set_xticks([x + (n - 1) * width / 2 for x in range(len(all_k))])
     ax.set_xticklabels([str(k) for k in all_k])
-    ax.set_xlabel("# flips per path (k)")
-    ax.set_ylabel("Proportion" if normalize else "Count")
-    ax.set_title(title or "Flips-per-path histogram")
+    ax.set_xlabel("Anzahl Flips")
+    ax.set_ylabel("Anteil Pfade" if normalize else "Anzahl Pfade")
+    #if title:
+    #    ax.set_title(title)
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
@@ -192,9 +205,9 @@ def plot_deciles_from_dict(
 
     ax.set_xticks([x + (n - 1) * width / 2 for x in xs])
     ax.set_xticklabels([f"{10*d}-{10*(d+1)}%" for d in xs])
-    ax.set_xlabel("Edit-path decile (relative position)")
-    ax.set_ylabel("Proportion" if field != "abs_counts" or normalize_abs else "Count")
-    ax.set_title(title or f"Decile distribution ({field})")
+    ax.set_xlabel("Dezil Edit-Pfad")
+    ax.set_ylabel("Anteil Pfade" if field != "abs_counts" or normalize_abs else "Anzahl Pfade")
+    # ax.set_title(title or f"Flip-Verteilung entlang Edit-Pfad-Dezilen")
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
@@ -284,12 +297,21 @@ def plot_histograms_for_cuts(
         else:
             proc[name] = dict(h)
 
+    # def color palette
+    colors = ["blue", "orange", "yellow"]
+
     # plot
     fig, ax = plt.subplots(figsize=(9, 5))
     for idx, name in enumerate(names):
         vals = [proc[name].get(k, 0) for k in all_k]
-        bars = ax.bar([x + idx * width for x in range(len(all_k))], vals, width=width, label=name)
-
+        xpos = [x + idx * width for x in range(len(all_k))]
+        bars = ax.bar(
+            xpos,
+            vals,
+            width=width,
+            label=name,
+            color=colors[idx % len(colors)],  # apply palette per series
+        )
         # annotate values on top of bars
         for rect, y in zip(bars, vals):
             if normalize:
@@ -308,9 +330,9 @@ def plot_histograms_for_cuts(
 
     ax.set_xticks([x + (n-1)*width/2 for x in range(len(all_k))])
     ax.set_xticklabels([str(k) for k in all_k])
-    ax.set_xlabel("# flips per path (k)")
-    ax.set_ylabel("Proportion" if normalize else "Count")
-    ax.set_title(title or "Flips-per-path histogram")
+    ax.set_xlabel("Anzahl Flips")
+    ax.set_ylabel("Anteil Pfade" if normalize else "Anzahl Pfade")
+    # ax.set_title(title or "Flips-per-path histogram")
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
@@ -385,9 +407,9 @@ def plot_deciles_for_cuts(
     # nice ticks & labels
     ax.set_xticks([x + (n - 1) * width / 2 for x in xs])
     ax.set_xticklabels([f"{10*d}-{10*(d+1)}%" for d in xs])
-    ax.set_xlabel("Edit-path decile (relative position)")
-    ax.set_ylabel("Proportion" if field != "abs_counts" or normalize_abs else "Count")
-    ax.set_title(title or f"Decile distribution ({field})")
+    ax.set_xlabel("Dezil Edit-Pfad")
+    ax.set_ylabel("Anteil Pfade" if field != "abs_counts" or normalize_abs else "Anzahl Pfade")
+    # ax.set_title(title or f"Decile distribution ({field})")
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 

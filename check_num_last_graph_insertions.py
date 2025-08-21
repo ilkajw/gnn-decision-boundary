@@ -12,7 +12,8 @@ with open(inserted_path, "r") as f:
     insertions = json.load(f)
 
 insert_set = {tuple(p) for p in insertions}
-print(len(inserted_path))
+print(f"num insertions total: {len(insert_set)}")
+
 
 # load index sets
 cuts = build_index_set_cuts(

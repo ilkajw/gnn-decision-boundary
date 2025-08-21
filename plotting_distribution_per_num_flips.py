@@ -88,6 +88,7 @@ def plot_deciles_from_dict(
     """
     Plot grouped bars for deciles 0..9 for each series in `deciles`.
     `field` controls labeling (avg_proportion => proportions, abs_counts => counts).
+    Uses fixed colors (blue, orange, yellow).
     """
     if not deciles:
         raise ValueError("No decile data to plot.")
@@ -97,13 +98,28 @@ def plot_deciles_from_dict(
     n = len(names)
     width = 0.8 / max(n, 1)
 
+    # color palette (blue, grey, yellow)
+    colors = ["#1f77b4", '#808080', "#f2c94c"]
+
     fig, ax = plt.subplots(figsize=(10, 6))
     for idx, name in enumerate(names):
         ys = deciles[name]
         xpos = [x + idx * width for x in xs]
-        bars = ax.bar(xpos, ys, width=width, label=name)
+
+        bars = ax.bar(
+            xpos,
+            ys,
+            width=width,
+            label=name,
+            color=colors[idx % len(colors)],  # assign series color
+            linewidth=0.5,
+        )
+
         for rect, y in zip(bars, ys):
-            label = f"{y:.2f}" if field == "avg_proportion" else (f"{int(round(y))}" if y >= 1 else f"{y:.2f}")
+            label = (
+                f"{y:.2f}" if field == "avg_proportion"
+                else (f"{int(round(y))}" if y >= 1 else f"{y:.2f}")
+            )
             ax.annotate(
                 label,
                 xy=(rect.get_x() + rect.get_width() / 2, rect.get_height()),
@@ -116,9 +132,10 @@ def plot_deciles_from_dict(
 
     ax.set_xticks([x + (n - 1) * width / 2 for x in xs])
     ax.set_xticklabels([f"{10*d}-{10*(d+1)}%" for d in xs])
-    ax.set_xlabel("Edit-path decile (relative position)")
-    ax.set_ylabel("Proportion" if field == "avg_proportion" else "Count")
-    ax.set_title(title)
+    ax.set_xlabel("Edit-Pfad-Segment")
+    ax.set_ylabel("Anteil Pfade" if field == "avg_proportion" else "Anzahl Pfade")
+    #if title:
+    #    ax.set_title(title)
     ax.legend()
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
 
@@ -134,8 +151,9 @@ def plot_deciles_from_dict(
 
 if __name__ == "__main__":
 
-    FIELD = "avg_proportion"  # or "avg_proportion" or "abs_counts"
+    FIELD = "avg_proportion"  # or "abs_counts"
 
+    # todo: the next section is not needed anymore as we got an extra function for this
     # ----------------------------- same_class_all for k=2 -------------------------------------
     k = 2
     same_all_k2 = load_deciles_for_keys_at_k(IN_PATH, ["same_class_all"], k=k, field=FIELD)
@@ -163,7 +181,7 @@ if __name__ == "__main__":
     plot_deciles_from_dict(
         deciles=diff_k2,
         field=FIELD,
-        title=f"{DATASET_NAME}: deciles for k={k} (diff: train/test/train–test, {FIELD})",
+        title=f"Distribution over path deciles for k={k} flip",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_diff_train_vs_test.png"),
     )
 
@@ -173,6 +191,6 @@ if __name__ == "__main__":
     plot_deciles_from_dict(
         deciles=diff_k1,
         field=FIELD,
-        title=f"{DATASET_NAME}: deciles for k={k} (diff: train/test/train–test, {FIELD})",
+        title=f"Distribution over path deciles for k={k} flip",
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_diff_all.png"),
     )
