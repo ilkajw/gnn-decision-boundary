@@ -1,14 +1,21 @@
 import json
 from pathlib import Path
-import matplotlib.pyplot as plt
+from typing import Dict, Any
 
-from config import DATASET_NAME
+import matplotlib.pyplot as plt
+from pyparsing import Optional
+
+from config import DATASET_NAME, DISTANCE_MODE
 
 # --------------- config --------------------
 
-JSON_PATH = f"data/{DATASET_NAME}/analysis/flip_distributions/{DATASET_NAME}_first_second_flips_by_cost.json"
+DATA_PATH = f"data/{DATASET_NAME}/analysis/flip_distributions/{DATASET_NAME}_first_second_flips_by_{DISTANCE_MODE}.json"
 SAVE_PATH = f"data/{DATASET_NAME}/analysis/plots/flip_distributions"
+
 SHOW_PLOTS = False
+if not SHOW_PLOTS:
+    import matplotlib
+    matplotlib.use("Agg")
 
 GROUPS_TO_PLOT = [
     "same_class_all",
@@ -16,12 +23,8 @@ GROUPS_TO_PLOT = [
     "same_class_1_all",
     "same_train_train",
     "same_test_test",
-    "same_train_test",
+    "same_train_test"
 ]
-
-if not SHOW_PLOTS:
-    import matplotlib
-    matplotlib.use("Agg")
 
 
 # -----------------helpers -----------------------
@@ -38,8 +41,14 @@ def extract_props(group_data, which="first"):
     return deciles, props
 
 
-def plot_group(group_name, group_data, save_dir: Path | None):
+def plot_group(group_name,
+               group_data,
+               title: Optional[str] = None,
+               save_dir: Path = None
+               ):
     """Two bar charts (first + second flip) side by side, with value labels."""
+    n_paths = int(group_data.get("num_paths", 0))
+    legend_title = f"{group_name} (n={n_paths})"
     fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
 
     for ax, (i, which) in zip(axes, enumerate(["first", "second"], start=1)):
@@ -50,7 +59,7 @@ def plot_group(group_name, group_data, save_dir: Path | None):
         ax.set_xticklabels(labels, rotation=45, ha="right")
         ax.set_xlabel("Pfad-Segment nach Kosten")
         ax.set_ylabel("Anteil Pfade")
-        ax.set_title(f"Flip {i}")  # -> Flip 1 / Flip 2
+        ax.set_title(f"Flip {i}")
         ax.grid(True, axis="y", linestyle=":", linewidth=0.5)
 
         # annotate each bar
@@ -64,8 +73,10 @@ def plot_group(group_name, group_data, save_dir: Path | None):
                 fontsize=8,
                 rotation=0,
             )
+    ax.legend(handles=[], labels=[], title=legend_title, loc="upper right", frameon=True)
+    if title:
+        fig.suptitle(title, fontsize=14)
 
-    fig.suptitle(f"Flip-Verteilung '{group_name}' (n={group_data['num_paths']})", fontsize=14)
     fig.tight_layout()
 
     if save_dir:
@@ -77,8 +88,13 @@ def plot_group(group_name, group_data, save_dir: Path | None):
     plt.close(fig)
 
 
-def plot_overlay(group_name, group_data, save_dir: Path | None):
+def plot_overlay(group_name: str,
+    group_data: Dict[str, Any],
+    save_dir: Optional[Path] = None,
+    title: Optional[str] = None
+):
     """Overlay first vs second proportions, with value labels."""
+    n_paths = int(group_data.get("num_paths", 0))
     dec, p_first = extract_props(group_data, "first")
     _, p_second = extract_props(group_data, "second")
 
@@ -88,16 +104,18 @@ def plot_overlay(group_name, group_data, save_dir: Path | None):
 
     # add text labels for each point
     for x, y in zip(dec, p_first):
-        ax.text(x, y, f"{y:.2f}", ha="center", va="bottom", fontsize=8)
+        ax.text(x, y, f"{y: .2f}", ha="center", va="bottom", fontsize=8)
     for x, y in zip(dec, p_second):
-        ax.text(x, y, f"{y:.2f}", ha="center", va="bottom", fontsize=8)
+        ax.text(x, y, f"{y: .2f}", ha="center", va="bottom", fontsize=8)
 
     ax.set_xticks(dec)
     ax.set_xlabel("Dezil")
     ax.set_ylabel("Anteil Pfade")
-    ax.set_title(f"{group_name} (n={group_data['num_paths']})")
+    if title:
+        ax.set_title(title)
     ax.grid(True, axis="y", linestyle=":", linewidth=0.5)
     ax.legend()
+
     fig.tight_layout()
 
     if save_dir:
@@ -113,8 +131,8 @@ def plot_overlay(group_name, group_data, save_dir: Path | None):
 
 if __name__ == "__main__":
 
-    results = load_results(JSON_PATH)
-    all_groups = list(results.keys())
+    all_data = load_results(DATA_PATH)
+    all_groups = list(all_data.keys())
     save_dir = Path(SAVE_PATH) if SAVE_PATH else None
 
     print("Available groups in JSON:", all_groups)
@@ -123,7 +141,7 @@ if __name__ == "__main__":
     valid_groups = []
 
     for g in GROUPS_TO_PLOT:
-        if g in results:
+        if g in all_data:
             valid_groups.append(g)
         else:
             print(f"⚠️  Group '{g}' not found. Skipping.")
@@ -132,8 +150,8 @@ if __name__ == "__main__":
         raise SystemExit("No valid groups to plot. Please fix GROUPS_TO_PLOT.")
 
     for g in valid_groups:
-        data = results[g]
-        plot_group(g, data, save_dir=save_dir)
-        plot_overlay(g, data, save_dir=save_dir)
+        data = all_data[g]
+        plot_group(g, data, save_dir=save_dir, title=None)
+        plot_overlay(g, data, save_dir=save_dir, title=None)
 
     print(f"Done. Figures saved to: {save_dir.resolve() if save_dir else '(not saved)'}")
