@@ -63,7 +63,7 @@ def save_dataset_as_inmemory_pt(dataset, save_pt_path: str, meta_path: str | Non
     class _Collator(InMemoryDataset):
         def __init__(self, data_list):
             # Give a harmless root; silence logs
-            super().__init__(root=os.path.join(os.getcwd(), "_merge_collate_root"), log=False)
+            super().__init__(root=os.path.join(os.getcwd(), "../_merge_collate_root"), log=False)
             self.data, self.slices = self.collate(data_list)
 
         @property

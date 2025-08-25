@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     idx_pair_set = build_index_set_cuts(
         dataset_name=DATASET_NAME,
-        correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
+        correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,  # todo: evaluate for others too
         split_path=split_path,
     )
 

@@ -1,4 +1,3 @@
-import math
 import os
 import json
 import torch
@@ -17,41 +16,48 @@ def _ensure_dir(path):
 
 class EditPathGraphsDataset(InMemoryDataset):
     """
-    Builds an in-memory dataset from per-path .pt sequences (lists of PyG Data),
-    assigning a label per graph according to label_mode:
+    In-memory dataset from per-path .pt sequences (lists of PyG Data).
 
-      - "same_only": keep only same-class paths; y = common class (0/1)
-      - "source":    y = source true label
-      - "target":    y = target true label
-      - "pseudo":    y = model prediction on the graph (optionally min_prob filter)
-      - "interpolate": soft labels based on path progress t in [0,1]
-           * interpolation="linear"  -> y_soft = (1-t)*y_src + t*y_tgt
-           * interpolation="sigmoid" -> y_soft = σ(k*(t-0.5)) for 0→1, 1-σ(k*(t-0.5)) for 1→0
+    Labeling strategy:
+      • If source and target have the same class: assign that class to all graphs on the path.
+      • If source and target graph classes differ: assign source class up to progress t < flip_at, then target class for t >= flip_at.
+        - t is the normalized progress along the edit path w.r.t. config.DISTANCE_MODE:
+          * 'cost'    -> t = cumulative_cost / distance
+          * 'num_ops' -> t = edit_step / num_all_ops
+
+    Parameters
+    ----------
+    seq_dir : str
+        Directory with per-path .pt sequences (each a list[PyG Data]).
+    base_pred_path : str
+        JSON with true labels of base graphs, indexed by graph id.
+        Expected shape: { "<idx>": {"true_label": 0 or 1}, ... }
+    flip_at : float, default 0.5
+        Threshold in [0,1] where the label flips for different-class paths.
+        For t < flip_at -> source label; for t >= flip_at -> target label.
+    drop_endpoints : bool, default True
+        If True, drop first and last graphs in each sequence.
+    verbose : bool, default True
+        Print info/warnings.
     """
 
     def __init__(
-            self,
-            seq_dir,
-            base_pred_path,
-            label_mode="same_only",
-            interpolation="linear",  # used when label_mode == "interpolate"
-            k_sigmoid=12.0,          # slope for sigmoid interpolation
-            min_prob=None,           # used when label_mode == "pseudo"
-            transform=None,
-            pre_transform=None,
-            drop_endpoints=True,
-            verbose=True,
-            min_flips=False  # keep only paths with 0 or 1 flips
+        self,
+        seq_dir,
+        base_pred_path,
+        flip_at: float = 0.5,
+        transform=None,
+        pre_transform=None,
+        drop_endpoints: bool = True,
+        verbose: bool = True,
+        allowed_indices: set[int] | None = None,
     ):
         self.seq_dir = seq_dir
         self.base_pred_path = base_pred_path
-        self.label_mode = label_mode
-        self.interpolation = interpolation
-        self.k_sigmoid = float(k_sigmoid)
-        self.min_prob = min_prob
-        self.drop_endpoints = drop_endpoints
-        self.verbose = verbose
-        self.min_flips = bool(min_flips)
+        self.flip_at = float(flip_at)
+        self.drop_endpoints = bool(drop_endpoints)
+        self.verbose = bool(verbose)
+        self.allowed_indices = set(allowed_indices) if allowed_indices is not None else None
 
         root_dir = os.path.abspath(f"data_control/{DATASET_NAME}/processed/_editpath_inmem_root")
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
@@ -59,8 +65,7 @@ class EditPathGraphsDataset(InMemoryDataset):
         data_list = self._build_list()
         self.data, self.slices = self.collate(data_list)
         if self.verbose:
-            print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} | "
-                  f"mode={self.label_mode} | flip_filter={self.min_flips}")
+            print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} | flip_at={self.flip_at}")
 
     # InMemoryDataset expects these
     @property
@@ -70,7 +75,6 @@ class EditPathGraphsDataset(InMemoryDataset):
     def processed_file_names(self): return []
 
     def download(self): pass
-
     def process(self): pass
 
     # -------------- internal helpers -------------------------
@@ -82,7 +86,9 @@ class EditPathGraphsDataset(InMemoryDataset):
         return {int(k): int(v["true_label"]) for k, v in base.items()}
 
     def _t_from_graph(self, g):
-        # todo: works?
+        """
+        Normalized progress t in [0,1] based on config.DISTANCE_MODE.
+        """
         if DISTANCE_MODE == "cost":
             dist = float(getattr(g, "distance", 0.0))
             step = float(getattr(g, "cumulative_cost", 0.0))
@@ -90,88 +96,27 @@ class EditPathGraphsDataset(InMemoryDataset):
             dist = float(getattr(g, "num_all_ops", 0.0))
             step = float(getattr(g, "edit_step", 0.0))
         else:
-            print(f"[warn] config.DISTANCE_MODE does have unexpected value {DISTANCE_MODE}. "
-                  f"'cost' or 'num_ops' expected. Assuming 'cost'.")
+            print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. "
+                  f"Expected 'cost' or 'num_ops'. Assuming 'cost'.")
             dist = float(getattr(g, "distance", 0.0))
             step = float(getattr(g, "cumulative_cost", 0.0))
         return max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
 
-    def _interp_soft_label(self, y_src, y_tgt, t):
-        if self.interpolation == "linear":
-            return (1 - t) * y_src + t * y_tgt
-        elif self.interpolation == "sigmoid":
-            # 0->1 uses σ(k*(t-0.5)); 1->0 mirrors it
-            if y_src == y_tgt:
-                return float(y_src)
-            if y_src == 0 and y_tgt == 1:
-                return 1.0 / (1.0 + math.exp(-self.k_sigmoid * (t - 0.5)))
-            if y_src == 1 and y_tgt == 0:
-                return 1.0 - 1.0 / (1.0 + math.exp(-self.k_sigmoid * (t - 0.5)))
-            print(f"[WARN] Source label {y_src}, target label {y_tgt}: one is not binary.")
-            return (1 - t) * y_src + t * y_tgt
-        else:
-            raise ValueError(f"Unknown interpolation: {self.interpolation}")
-
-    def _label_for_graph(self, g, y_src, y_tgt):
-        # optionally only use paths between same labels
-        if self.label_mode == "same_only":
-            assert y_src == y_tgt
-            return float(y_src)
-        elif self.label_mode == "source":
-            return float(y_src)
-        elif self.label_mode == "target":
-            return float(y_tgt)
-        elif self.label_mode == "pseudo":
-            # use `prediction` on g
-            pred = getattr(g, "prediction", None)
-            if pred is None:
-                return None
-            if self.min_prob is not None:
-                prob = float(getattr(g, "probability", 0.0))
-                if prob < self.min_prob:
-                    return None  # skip low-confidence samples
-            return float(int(pred))
-        elif self.label_mode == "interpolate":
-            t = self._t_from_graph(g)
-            return float(self._interp_soft_label(y_src, y_tgt, t))
-        else:
-            raise ValueError(f"Unknown label_mode: {self.label_mode}")
-
-    def _count_prediction_flips(self, seq):
+    def _label_for_graph(self, g, y_src: int, y_tgt: int):
         """
-        Count how many times the binary 'prediction' changes along the sequence.
-        Uses only elements that have a 'prediction' attribute; requires at least 2.
-        Returns an integer flip count, or None if insufficient data.
+        Hard label following the flip-at-threshold policy.
         """
-        preds = []
-        for g in seq:
-            if hasattr(g, "prediction") and getattr(g, "prediction") is not None:
-                try:
-                    preds.append(int(getattr(g, "prediction")))
-                except Exception:
-                    pass
-        if len(preds) < 2:
-            return None
-        flips = 0
-        prev = preds[0]
-        for p in preds[1:]:
-            if p != prev:
-                flips += 1
-            prev = p
-        return flips
+        if y_src == y_tgt:
+            return float(y_src)
+        t = self._t_from_graph(g)
+        return float(y_src if t < self.flip_at else y_tgt)
 
     def _build_list(self):
         from torch_geometric.data import Data as PYGData
         add_safe_globals([PYGData])
 
-        # load predictions of original dataset graphs
         base_labels = self._load_base_labels()
-
-        # load list of graph sequence filenames
         files = sorted([f for f in os.listdir(self.seq_dir) if f.endswith(".pt")])
-
-        # optionally keep only graphs between same classes
-        keep_same_only = (self.label_mode == "same_only")
 
         data_list = []
         no_intermediates = []
@@ -179,84 +124,70 @@ class EditPathGraphsDataset(InMemoryDataset):
         for fname in files:
             seq = torch.load(os.path.join(self.seq_dir, fname), weights_only=False)
             if not seq:
-                print(f"[WARN] missing graph sequence expected in {fname}")
+                if self.verbose:
+                    print(f"[WARN] missing graph sequence expected in {fname}")
                 continue
 
-            # extract source and target label to infer labels
+            # extract source and target labels
             g0 = seq[0]
             i = int(getattr(g0, "source_idx", -1))
             j = int(getattr(g0, "target_idx", -1))
+
+            # filter for paths between graphs from training split
+            if self.allowed_indices is not None:
+                if (i not in self.allowed_indices) or (j not in self.allowed_indices):
+                    continue
+
+            # sanity check
             if i not in base_labels or j not in base_labels:
-                if self.verbose: print(f"[WARN] missing base label for {i} or {j} in {fname}")
+                if self.verbose:
+                    print(f"[WARN] missing base label for {i} or {j} in {fname}")
                 continue
             y_src = base_labels[i]
             y_tgt = base_labels[j]
 
-            # optional: keep only same-class sequences
-            if keep_same_only and y_src != y_tgt:
-                continue
-
-            # filter for paths with 0 or 1 flips only
-            if self.min_flips:
-                flips = self._count_prediction_flips(seq)
-                if flips is None:
-                    if self.verbose:
-                        print(f"[INFO] {fname}: cannot determine flips (need >=2 predictions). skipping path.")
-                    continue
-                want_flips = 0 if (y_src == y_tgt) else 1
-                if flips != want_flips:
-                    if self.verbose:
-                        print(f"[INFO] {fname}: flips={flips}, condition={want_flips}. path filtered out.")
-                    continue
-
-            # drop source and target graph from sequence (already in original dataset)
+            # optionally drop endpoints
             if self.drop_endpoints:
                 if len(seq) <= 2:
                     no_intermediates.append((i, j))
-                    # no edit path graphs remain -> skip this sequence
                     if self.verbose:
                         print(f"[INFO] {fname}: dropped endpoints and found no intermediate graphs. skipping path.")
                     continue
-                else:
-                    seq_iter = seq[1:-1]
+                seq_iter = seq[1:-1]
             else:
                 seq_iter = seq
 
-            # add each path graph with its inferred label
+            # add each path graph with its label
             for g in seq_iter:
-                y_soft = self._label_for_graph(g, y_src, y_tgt)
-                if y_soft is None:
-                    continue  # pseudo with low prob left out
+                y_val = self._label_for_graph(g, y_src, y_tgt)
 
-                out = Data(
+                data_point = Data(
                     x=g.x,
                     edge_index=g.edge_index,
-                    y=torch.tensor([y_soft], dtype=torch.float),
+                    y=torch.tensor([y_val], dtype=torch.float),
                 )
 
-                # keep metadata (copy from g if present)
+                # copy metadata
                 for key in (
                     "edit_step", "cumulative_cost", "source_idx", "target_idx", "iteration",
                     "distance", "prediction", "probability", "num_all_ops"
                 ):
                     if hasattr(g, key):
-                        setattr(out, key, getattr(g, key))
+                        setattr(data_point, key, getattr(g, key))
                     else:
-                        print(f"[WARN] missing attribute {key} at edit step "
-                              f"{getattr(g, 'edit_step', '?')} between {i}, {j}.")
+                        if self.verbose:
+                            print(f"[WARN] missing attribute {key} at edit step "
+                                  f"{getattr(g, 'edit_step', '?')} between {i}, {j}.")
 
-                # todo: delete?
-                # if some metadata only exists on g0/g_last, optional backfill:
-                if not hasattr(out, "distance") and hasattr(g0, "distance"):
-                    out.distance = getattr(g0, "distance")
-                if not hasattr(out, "num_all_ops") and hasattr(g0, "num_all_ops"):
-                     out.num_all_ops = getattr(g0, "num_all_ops")
+                # add labelled graph to data list
+                data_list.append(data_point)
 
-                data_list.append(out)
-
+        # for testing purposes only
         os.makedirs(f"data_control/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
-        with open(f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
-                  f"{DATASET_NAME}_no_intermediate_graphs_at_dataset_build.json", "w") as f:
+        with open(
+            f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
+            f"{DATASET_NAME}_no_intermediate_graphs_at_dataset_build.json", "w"
+        ) as f:
             json.dump(no_intermediates, f, indent=2)
 
         return data_list
@@ -274,10 +205,8 @@ class EditPathGraphsDataset(InMemoryDataset):
             meta = {
                 "seq_dir": self.seq_dir,
                 "base_pred_path": self.base_pred_path,
-                "label_mode": self.label_mode,
-                "interpolation": getattr(self, "interpolation", None),
-                "k_sigmoid": getattr(self, "k_sigmoid", None),
-                "min_prob": self.min_prob,
+                "flip_at": self.flip_at,
+                "distance_mode": DISTANCE_MODE,
                 "num_graphs": self.len(),
             }
             with open(meta_path, "w") as f:
@@ -317,5 +246,4 @@ class FlatGraphDataset(InMemoryDataset):
     def processed_file_names(self): return []
 
     def download(self): pass
-
     def process(self): pass

@@ -61,10 +61,10 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
     # cuts between same/diff and test-test/train-train/test-train
     cuts = {
         # global label sets
-        "same_all":   same_class_pairs,
-        "same_0_all": same_class_0_pairs,
-        "same_1_all": same_class_1_pairs,
-        "diff_all":   diff_class_pairs,
+        "same_class_all":   same_class_pairs,
+        "same_class_0_all": same_class_0_pairs,
+        "same_class_1_all": same_class_1_pairs,
+        "diff_class_all":   diff_class_pairs,
 
         # train–train
         "same_train_train":  cut_pairs(tt_pairs, same_class_pairs),

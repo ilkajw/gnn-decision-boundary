@@ -1,6 +1,6 @@
 from EditPathGraphDataset import EditPathGraphsDataset, FlatGraphDataset
 from torch_geometric.loader import DataLoader
-from config import DATASET_NAME, LABEL_MODE
+from config import DATASET_NAME, FLIP_AT
 
 if __name__ == "__main__":
 
@@ -8,22 +8,19 @@ if __name__ == "__main__":
     seq_dir = f"data_control/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
     base_pred_path = f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
 
+    save_pt = f"data_control/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_flip_at_{FLIP_AT}.pt"
+    save_meta = f"data_control/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_meta_flip_at_{FLIP_AT}.json"
+
     # build dataset in memory from per-path sequences
     ds = EditPathGraphsDataset(
         seq_dir=seq_dir,
         base_pred_path=base_pred_path,
-        label_mode=LABEL_MODE,
-        interpolation="linear",
-        k_sigmoid=12.0,
-        min_prob=None,
+        flip_at=FLIP_AT/100,
         drop_endpoints=True,
         verbose=True,
-        min_flips=True  # to only consider paths with 0 or 1 flip
     )
 
     print("In-memory dataset length:", len(ds))
 
     # save collated dataset and metadata
-    save_pt = f"data_control/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}.pt"
-    save_meta = f"data_control/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}_meta.json"
     ds.save(output_path=save_pt, meta_path=save_meta)

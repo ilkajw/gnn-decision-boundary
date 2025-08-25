@@ -1,12 +1,12 @@
 import sys
 import os
-
 # add submodule root to Python path
 submodule_path = os.path.abspath("external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
 
 import json
+import pickle
 import torch
 import networkx as nx
 import torch.nn.functional as F
@@ -18,12 +18,12 @@ from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
 
-
 def generate_all_edit_path_graphs(data_dir,
-                                  output_dir,
+                                  nx_output_dir,
+                                  pyg_output_dir,
                                   db_name=DATASET_NAME,  # todo: delete and set to config val in code
                                   seed=42,
-                                  fully_connected_only=FULLY_CONNECTED_ONLY): # todo: delete and set to config val in code
+                                  fully_connected_only=FULLY_CONNECTED_ONLY):  # todo: delete and set to config val in code
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.
@@ -39,7 +39,8 @@ def generate_all_edit_path_graphs(data_dir,
         fully_connected_only (bool): If True, filter only connected graphs.
     """
 
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(pyg_output_dir, exist_ok=True)
+    os.makedirs(nx_output_dir, exist_ok=True)
 
     # load nx graphs from original dataset
     dataset = GraphDataset(root=data_dir,
@@ -64,7 +65,7 @@ def generate_all_edit_path_graphs(data_dir,
         for ep in paths:
 
             # create edit path graph sequence for path iteration between i, j
-            sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
+            nx_sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
 
             def node_match(n1, n2):
                 return n1['primary_label'] == n2['primary_label']
@@ -75,14 +76,14 @@ def generate_all_edit_path_graphs(data_dir,
 
             # check if the target graph is included in sequence
             # todo: include edges? what is the label to consider?
-            last_graph = sequence[-1]
+            last_graph = nx_sequence[-1]
             last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
-            if not last_and_target_graph_isomorphic or len(sequence) < 2:
-                sequence.append(nx_graphs[j])
-                last_graph_insertions.append((i, j))
+            if not last_and_target_graph_isomorphic or len(nx_sequence) < 2:
+                nx_sequence.append(nx_graphs[j])
+                last_graph_insertions.append((i, j))  # to track insertions
 
             # assign metadata to nx graphs
-            for step, g in enumerate(sequence):
+            for step, g in enumerate(nx_sequence):
                 g.graph['edit_step'] = step
                 g.graph['source_idx'] = i
                 g.graph['target_idx'] = j
@@ -96,14 +97,15 @@ def generate_all_edit_path_graphs(data_dir,
 
             # filter for fully connected graphs
             if fully_connected_only:
-                sequence = [g for g in sequence if nx.is_connected(g)]
-                if len(sequence) <= 2:
+                nx_sequence = [g for g in nx_sequence if nx.is_connected(g)]
+                # todo: distinguish between after connectedness filter and before
+                if len(nx_sequence) <= 2:
                     no_intermediates.append((i, j))
 
             # drop edge attrs, convert to pyg objects, copy metadata
             pyg_sequence = []
 
-            for step, g in enumerate(sequence):
+            for step, g in enumerate(nx_sequence):
 
                 # todo: alternatively leave edge attrs and transform to vectors
                 # strip edge attributes as not used for learning
@@ -126,8 +128,13 @@ def generate_all_edit_path_graphs(data_dir,
                     setattr(pyg_g, meta_key, meta_val)
                 pyg_sequence.append(pyg_g)
 
-            # save sequence to file
-            file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
+            # save nx graph sequence to file
+            nx_out_path = os.path.join(nx_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pkl")
+            with open(nx_out_path, "w") as f:
+                pickle.dump(nx_sequence, f)
+
+            # save pyg graph sequence to file
+            file_path = os.path.join(pyg_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
     os.makedirs(f"data_control/{DATASET_NAME}/analysis/", exist_ok=True)

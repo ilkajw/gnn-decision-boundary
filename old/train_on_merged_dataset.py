@@ -127,7 +127,8 @@ if __name__ == "__main__":
             hist["test_acc"].append(float(test_acc))
 
             if VERBOSE:
-                print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} | test acc: {test_acc: .4f} | time: {int(m): 02d}:{s: 06.3f}")
+                print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} "
+                      f"| test acc: {test_acc: .4f} | time: {int(m): 02d}:{s: 06.3f}")
 
             # track best model over folds and epochs by accuracy
             if test_acc > best_acc:

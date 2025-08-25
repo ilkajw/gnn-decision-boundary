@@ -15,4 +15,4 @@ CORRECTLY_CLASSIFIED_ONLY = True  # to only consider paths with correctly classi
 FULLY_CONNECTED_ONLY = True  # to only consider edit path graphs which are fully connected, hence plausible
 
 # ----------- merged dataset parameters ----------
-LABEL_MODE = "same_only"
+FLIP_AT = 50
