@@ -5,8 +5,8 @@ from config import DATASET_NAME, LABEL_MODE
 if __name__ == "__main__":
 
     # define input (predicted edit paths sequences and original predictions) paths
-    seq_dir = f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-    base_pred_path = f"data/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
+    seq_dir = f"data_control/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+    base_pred_path = f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
 
     # build dataset in memory from per-path sequences
     ds = EditPathGraphsDataset(
@@ -18,12 +18,12 @@ if __name__ == "__main__":
         min_prob=None,
         drop_endpoints=True,
         verbose=True,
-        min_flips=True
+        min_flips=True  # to only consider paths with 0 or 1 flip
     )
 
     print("In-memory dataset length:", len(ds))
 
     # save collated dataset and metadata
-    save_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}.pt"
-    save_meta = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}_meta.json"
+    save_pt = f"data_control/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}.pt"
+    save_meta = f"data_control/{DATASET_NAME}/processed/{DATASET_NAME}_edit_path_dataset_{LABEL_MODE}_meta.json"
     ds.save(output_path=save_pt, meta_path=save_meta)

@@ -8,13 +8,15 @@ from config import DATASET_NAME, DISTANCE_MODE
 
 # ---------- set input, output paths -----------
 
-ANALYSIS_DIR = f"data/{DATASET_NAME}/analysis"
+ANALYSIS_DIR = f"data_control/{DATASET_NAME}/analysis"
+# path to json storing per-flip-number distributions
 INPUT_PATH = os.path.join(
     ANALYSIS_DIR,
-    f"paths_per_num_flips/{DISTANCE_MODE}",
+    f"paths_per_num_flips/by_{DISTANCE_MODE}",
     f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
 )
-PLOT_DIR = os.path.join(ANALYSIS_DIR, "plots", "num_flips_deciles", DISTANCE_MODE)
+# path to save plots to
+PLOT_DIR = os.path.join(ANALYSIS_DIR, "plots", "flip_distributions", f"by_{DISTANCE_MODE}")
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
@@ -99,7 +101,7 @@ def load_totals_for_keys_at_k(
 
 def plot_deciles_from_dict(
     deciles: Dict[str, List[float]],
-    field: str = "avg_proportion",  # or 'abs_counts' todo: check if correct
+    field: str = "avg_proportion",  # or 'abs_counts'
     totals: Optional[Dict[str, int]] = None,
     title: str = None,
     save_path: Optional[str] = None,
@@ -129,6 +131,8 @@ def plot_deciles_from_dict(
 
         # define legend description, if available including number of contributing paths
         label_name = name
+        if totals is None:
+            print(f"[warn] totals is None for '{name}'")
         if totals is not None and name in totals:
             label_name = f"{name} (n={int(totals[name])})"
 
@@ -177,14 +181,16 @@ def plot_deciles_from_dict(
 
 if __name__ == "__main__":
 
-    FIELD = "avg_proportion"  # or "abs_counts"
+    FIELD = "avg_proportion"  # or "abs_counts" for non-normalized values
     k = 1
 
     # -------------- diff for k=1 -------------
-
-    diff_k1 = load_deciles_for_keys_at_k(INPUT_PATH, ["diff_class_all"], k=k, field=FIELD)
+    diff_keys = ["diff_class_all"]
+    diff_k1 = load_deciles_for_keys_at_k(json_path=INPUT_PATH, keys=diff_keys, k=k, field=FIELD)
+    diff_k1_totals = load_totals_for_keys_at_k(INPUT_PATH, ["diff_class_all"], k=k)
     plot_deciles_from_dict(
         deciles=diff_k1,
+        totals=diff_k1_totals,
         field=FIELD,
         title=None,
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_diff_all.png"),
@@ -193,9 +199,11 @@ if __name__ == "__main__":
     # ----------- diff: train–train vs test–test vs train–test for k=1 -------------
 
     diff_keys = ["diff_train_train", "diff_test_test", "diff_train_test"]
-    diff_k2 = load_deciles_for_keys_at_k(INPUT_PATH, diff_keys, k=k, field=FIELD)
+    diff_k1 = load_deciles_for_keys_at_k(json_path=INPUT_PATH, keys=diff_keys, k=k, field=FIELD)
+    diff_k1_totals = load_totals_for_keys_at_k(INPUT_PATH, diff_keys, k=k)
     plot_deciles_from_dict(
-        deciles=diff_k2,
+        deciles=diff_k1,
+        totals=diff_k1_totals,
         field=FIELD,
         title=None,
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_k{k}_{FIELD}_diff_train_vs_test.png"),

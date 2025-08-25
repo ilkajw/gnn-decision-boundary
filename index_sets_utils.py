@@ -31,7 +31,7 @@ def cut_pairs(base_pairs, allowed_pairs):
 
 def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
                          correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
-                         split_path="model/best_split.json"):
+                         split_path="model_control/best_split.json"):
     """
     Returns a dict of pair-sets covering:
       - same_class_all / same_class_0_all / same_class_1_all / diff_class_all
@@ -42,12 +42,12 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
     diff_class_pairs = graph_index_pairs_diff_class(
         dataset_name=dataset_name,
         correctly_classified_only=correctly_classified_only,
-        save_path=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs_diff_class.json",
+        save_path=f"data_control/{dataset_name}/index_sets/{dataset_name}_idx_pairs_diff_class.json",
     )
     same_class_pairs, same_class_0_pairs, same_class_1_pairs = graph_index_pairs_same_class(
         dataset=dataset_name,
         correctly_classified_only=correctly_classified_only,
-        save_dir=f"data/{dataset_name}/index_sets/{dataset_name}_idx_pairs",
+        save_dir=f"data_control/{dataset_name}/index_sets/{dataset_name}_idx_pairs",
     )
 
     # train/test ids
@@ -61,10 +61,10 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
     # cuts between same/diff and test-test/train-train/test-train
     cuts = {
         # global label sets
-        "same_class_all":   same_class_pairs,
-        "same_class_0_all": same_class_0_pairs,
-        "same_class_1_all": same_class_1_pairs,
-        "diff_class_all":   diff_class_pairs,
+        "same_all":   same_class_pairs,
+        "same_0_all": same_class_0_pairs,
+        "same_1_all": same_class_1_pairs,
+        "diff_all":   diff_class_pairs,
 
         # train–train
         "same_train_train":  cut_pairs(tt_pairs, same_class_pairs),
@@ -90,7 +90,7 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
 
 def graphs_correctly_classified(dataset_name=DATASET_NAME):
     """Returns the indices of all original graphs classified correctly by GAT model."""
-    with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
+    with open(f"data_control/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
     correct_idxs = [int(i) for i, entry in predictions.items() if entry["correct"]]
     return correct_idxs
@@ -113,7 +113,7 @@ def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
     """
 
     # read in predictions of our model on graphs in original dataset
-    with open(f"data/{dataset}/predictions/{dataset}_predictions.json") as f:
+    with open(f"data_control/{dataset}/predictions/{dataset}_predictions.json") as f:
         predictions = json.load(f)
 
     # optionally, filter for correctly classified graphs only
@@ -171,7 +171,7 @@ def graph_index_pairs_diff_class(dataset_name=f"{DATASET_NAME}",
     """
 
     # read in predictions of our model on original dataset graphs
-    with open(f"data/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
+    with open(f"data_control/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
         predictions = json.load(f)
 
     # optionally, filter for correctly classified graphs only

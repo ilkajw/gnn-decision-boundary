@@ -1,6 +1,5 @@
-from config import CORRECTLY_CLASSIFIED_ONLY
 from index_sets_utils import *
-from analyse_utils import *
+from old.analyse_utils import *
 
 if __name__ == "__main__":
 

@@ -3,7 +3,7 @@ import json
 
 import numpy as np
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
-from analyse_utils import get_abs_flips_per_edit_step, get_abs_flips_per_decile, get_num_changes_all_paths
+from old.analyse_utils import get_abs_flips_per_edit_step, get_abs_flips_per_decile, get_num_changes_all_paths
 from index_sets_utils import graph_index_pairs_diff_class, graph_index_pairs_same_class
 
 if __name__ == "__main__":

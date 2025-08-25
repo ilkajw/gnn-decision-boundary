@@ -21,9 +21,9 @@ from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
 def generate_all_edit_path_graphs(data_dir,
                                   output_dir,
-                                  db_name=DATASET_NAME,
+                                  db_name=DATASET_NAME,  # todo: delete and set to config val in code
                                   seed=42,
-                                  fully_connected_only=FULLY_CONNECTED_ONLY):
+                                  fully_connected_only=FULLY_CONNECTED_ONLY): # todo: delete and set to config val in code
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.
@@ -130,10 +130,11 @@ def generate_all_edit_path_graphs(data_dir,
             file_path = os.path.join(output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
-    with open(f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
+    os.makedirs(f"data_control/{DATASET_NAME}/analysis/", exist_ok=True)
+    with open(f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
 
-    os.makedirs(f"data/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
-    with open(f"data/{DATASET_NAME}/analysis/no_intermediates/"
+    os.makedirs(f"data_control/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
+    with open(f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
               f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
         json.dump(no_intermediates, f, indent=2)

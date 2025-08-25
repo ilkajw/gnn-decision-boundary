@@ -4,7 +4,7 @@ from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
 from index_sets_utils import build_index_set_cuts, cut_pairs
 
 inserted_path = f"data/{DATASET_NAME}/test/last_graphs_inserted.json"
-split_path = "model/best_split.json"
+split_path = "../model/best_split.json"
 out_path = f"data/{DATASET_NAME}/analysis/last_graph_insertions.json"
 
 # load index pairs where last graph was manually inserted

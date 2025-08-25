@@ -84,8 +84,8 @@ if __name__ == "__main__":
     torch.use_deterministic_algorithms(True)
 
     # paths & output files
-    merged_pt = f"data/{DATASET_NAME}/processed/{DATASET_NAME}_merged_dataset_tagged.pt"
-    out_dir = f"model_merged_plus_org_eval/{DATASET_NAME}"
+    merged_pt = f"data_control/{DATASET_NAME}/processed/{DATASET_NAME}_merged_dataset_tagged.pt"
+    out_dir = f"model_merged_plus_org_eval_control/{DATASET_NAME}"
     os.makedirs(out_dir, exist_ok=True)
 
     model_path = os.path.join(out_dir, model_fname)

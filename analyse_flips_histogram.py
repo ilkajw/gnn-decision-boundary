@@ -1,11 +1,22 @@
 import os
 import json
+from collections import defaultdict
 
 from datetime import datetime, timezone
-from analyse_utils import count_paths_by_num_flips
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts
 
+
+# ------- define input, output params --------
+
+split_path = "model_control/best_split.json"
+output_dir = f"data_control/{DATASET_NAME}/analysis/flip_histograms/by_{DISTANCE_MODE}"
+output_fname = f"{DATASET_NAME}_flips_hist_by_{DISTANCE_MODE}.json"
+
+# to save lists of paths incorrectl having even/odd num flips
+test_output_dir = f"data_control/{DATASET_NAME}/analysis/test"
+
+# --------- helpers --------------
 
 def to_relative(counts_dict):
     # counts_dict: {"0": int, "1": int, ...} or {0: int, 1: int, ...}
@@ -15,23 +26,84 @@ def to_relative(counts_dict):
     return {str(k): (counts_dict[k] / total) for k in counts_dict.keys()}
 
 
+def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, same_class=False):
+    """
+    For a given set of index pairs, count how many paths have 0, 1, 2, ... flips.
+<
+    Args:
+        idx_pair_set (set of tuples): Set of (i, j) graph index pairs to consider.
+        flips_input_path (str): Path to JSON file with flip data like {"i,j": [[step, label], ...], ...}
+        output_path (str, optional): Where to save the resulting histogram (JSON). If None, don't save.
+        same_class (boolean): If the given idx_pair_set is of same_class or diff_class category.
+
+    Returns:
+        dict: {num_flips: count} showing how many paths have that many flips.
+    """
+    # todo: sanity check only. can be deleted later on
+    same_class_odd_flips = []
+    diff_class_even_flips = []
+
+    # load flip data
+    with open(flips_input_path) as f:
+        flips_per_path = json.load(f)
+
+    # initialize histogram
+    flip_histogram = defaultdict(int)
+
+    # count paths per number of flips
+    for pair_str, flips in flips_per_path.items():
+        i, j = map(int, pair_str.split(","))
+
+        if (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
+            continue
+
+        num_flips = len(flips)
+
+        # todo: sanity check only. can be deleted later on
+        if same_class and num_flips % 2 == 1:
+            same_class_odd_flips.append((i, j))
+        if not same_class and num_flips % 2 == 0:
+            diff_class_even_flips.append((i, j))
+
+        flip_histogram[num_flips] += 1
+
+    # optionally save
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(dict(flip_histogram), f, indent=2)
+
+    # todo: sanity check only. can be deleted later on
+    if same_class:
+        os.makedirs(test_output_dir)
+        output_path = os.path.join(test_output_dir, f"{DATASET_NAME}_same_class_odd_flips.json")
+        with open(output_path, "w") as f:
+            json.dump(same_class_odd_flips, f, indent=2)
+    if not same_class:
+        os.makedirs(test_output_dir)
+        output_path = os.path.join(test_output_dir, f"{DATASET_NAME}_diff_class_even_flips.json")
+        with open(output_path, "w") as f:
+            json.dump(diff_class_even_flips, f, indent=2)
+
+    return dict(flip_histogram)
+
+
 if __name__ == "__main__":
 
-    # define output path
-    out_dir = f"data/{DATASET_NAME}/analysis/flip_histograms/by_{DISTANCE_MODE}"
-    one_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_by_{DISTANCE_MODE}.json")
-    os.makedirs(out_dir, exist_ok=True)
-
-    # define inputs
-    split_path = "model/best_split.json"
-
+    # retrieve per-path flip info according to distance mode set in config
     if DISTANCE_MODE == "cost":
-        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+
+    elif DISTANCE_MODE == "cost":
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+
     else:
-        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'num_ops'."
+              f"Assuming 'cost'.")
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
 
     # build all index-set cuts (same/diff + train/train, test/test, train/test)
-    cuts = build_index_set_cuts(
+    idx_pair_sets = build_index_set_cuts(
         dataset_name=DATASET_NAME,
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         split_path=split_path,
@@ -64,9 +136,7 @@ if __name__ == "__main__":
         ("diff_train_test",   False),
     ]
 
-    # run histograms & save individual + combined
-
-    combined = {
+    data = {
         "meta": {
             "dataset": DATASET_NAME,
             "distance_mode": DISTANCE_MODE,
@@ -78,9 +148,14 @@ if __name__ == "__main__":
         "results": {}
     }
 
+    # run histograms for every index set
     for key, same_flag in keys_and_flags:
-        idx_pair_set = cuts[key]
+
+        # retrieve index pairs for this index set
+        idx_pair_set = idx_pair_sets[key]
         print(f"→ counting flips histogram for {key} ({len(idx_pair_set)} pairs)")
+
+        # absolute values
         hist_abs = count_paths_by_num_flips(
             idx_pair_set=idx_pair_set,
             flips_input_path=flips_path,
@@ -88,15 +163,19 @@ if __name__ == "__main__":
             same_class=same_flag,
         )
 
+        # relative values
         hist_rel = to_relative(hist_abs)
 
-        combined["results"][key] = {
+        # store all data for this index pair set
+        data["results"][key] = {
             "num_pairs": len(idx_pair_set),
             "hist_abs": hist_abs,  # {num_flips: count}
             "hist_rel": hist_rel,  # {num_flips: proportion}
         }
 
-    one_path = os.path.join(out_dir, f"{DATASET_NAME}_flips_hist_by_{DISTANCE_MODE}.json")
-    with open(one_path, "w") as f:
-        json.dump(combined, f, indent=2)
-    print(f"Saved consolidated results → {one_path}")
+    # save
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, output_fname)
+    with open(output_path, "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"Saved consolidated results → {output_path}")

@@ -12,7 +12,7 @@ from model import GAT
 def dataset_predictions(dataset_name,
                         output_dir,
                         output_fname,
-                        model_path="model/model.pt"):
+                        model_path="model_control/model.pt"):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

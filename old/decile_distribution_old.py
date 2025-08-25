@@ -1,4 +1,4 @@
-from analyse_utils import flip_distribution_over_deciles_by_indexset
+from old.analyse_utils import flip_distribution_over_deciles_by_indexset
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
 from index_sets_utils import graph_index_pairs_diff_class, graph_index_pairs_same_class
 

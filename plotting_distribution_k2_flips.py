@@ -1,16 +1,14 @@
 import json
 from pathlib import Path
 from typing import Dict, Any
-
 import matplotlib.pyplot as plt
-from pyparsing import Optional
 
 from config import DATASET_NAME, DISTANCE_MODE
 
 # --------------- config --------------------
 
-DATA_PATH = f"data/{DATASET_NAME}/analysis/flip_distributions/{DATASET_NAME}_first_second_flips_by_{DISTANCE_MODE}.json"
-SAVE_PATH = f"data/{DATASET_NAME}/analysis/plots/flip_distributions"
+DATA_PATH = f"data_control/{DATASET_NAME}/analysis/flip_distributions_k2/{DATASET_NAME}_first_second_flips_by_{DISTANCE_MODE}.json"
+SAVE_PATH = f"data_control/{DATASET_NAME}/analysis/plots/flip_distributions/by_{DISTANCE_MODE}"
 
 SHOW_PLOTS = False
 if not SHOW_PLOTS:
@@ -43,7 +41,7 @@ def extract_props(group_data, which="first"):
 
 def plot_group(group_name,
                group_data,
-               title: Optional[str] = None,
+               title = None,
                save_dir: Path = None
                ):
     """Two bar charts (first + second flip) side by side, with value labels."""
@@ -73,7 +71,7 @@ def plot_group(group_name,
                 fontsize=8,
                 rotation=0,
             )
-    ax.legend(handles=[], labels=[], title=legend_title, loc="upper right", frameon=True)
+    ax.legend(handles=[], labels=[], title=legend_title, loc="upper left", frameon=True)
     if title:
         fig.suptitle(title, fontsize=14)
 
@@ -90,8 +88,8 @@ def plot_group(group_name,
 
 def plot_overlay(group_name: str,
     group_data: Dict[str, Any],
-    save_dir: Optional[Path] = None,
-    title: Optional[str] = None
+    save_dir = None,
+    title = None
 ):
     """Overlay first vs second proportions, with value labels."""
     n_paths = int(group_data.get("num_paths", 0))

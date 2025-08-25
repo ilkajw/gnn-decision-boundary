@@ -7,6 +7,16 @@ import numpy as np
 from config import DATASET_NAME, DISTANCE_MODE, CORRECTLY_CLASSIFIED_ONLY
 from index_sets_utils import build_index_set_cuts
 
+# --------- define input, output params ------------
+
+graph_sequence_dir = f"data_control/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+split_path = "model_control/best_split.json"
+
+output_dir = f"data_control/{DATASET_NAME}/analysis/path_lengths/"
+output_fname = f"{DATASET_NAME}_path_length_stats_by_{DISTANCE_MODE}.json"
+
+
+# --------- helpers --------------
 
 def path_lengths(seq_dir, out_path=None, idx_set=None):
 
@@ -69,61 +79,45 @@ def path_length_statistics(path_lengths, out_path=None):
     return stats
 
 
+# -------- run analysis ----------
+
 if __name__ == "__main__":
 
-    sequence_dir = f"data/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-    split_path = "model/best_split.json"
-    out_dir = f"data/{DATASET_NAME}/analysis/path_lengths"
-
-    # ---------------------- take global stats ---------------------------
-
-    lengths_path = f"data/{DATASET_NAME}/analysis/path_lengths/" \
-                   f"{DATASET_NAME}_path_lengths_by_{DISTANCE_MODE}_all.json"
-
-    stats_path = f"data/{DATASET_NAME}/analysis/path_lengths/" \
-                 f"{DATASET_NAME}_path_length_stats_by_{DISTANCE_MODE}_all.json"
-
-    cuts = build_index_set_cuts(
+    idx_pair_set = build_index_set_cuts(
         dataset_name=DATASET_NAME,
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         split_path=split_path,
     )
 
-    keys = [
-        "same_class_all", "same_class_0_all", "same_class_1_all", "diff_class_all",
-        "same_train_train", "same_0_train_train", "same_1_train_train", "diff_train_train",
-        "same_test_test", "same_0_test_test", "same_1_test_test", "diff_test_test",
-        "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
-    ]
+    # --------- take global stats -----------
 
-    all_path_lens = path_lengths(seq_dir=sequence_dir, out_path=None)
-
+    all_path_lens = path_lengths(seq_dir=graph_sequence_dir, out_path=None)
     all_stats = path_length_statistics(path_lengths=all_path_lens, out_path=None)
 
-    # ----------------- take per index set stats --------------------------
+    # -------- take per-index set stats ---------
 
     per_set_stats = {}
 
-    for key in keys:
-        idx_set = cuts[key]
-        path_lens = path_lengths(seq_dir=sequence_dir, idx_set=cuts[key])
+    for key in idx_pair_set.keys():
+        idx_set = idx_pair_set[key]
+        path_lens = path_lengths(seq_dir=graph_sequence_dir, idx_set=idx_pair_set[key])
         per_set_stats[key] = path_length_statistics(path_lengths=path_lens)
 
-    # create combined info
-    combined = {
+    data = {
         "dataset": DATASET_NAME,
         "distance_mode": DISTANCE_MODE,
         "global": all_stats,
         "per_index_set": per_set_stats,
     }
 
-    # save combined info
+    # save
     combined_path = os.path.join(
-        out_dir,
-        f"{DATASET_NAME}_path_length_stats_by_{DISTANCE_MODE}_combined.json"
+        output_dir,
+        output_fname
     )
-    os.makedirs(out_dir, exist_ok=True)
+
+    os.makedirs(output_dir, exist_ok=True)
     with open(combined_path, "w") as f:
-        json.dump(combined, f, indent=2)
+        json.dump(data, f, indent=2)
 
     print(f"Saved combined stats to {combined_path}")

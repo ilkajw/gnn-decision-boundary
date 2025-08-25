@@ -53,7 +53,7 @@ class EditPathGraphsDataset(InMemoryDataset):
         self.verbose = verbose
         self.min_flips = bool(min_flips)
 
-        root_dir = os.path.abspath(f"data/{DATASET_NAME}/processed/_editpath_inmem_root")
+        root_dir = os.path.abspath(f"data_control/{DATASET_NAME}/processed/_editpath_inmem_root")
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
 
         data_list = self._build_list()
@@ -254,8 +254,8 @@ class EditPathGraphsDataset(InMemoryDataset):
 
                 data_list.append(out)
 
-        os.makedirs(f"data/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
-        with open(f"data/{DATASET_NAME}/analysis/no_intermediates/"
+        os.makedirs(f"data_control/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
+        with open(f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
                   f"{DATASET_NAME}_no_intermediate_graphs_at_dataset_build.json", "w") as f:
             json.dump(no_intermediates, f, indent=2)
 

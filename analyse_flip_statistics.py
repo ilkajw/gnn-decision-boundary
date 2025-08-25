@@ -3,10 +3,18 @@ import json
 import numpy as np
 from datetime import datetime, timezone
 
-from analyse_utils import get_num_changes_all_paths
 from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts
 
+
+# ------------- define input, output params -----------
+
+split_path = "model_control/best_split.json"
+output_dir = f"data_control/{DATASET_NAME}/analysis/flip_statistics/by_{DISTANCE_MODE}/"
+output_fname = f"{DATASET_NAME}_flip_stats_by_{DISTANCE_MODE}.json"
+
+
+# ------------- helpers -------------------
 
 def stats_from_counts(counts):
     if not counts:
@@ -20,51 +28,55 @@ def stats_from_counts(counts):
         "max": float(np.max(counts))
     }
 
+def get_num_flips_for_idxset_paths(pairs, changes_dict):
+    counts = []
+    for i, j in pairs:
+        key = f"{i},{j}"
+        if key in changes_dict:
+            counts.append(len(changes_dict[key]))
+        elif f"{j},{i}" in changes_dict:  # in case direction was flipped, should not happen though
+            counts.append(len(changes_dict[f"{j},{i}"]))
+        else:
+            continue
+    return counts
+
+
+# ------------ run analysis --------------
 
 if __name__ == "__main__":
 
-    # define output path
-    out_path = f"data/{DATASET_NAME}/analysis/flip_statistics/by_{DISTANCE_MODE}/" \
-               f"{DATASET_NAME}_flip_stats_by_{DISTANCE_MODE}.json"
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-
-    # define inputs
-    split_path = "model/best_split.json"
-
-    # retrieve flip info per path according to distance mode
+    # retrieve per-path flip info according to distance mode set in config
     if DISTANCE_MODE == "cost":
-        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+
+    elif DISTANCE_MODE == "cost":
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+
     else:
-        flips_path = f"data/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+        print(f"[WARN] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'num_ops'."
+              f"Assuming 'cost'.")
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
 
     # load precomputed flip history per path
     with open(flips_path, "r") as f:
         flips_dict = json.load(f)
 
-    # build all pair-set cuts
-    cuts = build_index_set_cuts(
-        dataset_name=DATASET_NAME,
+    # build all index-pair set cuts as 'cut_name' -> 'list of graph pairs included'
+    index_sets = build_index_set_cuts(
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         split_path=split_path,
     )
 
-    # keys for index sets
-    keys = [
-        "same_class_all", "same_class_0_all", "same_class_1_all", "diff_class_all",
-        "same_train_train", "same_0_train_train", "same_1_train_train", "diff_train_train",
-        "same_test_test", "same_0_test_test", "same_1_test_test", "diff_test_test",
-        "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
-    ]
-
     results = {}
-    for key in keys:
-        pair_set = cuts[key]
-        counts = get_num_changes_all_paths(pair_set, flips_dict)  # list: number of flips per path
+    for key in index_sets.keys():
+        pair_set = index_sets[key]
+        counts = get_num_flips_for_idxset_paths(pairs=pair_set, changes_dict=flips_dict)  # list: number of flips per path
         results[key] = {
             "num_pairs": int(len(pair_set)),
             **stats_from_counts(counts),
         }
 
+    # summarize results
     data = {
         "meta": {
             "dataset": DATASET_NAME,
@@ -77,7 +89,10 @@ if __name__ == "__main__":
         "per_index_set": results,
     }
 
-    # save + print summary
-    with open(out_path, "w") as f:
+    # save summary
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, output_fname)
+    with open(output_path, "w") as f:
         json.dump(data, f, indent=2)
-    print(f"Saved flip statistics for {len(keys)} cuts → {out_path}")
+
+    print(f"Saved flip statistics for {len(index_sets.keys())} cuts → {output_path}")

@@ -7,6 +7,8 @@ from config import DATASET_NAME
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
+# --------- helpers -----------
+
 def build_cumulative_costs_from_operations(
     db_name,
     file_path,
@@ -79,7 +81,7 @@ def _align_costs_to_seq(seq, costs):
 
     # todo: this should not happen
     if max_edit_step > cost_len:
-        return c, f"[error] max_edit_step {max_edit_step} > len_costs ({cost_len}+1={cost_len+1})."
+        return c, f"[ERROR] max_edit_step {max_edit_step} > len_costs ({cost_len}+1={cost_len+1})."
 
     else:
         return c, None
@@ -96,10 +98,10 @@ def add_cumulative_cost_to_pyg_sequence_metadata(
     reads the sequence, aligns cumulative costs for (i,j), adds attribute 'cumulative_cost' to each graph
     and writes an updated sequence copy to 'out_dir'.
     """
-    # compile filename pattern once
+    # compile filename pattern
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
 
-    # choose a safe output directory
+    # choose a safe output directory TODO: delete suffix, overwrite for simplicity
     out_dir = out_dir or (root_dir + "_CUMULATIVE_COST")
     os.makedirs(out_dir, exist_ok=True)
 
@@ -242,13 +244,13 @@ if __name__ == "__main__":
     )
 
     add_cumulative_cost_to_predictions_metadata(
-        pred_json_path=fr"data\{DATASET_NAME}\predictions\{DATASET_NAME}_edit_path_predictions_metadata.json",
+        pred_json_path=fr"data_control\{DATASET_NAME}\predictions\{DATASET_NAME}_edit_path_predictions_metadata.json",
         cum_costs=cum_costs,
         cost_field="cumulative_cost",
     )
 
     add_cumulative_cost_to_pyg_sequence_metadata(
         cum_costs=cum_costs,
-        root_dir=fr"data\{DATASET_NAME}\predictions\edit_path_graphs_with_predictions",
+        root_dir=fr"data_control\{DATASET_NAME}\predictions\edit_path_graphs_with_predictions",
         cost_field="cumulative_cost",
     )
