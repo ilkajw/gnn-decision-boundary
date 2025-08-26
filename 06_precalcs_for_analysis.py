@@ -1,16 +1,10 @@
 import os
-import sys
-# add submodule root to Python path
-submodule_path = os.path.abspath("external")
-if submodule_path not in sys.path:
-    sys.path.insert(0, submodule_path)
-
 import json
 import re
 import torch
 
 from config import DATASET_NAME
-from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
+from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
 # ------ define input, output paths -----

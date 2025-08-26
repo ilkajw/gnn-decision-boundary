@@ -6,7 +6,7 @@ from index_sets_utils import build_index_set_cuts
 
 # -------- define input, output params ---------
 
-split_path = "model_control/best_split.json"
+split_path = "../model_control/best_split.json"
 output_dir = f"data_control/{DATASET_NAME}/analysis/paths_per_num_flips/by_{DISTANCE_MODE}/"
 output_fname = f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 max_num_flips = 10

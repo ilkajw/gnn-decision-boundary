@@ -21,7 +21,7 @@ from model import GAT
 from training_utils import train_epoch, evaluate_accuracy, set_seed, evaluate_loss
 from config import (
     DATASET_NAME, EPOCHS, LEARNING_RATE, BATCH_SIZE,
-    HIDDEN_CHANNELS, HEADS, DROPOUT, K_FOLDS, LABEL_MODE
+    HIDDEN_CHANNELS, HEADS, DROPOUT, K_FOLDS, FLIP_AT
 )
 
 
@@ -277,7 +277,7 @@ if __name__ == "__main__":
             "DROPOUT": DROPOUT,
             "device": str(device),
             "dataset": DATASET_NAME,
-            "label_mode": LABEL_MODE,
+            "flip_at": FLIP_AT / 100,
             "stratified": True,
             "split_strategy": "Stratified folds on merged dataset. Extra test eval split.",
             "env": {

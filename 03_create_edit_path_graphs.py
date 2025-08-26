@@ -1,34 +1,38 @@
-import sys
 import os
-# add submodule root to Python path
-submodule_path = os.path.abspath("external")
-if submodule_path not in sys.path:
-    sys.path.insert(0, submodule_path)
-
 import json
 import pickle
 import torch
 import networkx as nx
-import torch.nn.functional as F
+import torch.nn.functional as func
 from torch_geometric.utils import from_networkx
 from networkx import is_isomorphic
 
 from config import DATASET_NAME, FULLY_CONNECTED_ONLY
-from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
-from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
+from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
+from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
+
+# --- config ---
+
+edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
+nx_output_dir = f"data_control/{DATASET_NAME}/nx_edit_path_graphs"
+pyg_output_dir = f"data_control/{DATASET_NAME}/pyg_edit_path_graphs"
+
+
+# --- definition ---
 
 def generate_edit_path_graphs(data_dir,
                               nx_output_dir,
                               pyg_output_dir,
-                              db_name=DATASET_NAME,  # todo: delete and set to config val in code
+                              db_name=DATASET_NAME,
                               seed=42,
-                              fully_connected_only=FULLY_CONNECTED_ONLY):  # todo: delete and set to config val in code
+                              fully_connected_only=FULLY_CONNECTED_ONLY):
     """
     Generates all nx graphs from edit path sequences.
     Optionally filters for fully connected graphs only.
     Adds source node, target node, edit step to graph metadata for later analysis.
     Converts nx graphs to pyg.
+    Saves each nx graph sequence identified by source graph, target graph, iteration to .pt file.
     Saves each pyg graph sequence identified by source graph, target graph, iteration to .pt file.
 
     Args:
@@ -115,7 +119,7 @@ def generate_edit_path_graphs(data_dir,
                 # add nodes with attr tensor x reconstructed from nx graph's scalar 'primary_label'
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
-                    d['x'] = F.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
+                    d['x'] = func.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
                     g_no_edge_attrs.add_node(n, **d)
 
                 # add edges without attributes
@@ -131,7 +135,7 @@ def generate_edit_path_graphs(data_dir,
 
             # save nx graph sequence
             nx_out_path = os.path.join(nx_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pkl")
-            with open(nx_out_path, "w") as f:
+            with open(nx_out_path, "wb") as f:
                 pickle.dump(nx_sequence, f)
 
             # save pyg graph sequence
@@ -148,3 +152,21 @@ def generate_edit_path_graphs(data_dir,
     with open(f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
               f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
         json.dump(no_intermediates, f, indent=2)
+
+
+# --- run ---
+if __name__ == "__main__":
+
+    os.makedirs(nx_output_dir, exist_ok=True)
+    os.makedirs(pyg_output_dir, exist_ok=True)
+
+    generate_edit_path_graphs(
+        data_dir=edit_path_ops_dir,
+        nx_output_dir=nx_output_dir,
+        pyg_output_dir=pyg_output_dir,
+        db_name=DATASET_NAME,
+        fully_connected_only=FULLY_CONNECTED_ONLY,
+        seed=42
+    )
+
+

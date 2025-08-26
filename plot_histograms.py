@@ -83,7 +83,7 @@ def plot_histograms_from_dict(
     n_series = len(names)
     width = 0.8 / max(n_series, 1)
 
-    # fixed color palette (blue, grey, yellow)
+    # color palette (blue, grey, yellow)
     colors = ["#1f77b4", '#808080', "#f2c94c"]
 
     fig, ax = plt.subplots(figsize=(9, 5))

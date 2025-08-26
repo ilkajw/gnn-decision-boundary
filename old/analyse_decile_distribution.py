@@ -9,7 +9,7 @@ from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
 # ------- define input, output paths ------------
 
-split_path = "model_control/best_split.json"
+split_path = "../model_control/best_split.json"
 
 output_dir = f"data_control/{DATASET_NAME}/analysis/decile_distribution/by_{DISTANCE_MODE}"
 output_fname = f"{DATASET_NAME}_flip_distribution_STATS_by_{DISTANCE_MODE}.json"

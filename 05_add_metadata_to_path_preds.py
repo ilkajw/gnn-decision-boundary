@@ -1,13 +1,74 @@
-import json
 import os
 import re
+import json
 import torch
 
 from config import DATASET_NAME
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
-# --------- helpers -----------
+# --- config ---
+
+edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
+base_pred_dict_fname = f"{DATASET_NAME}_predictions.json"
+path_pred_dict_fname = f"{DATASET_NAME}_edit_path_predictions.json"
+pyg_seq_with_preds_dir = f"data_control/{DATASET_NAME}/predictions\edit_path_graphs_with_predictions"
+split_path = f"model_control/best_split.json"
+
+out_dir = f"data_control/{DATASET_NAME}/predictions/"
+path_pred_metadata_dict_fname = f"{DATASET_NAME}_edit_path_predictions_metadata.json"
+
+
+# --- helpers ---
+
+# todo: info on train, test split and correct classification never used in pipeline. delete?
+def add_metadata_to_path_preds_dict(pred_dict_path, base_pred_path, split_path, output_path):
+    """
+    Enriches dictionary entries of edit path predictions with additional metadata to help later analysis:
+    - true class labels of source and target
+    - whether source/target are in training split
+    - whether source/target were classified correctly
+
+    Args:
+        :param pred_dict_path:
+        :param split_path: Path to saved train, test split
+        :param base_pred_path: Path to original MUTAG predictions file
+        :param output_path: Path to file where enriched dictionary is saved
+
+    Returns:
+        list: Enriched prediction dictionaries
+    """
+    # load path graph predictions
+    with open(pred_dict_path, "r", encoding="utf-8") as f:
+        pred_dict = json.load(f)
+
+    # load predictions on org graphs
+    with open(base_pred_path, "r", encoding="utf-8") as f:
+        base_preds = json.load(f)
+
+    # load train, test split
+    with open(split_path, "r") as f:
+        split = json.load(f)
+
+    # add train vs. test split, classes of source & target, correct classification of source & train to metadata
+    for entry in pred_dict:
+
+        i = str(entry["source_idx"])
+        j = str(entry["target_idx"])
+
+        entry["source_in_train"] = int(i) in split["train_idx"]
+        entry["target_in_train"] = int(j) in split["train_idx"]
+
+        entry["correct_source"] = base_preds[i]["correct"]
+        entry["correct_target"] = base_preds[j]["correct"]
+
+        entry["source_class"] = base_preds[i]["true_label"]
+        entry["target_class"] = base_preds[j]["true_label"]
+
+    with open(output_path, "w") as f:
+        json.dump(pred_dict, f, indent=2)
+    print(f"[info] saved enriched predictions to {output_path}")
+
 
 def build_cum_costs_from_ops(
     db_name,
@@ -101,7 +162,7 @@ def add_cum_cost_to_pyg_seq_metadata(
     # compile filename pattern
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
 
-    # choose a safe output directory TODO: delete suffix, overwrite for simplicity
+    # choose a safe output directory todo: delete suffix, overwrite for simplicity
     out_dir = out_dir or (root_dir + "_CUMULATIVE_COST")
     os.makedirs(out_dir, exist_ok=True)
 
@@ -236,21 +297,31 @@ def add_cum_cost_to_path_preds_dict(
         json.dump(updated, f, indent=2)
 
 
+# --- run ---
 if __name__ == "__main__":
+
+    os.makedirs(out_dir, exist_ok=True)
+
+    add_metadata_to_path_preds_dict(
+            pred_dict_path=os.path.join(out_dir, path_pred_dict_fname),
+            base_pred_path=os.path.join(out_dir, base_pred_dict_fname),
+            split_path=split_path,
+            output_path=os.path.join(out_dir, path_pred_metadata_dict_fname)
+    )
 
     cum_costs = build_cum_costs_from_ops(
         db_name=DATASET_NAME,
-        ops_file_dir=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
+        ops_file_dir=edit_path_ops_dir
     )
 
     add_cum_cost_to_path_preds_dict(
-        pred_json_path=fr"data_control\{DATASET_NAME}\predictions\{DATASET_NAME}_edit_path_predictions_metadata.json",
+        pred_json_path=os.path.join(out_dir, path_pred_metadata_dict_fname),
         cum_costs=cum_costs,
         add_field_name="cumulative_cost",
     )
 
     add_cum_cost_to_pyg_seq_metadata(
         cum_costs=cum_costs,
-        root_dir=fr"data_control\{DATASET_NAME}\predictions\edit_path_graphs_with_predictions",
+        root_dir=pyg_seq_with_preds_dir,
         add_field_name="cumulative_cost",
     )

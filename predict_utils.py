@@ -12,7 +12,8 @@ from model import GAT
 def dataset_predictions(dataset_name,
                         output_dir,
                         output_fname,
-                        model_path="model_control/model.pt"):
+                        model_path="model_control/model.pt",
+                        ):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -130,8 +131,8 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
 
     return predictions
 
-
-def add_metadata_to_edit_path_predictions(pred_dict_path, base_pred_path, split_path, output_path):
+# todo: info on train, test split and correct classification never used in pipeline. delete?
+def add_metadata_to_path_preds_dict(pred_dict_path, base_pred_path, split_path, output_path):
     """
     Enriches dictionary entries of edit path predictions with additional metadata to help later analysis:
     - true class labels of source and target
@@ -147,11 +148,11 @@ def add_metadata_to_edit_path_predictions(pred_dict_path, base_pred_path, split_
     Returns:
         list: Enriched prediction dictionaries
     """
-    # load edit oath graph predictions
+    # load path graph predictions
     with open(pred_dict_path, "r", encoding="utf-8") as f:
         pred_dict = json.load(f)
 
-    # load predictions on org mutag graphs
+    # load predictions on org graphs
     with open(base_pred_path, "r", encoding="utf-8") as f:
         base_preds = json.load(f)
 
@@ -176,4 +177,4 @@ def add_metadata_to_edit_path_predictions(pred_dict_path, base_pred_path, split_
 
     with open(output_path, "w") as f:
         json.dump(pred_dict, f, indent=2)
-    print(f"DEBUG: saved enriched predictions to {output_path}")
+    print(f"[info] saved enriched predictions to {output_path}")

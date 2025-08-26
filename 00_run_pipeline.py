@@ -4,7 +4,7 @@ os.environ["PYTHONHASHSEED"] = "42"
 
 from predict_utils import *
 from edit_path_graphs_utils import *
-from training_utils import train_and_choose_model
+from training_utils import kcv_original
 from old.analyse_utils import *
 
 
@@ -12,7 +12,6 @@ if __name__ == "__main__":
 
     dataset = TUDataset(root=ROOT, name=DATASET_NAME)
 
-    # todo: this is only temporary. add suitable logic to access parts of the pipeline
     train_model = False
     predict_dataset = False
     gen_edit_path_graphs = True
@@ -20,11 +19,11 @@ if __name__ == "__main__":
     add_meta_data_to_path_preds = True
 
     if train_model:
-        train_and_choose_model(dataset=dataset,
-                               output_dir="model_control",
-                               model_fname="model.pt",
-                               split_fname="best_split.json",
-                               log_fname="log.json")
+        kcv_original(dataset=dataset,
+                     output_dir="model_control",
+                     model_fname="model.pt",
+                     split_fname="best_split.json",
+                     log_fname="log.json")
     if predict_dataset:
         dataset_predictions(dataset_name=DATASET_NAME,
                             output_dir=f"data_control/{DATASET_NAME}/predictions/",
@@ -32,7 +31,7 @@ if __name__ == "__main__":
                             model_path="model_control/model.pt")
 
     if gen_edit_path_graphs:
-        generate_all_edit_path_graphs(
+        generate_edit_path_graphs(
             db_name=DATASET_NAME,
             seed=42,
             data_dir=f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}",
@@ -48,7 +47,7 @@ if __name__ == "__main__":
             output_fname=f"{DATASET_NAME}_edit_path_predictions.json")
 
     if add_meta_data_to_path_preds:
-        add_metadata_to_edit_path_predictions(
+        add_metadata_to_path_preds_dict(
             pred_dict_path=f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_edit_path_predictions.json",
             base_pred_path=f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json",
             split_path=f"model_control/best_split.json",

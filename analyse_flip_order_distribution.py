@@ -13,20 +13,6 @@ output_dir = f"data_control/{DATASET_NAME}/analysis/paths_per_num_flips/by_{DIST
 output_fname = f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 max_num_flips = 10
 
-# retrieve data according to distance mode set in config
-if DISTANCE_MODE == "cost":
-    dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
-    flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
-
-elif DISTANCE_MODE == "num_ops":
-    dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
-    flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
-
-else:
-    print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'num_ops'."
-          f"Assuming 'cost'.")
-    dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
-    flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
 
 # ---------------- helpers --------------------
 
@@ -98,7 +84,7 @@ def flip_distribution_over_deciles_by_num_flips(
         if total_flips == 0:
             continue
 
-        # accumulate absolutes (all flips lumped)
+        # accumulate absolutes
         acc = abs_counts_by_k[k]
         for d in range(10):
             acc[d] += decile_counts[d]
@@ -146,6 +132,22 @@ def flip_distribution_over_deciles_by_num_flips(
 # -------- run analysis ---------------
 if __name__ == "__main__":
 
+    # retrieve data according to distance mode set in config
+    if DISTANCE_MODE == "cost":
+        dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+
+    elif DISTANCE_MODE == "num_ops":
+        dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+
+    else:
+        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'num_ops'."
+              f"Assuming 'cost'.")
+        dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+
+
     cuts = build_index_set_cuts(
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         split_path=split_path,
@@ -158,7 +160,10 @@ if __name__ == "__main__":
         "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
 
+    # todo: delete global as 'same_class_all' and 'diff_class_all', respectively, are equal
+
     # ------------ global --------------
+
     print("→ Computing per-num-flips decile distribution (GLOBAL)")
     global_stats = flip_distribution_over_deciles_by_num_flips(
         max_num_flips=max_num_flips,
@@ -169,6 +174,7 @@ if __name__ == "__main__":
     )
 
     # ------------ per index set --------------
+
     per_index_set = {}
     for key in keys:
         idx_set = cuts[key]
@@ -186,6 +192,7 @@ if __name__ == "__main__":
         }
 
     # ---------- save to file -------------
+
     data = {
         "meta": {
             "dataset": DATASET_NAME,

@@ -1,71 +1,25 @@
-import torch.nn.functional as func
-import random
-import numpy as np
-
+import os
+import json
 import torch
-if hasattr(torch, "set_float32_matmul_precision"):
-    torch.set_float32_matmul_precision("highest")
-torch.backends.cuda.matmul.allow_tf32 = False
-torch.backends.cudnn.allow_tf32 = False
-torch.set_num_threads(1)
-
-from predict_utils import *
-from edit_path_graphs_utils import *
+import numpy as np
+from torch_geometric.datasets import TUDataset
+from torch_geometric.loader.dataloader import DataLoader
 from sklearn.model_selection import StratifiedKFold
 
+from config import *
+from model import GAT
+from training_utils import set_seed, train_epoch, evaluate_loss, evaluate_accuracy
 
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+# --- config ---
 
-
-def train_epoch(model, loader, optimizer, device):
-    model.train()
-    total_loss = 0
-    # train per batch
-    for data in loader:
-        data = data.to(device)
-        optimizer.zero_grad()  # reset gradients
-        out = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, results in [batch_size]
-        loss = func.binary_cross_entropy_with_logits(out, data.y.float().view(-1))  # take error
-        loss.backward()  # take gradients per backpropagation
-        optimizer.step()  # update params
-        total_loss += loss.item()  # accumulate loss over batches
-    return total_loss / max(1, len(loader))  # average loss over batches
+dataset = TUDataset(root=ROOT, name=DATASET_NAME)
+output_dir = "model_control",
+model_fname = "model.pt",
+split_fname = "best_split.json",
+log_fname = "train_log.json"
 
 
-# evaluate accuracy
-def evaluate_accuracy(model, loader, device, thr=0.5):
-    model.eval()
-    correct, n = 0, 0
-    with torch.no_grad():
-        for data in loader:
-            data = data.to(device)
-            logits = model(data.x, data.edge_index, data.batch).view(-1)
-            probs = torch.sigmoid(logits)
-            pred = (probs > thr).long()                         # predicted hard labels
-            y_hard = (data.y.float().view(-1) > thr).long()     # target hard labels
-            correct += (pred == y_hard).sum().item()
-            n += y_hard.numel()
-    return correct / max(1, n)
-
-
-def evaluate_loss(model, loader, device):
-    """Eval BCE loss on a loader (averaged over batches) for logging only."""
-    model.eval()
-    total_loss, n_batches = 0.0, 0
-    with torch.no_grad():
-        for data in loader:
-            data = data.to(device)
-            logits = model(data.x, data.edge_index, data.batch).view(-1)
-            y = data.y.float().view(-1)
-            loss = func.binary_cross_entropy_with_logits(logits, y)
-            total_loss += loss.item()
-            n_batches += 1
-    return total_loss / max(1, n_batches)
-
+# --- function definition ---
 
 def kcv_original(dataset, output_dir, model_fname, split_fname, log_fname, verbose=True):
     """
@@ -136,7 +90,7 @@ def kcv_original(dataset, output_dir, model_fname, split_fname, log_fname, verbo
 
         # train model over epochs
         epoch_test_accuracies = []
-        
+
         for epoch in range(1, EPOCHS + 1):
             # train and evaluate training step
             train_loss = train_epoch(model, train_loader, optimizer, device)
@@ -152,12 +106,14 @@ def kcv_original(dataset, output_dir, model_fname, split_fname, log_fname, verbo
 
             if verbose:
                 if epoch % 10 == 0:
-                    print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} | test acc: {test_acc: .4f}")
+                    print(
+                        f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} | test loss: {test_loss: .4f} | test acc: {test_acc: .4f}")
 
             # track best model over folds and epochs
             if round(float(test_acc), 6) > round(float(best_acc), 6):
                 if verbose:
-                    print(f"New best is model trained over fold {fold + 1} in epoch {epoch} with test acc {test_acc: .4f}")
+                    print(
+                        f"New best is model trained over fold {fold + 1} in epoch {epoch} with test acc {test_acc: .4f}")
                 best_acc = float(test_acc)
                 best_model_state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
                 best_split = {'train_idx': train_idx.tolist(),
@@ -187,15 +143,6 @@ def kcv_original(dataset, output_dir, model_fname, split_fname, log_fname, verbo
     split_path = f"{output_dir}/{split_fname}"
     with open(split_path, "w") as f:
         json.dump(best_split, f, indent=2)
-
-    # log k-cv training statistics
-    #log = {
-    #    "fold_accuracies": [float(a) for a in accuracies],
-    #    "mean_accuracy": np.mean(accuracies),
-    #    "std_accuracy": np.std(accuracies),
-    #    "best_model": best_split,
-    #    "folds": fold_records
-    #}
 
     summary = {
         "fold_accuracies": [float(a) for a in accuracies],
@@ -231,3 +178,13 @@ def kcv_original(dataset, output_dir, model_fname, split_fname, log_fname, verbo
 
     if verbose:
         print(f"\n Average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
+
+
+# --- run ---
+if __name__ == "__main__":
+
+    kcv_original(dataset=dataset,
+                 output_dir=output_dir,
+                 model_fname=model_fname,
+                 split_fname=split_fname,
+                 log_fname=log_fname)
