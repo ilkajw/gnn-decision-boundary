@@ -1,24 +1,20 @@
 import json
 import os
-
 from pathlib import Path
 from typing import Dict, Optional, List
 from matplotlib import pyplot as plt
 
-from config import DATASET_NAME, DISTANCE_MODE
+from config import DATASET_NAME, DISTANCE_MODE, ANALYSIS_DIR, MODEL
 
-# ---------- define input, output paths -------------
-
-ANALYSIS_DIR = f"data_control/{DATASET_NAME}/analysis"
-PLOT_DIR = os.path.join(ANALYSIS_DIR, "plots", "histograms", f"by_{DISTANCE_MODE}")
+# ---- set input, output paths -----
+PLOT_DIR = os.path.join(ANALYSIS_DIR, "plots", "histograms")
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
-# ----------------- helpers -------------------
-
+# ----- helpers ------
 def histograms_file() -> str:
     return os.path.join(ANALYSIS_DIR,
-                        f"flip_histograms/by_{DISTANCE_MODE}/{DATASET_NAME}_flips_hist_by_{DISTANCE_MODE}.json"
+                        f"{DATASET_NAME}_{MODEL}_flips_hist_by_{DISTANCE_MODE}.json"
                         )
 
 
@@ -157,7 +153,7 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=False,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
     )
 
     # normalized values
@@ -167,7 +163,7 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=True,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
     )
 
     # -------------- histograms for same, train-train vs test-test -------------------
@@ -184,7 +180,7 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=False,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
     )
 
     # normalized values
@@ -194,7 +190,7 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=True,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
     )
 
     # -------------- histograms diff class, train vs test ----------------
@@ -211,7 +207,7 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=False,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
     )
 
     # normalized values
@@ -221,5 +217,5 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=True,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
     )

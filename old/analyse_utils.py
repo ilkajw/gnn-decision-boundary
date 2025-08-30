@@ -171,7 +171,7 @@ def flip_distribution_over_deciles_by_indexset(idx_pair_set, dist_input_path, fl
     return result
 
 
-def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None, distance_mode="cumulative_cost"):
+def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_fname=None):
 
     """
     Counts class changes per decile across all edit path sequences with predictions.
@@ -186,17 +186,17 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
 
     """
     # load data for a measure on total path weighting, per-cost function or per-operation count
-    if distance_mode == "cost":
+    if DISTANCE_MODE == "cost":
         # load precalculated dict (i,j) -> edit distance
         with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_dist_per_path.json") as f:
             distances = json.load(f)
-    elif distance_mode == "num_ops":
+    elif DISTANCE_MODE == "edit_step":
         # load precalculated dict (i,j) -> number of operations
         with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_num ops_per_path.json") as f:
             num_ops = json.load(f)
     else:
         print(f"[warn] given param for distance_mode or config.DISTANCE_MODE /default) does have unexpected "
-              f"value {DISTANCE_MODE}. 'cost' or 'num_ops' expected. Assuming 'cost'.")
+              f"value {DISTANCE_MODE}. 'cost' or 'edit_step' expected. Defaulting to  'cost'.")
         with open(f"data/{DATASET_NAME}/analysis/distances/{DATASET_NAME}_dist_per_path.json") as f:
             distances = json.load(f)
 
@@ -235,13 +235,13 @@ def get_abs_flips_per_decile(idx_pairs_set, input_dir, output_dir=None, output_f
 
             if prev_pred is not None and pred != prev_pred:
 
-                if distance_mode == "cost":
+                if DISTANCE_MODE == "cost":
                     rel_step = g.cumulative_cost/distances[f"{i},{j}"]
-                elif distance_mode == "num_ops":
+                elif DISTANCE_MODE == "edit_step":
                     rel_step = g.edit_step/num_ops[f"{i},{j}"]  # todo: check if this works
                 else:
-                    print(f"[warn] given param for distance_mode or config.DISTANCE_MODE (default) has unexpected "
-                          f"value {distance_mode}. Expected 'cost' or 'num_ops'. Assuming 'cost'.")
+                    print(f"[warn] given param for config.DISTANCE_MODE has unexpected "
+                          f"value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'. Defaulting to 'cost'.")
                     rel_step = g.cumulative_cost / distances[f"{i},{j}"]
                 decile = int(min(rel_step * 10, 9))
                 class_changes_per_decile[decile] += 1

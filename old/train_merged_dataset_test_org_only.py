@@ -20,7 +20,7 @@ from torch_geometric.loader import DataLoader
 from sklearn.model_selection import StratifiedKFold
 
 from EditPathGraphDataset import FlatGraphDataset
-from model import GAT
+from GAT import GAT
 from training_utils import train_epoch, evaluate_accuracy, set_seed, evaluate_loss
 from config import (
     DATASET_NAME, EPOCHS, LEARNING_RATE, BATCH_SIZE,

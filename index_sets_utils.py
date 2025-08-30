@@ -2,7 +2,7 @@ import itertools
 import json
 import os
 
-from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY
+from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, PREDICTIONS_DIR, MODEL, MODEL_DIR, ROOT
 
 
 def load_split_sets(split_path):
@@ -31,7 +31,8 @@ def cut_pairs(base_pairs, allowed_pairs):
 
 def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
                          correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
-                         split_path="model_control/best_split.json"):
+                         split_path=f"{MODEL_DIR}/{MODEL}_best_split.json",
+                         ):
     """
     Returns a dict of pair-sets covering:
       - same_class_all / same_class_0_all / same_class_1_all / diff_class_all
@@ -42,12 +43,12 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
     diff_class_pairs = graph_index_pairs_diff_class(
         dataset_name=dataset_name,
         correctly_classified_only=correctly_classified_only,
-        save_path=f"data_control/{dataset_name}/index_sets/{dataset_name}_idx_pairs_diff_class.json",
+        save_path=f"{ROOT}/{DATASET_NAME}/index_sets/{dataset_name}_idx_pairs_diff_class.json",
     )
     same_class_pairs, same_class_0_pairs, same_class_1_pairs = graph_index_pairs_same_class(
         dataset=dataset_name,
         correctly_classified_only=correctly_classified_only,
-        save_dir=f"data_control/{dataset_name}/index_sets/{dataset_name}_idx_pairs",
+        save_dir=f"{ROOT}/{DATASET_NAME}/index_sets/{dataset_name}_idx_pairs",
     )
 
     # train/test ids
@@ -89,8 +90,8 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
 
 
 def graphs_correctly_classified(dataset_name=DATASET_NAME):
-    """Returns the indices of all original graphs classified correctly by GAT model."""
-    with open(f"data_control/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
+    """Returns the indices of all original graphs classified correctly by model selected in config."""
+    with open(f"{PREDICTIONS_DIR}/{dataset_name}_{MODEL}_predictions.json") as f:
         predictions = json.load(f)
     correct_idxs = [int(i) for i, entry in predictions.items() if entry["correct"]]
     return correct_idxs
@@ -99,7 +100,8 @@ def graphs_correctly_classified(dataset_name=DATASET_NAME):
 # todo: potentially merge next two functions into 1 with same/diff argument
 def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
                                  correctly_classified_only=True,
-                                 save_dir=None):
+                                 save_dir=None
+                                 ):
     """
     Returns all index pairs (i, j) from original dataset where both graphs are of the same class.
     If correctly_classified_only is True, only include graphs correctly classified by the model.
@@ -113,7 +115,7 @@ def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
     """
 
     # read in predictions of our model on graphs in original dataset
-    with open(f"data_control/{dataset}/predictions/{dataset}_predictions.json") as f:
+    with open(f"{PREDICTIONS_DIR}/{dataset}_{MODEL}_predictions.json") as f:
         predictions = json.load(f)
 
     # optionally, filter for correctly classified graphs only
@@ -155,7 +157,7 @@ def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
     return same_class_pairs, same_class_0_pairs, same_class_1_pairs
 
 
-def graph_index_pairs_diff_class(dataset_name=f"{DATASET_NAME}",
+def graph_index_pairs_diff_class(dataset_name=DATASET_NAME,
                                  correctly_classified_only=True,
                                  save_path=None):
     """
@@ -171,7 +173,7 @@ def graph_index_pairs_diff_class(dataset_name=f"{DATASET_NAME}",
     """
 
     # read in predictions of our model on original dataset graphs
-    with open(f"data_control/{dataset_name}/predictions/{dataset_name}_predictions.json") as f:
+    with open(f"{PREDICTIONS_DIR}/{dataset_name}_{MODEL}_predictions.json") as f:
         predictions = json.load(f)
 
     # optionally, filter for correctly classified graphs only

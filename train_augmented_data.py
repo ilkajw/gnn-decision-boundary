@@ -1,5 +1,5 @@
 import os
-# for deterministic results
+# for reproducibility
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 os.environ["PYTHONHASHSEED"] = "42"
 
@@ -14,14 +14,13 @@ from torch.utils.data import ConcatDataset, Subset
 from torch_geometric.transforms import Compose
 
 from EditPathGraphDataset import EditPathGraphsDataset
-from model import GAT
-from training_utils import train_epoch, evaluate_accuracy, set_seed, evaluate_loss
+from GAT import GAT
+from training_utils import train_epoch, evaluate_loss, evaluate_accuracy, setup_reproducibility
 from config import (
-    DATASET_NAME, EPOCHS, LEARNING_RATE, BATCH_SIZE, ROOT,
-    HIDDEN_CHANNELS, HEADS, DROPOUT, K_FOLDS, FLIP_AT
+    ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT  # MODEL_CLS, MODEL_KWARGS
 )
 
-# ----------- input, output paths --------------
+# ----- input, output paths ----
 
 # directory with all path sequences (.pt lists)
 path_seq_dir = f"data_control/{DATASET_NAME}/pyg_edit_path_graphs"
@@ -29,17 +28,27 @@ path_seq_dir = f"data_control/{DATASET_NAME}/pyg_edit_path_graphs"
 # path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
 base_labels_path = f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
 
-output_dir = f"model_cv_augmented/flip_at_{FLIP_AT}/{DATASET_NAME}"
+# output file name definitions
+output_dir = f"model_cv_augmented/flip_at_{int(FLIP_AT*100)}/{DATASET_NAME}"
+model_fname = f"{DATASET_NAME}_best_model_flip_{int(FLIP_AT*100)}.pt"
+split_fname = f"{DATASET_NAME}_best_split_flip_{int(FLIP_AT*100)}.json"
+log_fname = f"{DATASET_NAME}_train_log_flip_{int(FLIP_AT*100)}.json"
 
+# run configs
 DROP_ENDPOINTS = True
 VERBOSE = True
 
+# todo: inject class and delete values below later
+HIDDEN_CHANNELS = 8
+HEADS = 8
+DROPOUT = 0.2
+
 
 # ----------- helpers -------------
-
 def infer_in_channels(dataset):
     sample = dataset[0]
     return sample.x.size(-1)
+
 
 def hard_labels(ds):
     """Hard labels (0/1) for StratifiedKFold; robust to float/soft targets."""
@@ -49,6 +58,7 @@ def hard_labels(ds):
         yv = float(yi.view(-1)[0]) if isinstance(yi, torch.Tensor) else float(yi)
         ys.append(int(yv > 0.5))
     return ys
+
 
 def to_float_y():
     def _tf(data):
@@ -61,12 +71,14 @@ def to_float_y():
         return data
     return _tf
 
+
 def drop_edge_attr():
     def _tf(data):
         if 'edge_attr' in data:
             del data.edge_attr
         return data
     return _tf
+
 
 def drop_keys(keys):
     keys = set(keys)
@@ -76,6 +88,7 @@ def drop_keys(keys):
                 delattr(data, k)
         return data
     return _tf
+
 
 def tag_origin(tag: str):
     def _tf(data):
@@ -105,25 +118,18 @@ def class_stats(dataset, batch_size=2048):
     return {"n": n, "n0": n0, "n1": n1, "p0": p0, "p1": p1}
 
 
-# --------------- main ---------------
+# ------ main ------
 
 if __name__ == "__main__":
 
     os.makedirs(output_dir, exist_ok=True)
 
-    model_fname = f"{DATASET_NAME}_best_model.pt"
-    split_fname = "best_split.json"
-    log_fname = "train_log.json"
-
     model_path = os.path.join(output_dir, model_fname)
     split_path = os.path.join(output_dir, split_fname)
     log_path = os.path.join(output_dir, log_fname)
 
-    # deterministic-ish
-    set_seed(42)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True)
+    # for reproducibility
+    setup_reproducibility(seed=42)
 
     # base dataset
     base_ds = TUDataset(
@@ -140,12 +146,14 @@ if __name__ == "__main__":
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     in_channels = infer_in_channels(base_ds)
+    accuracies = []
 
     # tracking best across all folds/epochs
-    accuracies = []
     best_acc = -1.0
     best_model_state = None
     best_split = None
+
+    # collect per-fold histories/indices
     fold_records = []
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(base_ds)), labels), start=1):
@@ -173,7 +181,8 @@ if __name__ == "__main__":
         # drop path graph meta data (edit step, cumulative cost, ...) so scheme matches org graphs
         path_train.transform = Compose([
             to_float_y(),
-            drop_keys(["edit_step", "cumulative_cost", "source_idx", "target_idx", "iteration", "distance", "num_all_ops"]),
+            drop_keys(["edit_step", "cumulative_cost", "source_idx", "target_idx",
+                       "iteration", "distance", "num_all_ops"]),
             tag_origin("edit"),
         ])
 
@@ -198,21 +207,38 @@ if __name__ == "__main__":
         train_dataset = ConcatDataset([train_subset, path_train])
         test_dataset = test_subset
 
+        # for reproducibility
         g = torch.Generator()
         g.manual_seed(42)
+
         train_loader = DataLoader(
-            train_dataset, batch_size=BATCH_SIZE, shuffle=True,
-            num_workers=0, persistent_workers=False, generator=g
+            train_dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=True,
+            num_workers=0,
+            persistent_workers=False,
+            generator=g
         )
-        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
+
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=False,
+            num_workers=0,
+            persistent_workers=False
+        )
 
         # init model + optimizer
+        # todo: inject model class
         model = GAT(
             in_channels=in_channels,
             hidden_channels=HIDDEN_CHANNELS,
             heads=HEADS,
-            dropout=DROPOUT
+            dropout=DROPOUT,
         ).to(device)
+
+        # model = MODEL_CLS(infer_in_channels(dataset), **MODEL_KWARGS)
+
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
         # per-fold history
@@ -289,32 +315,37 @@ if __name__ == "__main__":
     with open(split_path, "w") as f:
         json.dump(best_split, f, indent=2)
 
+    #model_config = {
+    #    "name": getattr(MODEL_CLS, "__name__", str(MODEL_CLS)),
+    #    "kwargs": {k: (v.item() if hasattr(v, "item") else v) for k, v in (MODEL_KWARGS or {}).items()},
+    #}
+
     # consolidated log
     summary = {
         "fold_accuracies": [float(a) for a in accuracies],
         "mean_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
-        "std_accuracy":  float(np.std(accuracies)) if accuracies else 0.0,
+        "std_accuracy": float(np.std(accuracies)) if accuracies else 0.0,
         "best_model": best_split,
         "config": {
+            "model": "GAT",  # model_config,
+            "HIDDEN_CHANNELS": HIDDEN_CHANNELS,
+            "HEADS": HEADS,
+            "DROPOUT": DROPOUT,
+            "dataset": DATASET_NAME,
             "K_FOLDS": K_FOLDS,
             "EPOCHS": EPOCHS,
             "LEARNING_RATE": LEARNING_RATE,
             "BATCH_SIZE": BATCH_SIZE,
-            "HIDDEN_CHANNELS": HIDDEN_CHANNELS,
-            "HEADS": HEADS,
-            "DROPOUT": DROPOUT,
-            "device": str(device),
-            "dataset": DATASET_NAME,
-            "flip_at": FLIP_AT/100,
-            "drop_endpoints": DROP_ENDPOINTS,
             "stratified": True,
-            "augmentation": "train-fold path graphs only",
+            "augmentation": "train-split path graphs in train split only",
+            "flip_at": FLIP_AT,
+            "drop_endpoints": DROP_ENDPOINTS if "DROP_ENDPOINTS" in globals() else None,
             "env": {
                 "torch": torch.__version__,
                 "cuda_available": torch.cuda.is_available(),
                 "cuda": getattr(torch.version, "cuda", None),
                 "cudnn": torch.backends.cudnn.version(),
-                "device": str(device)
+                "device": str(device),
             },
         },
         "folds": fold_records

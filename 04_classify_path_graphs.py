@@ -4,21 +4,26 @@ import torch
 from torch_geometric.datasets import TUDataset
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
-from model import GAT
+from GAT import GAT
 from config import *
 
 
 # --- config ---
-
-model_path = "model_control/model.pt"
-graph_seq_dir = f"data_control/{DATASET_NAME}/pyg_edit_path_graphs"
-output_dir = f"data_control/{DATASET_NAME}/predictions"  # for graph seqs with predictions added and json summary
-output_fname = f"{DATASET_NAME}_edit_path_predictions.json"
+model_path = f"{MODEL_DIR}/{MODEL}_model.pt"
+graph_seq_dir = LEGACY_PYG_SEQ_DIR  # todo: later back to f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
+output_dir = PREDICTIONS_DIR  # for graph seqs with predictions added and json summary
+output_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
 
 
 # --- function definition ---
-
-def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, output_fname):
+def edit_path_predictions(
+        model_class,
+        model_kwargs,
+        dataset_name,
+        model_path,
+        input_dir,
+        output_dir,
+        output_fname):
     """
     Loads all pyg graph sequences, each indexed by (source, target graph, iteration).
     Runs predictions on all graphs per sequence.
@@ -35,14 +40,13 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
     """
     # set model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dataset = TUDataset(root="data", name=dataset_name)
-    model = GAT(
+    dataset = TUDataset(root=ROOT, name=dataset_name)
+    model = model_class(
         in_channels=dataset.num_features,
-        hidden_channels=HIDDEN_CHANNELS,
-        heads=HEADS,
-        dropout=DROPOUT
+        **model_kwargs
     ).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    state = torch.load(model_path, map_location=device)
+    model.load_state_dict(state)
     model.eval()
 
     os.makedirs(output_dir, exist_ok=True)
@@ -101,9 +105,15 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
 # --- run ---
 if __name__ == "__main__":
 
+    for p in [model_path, graph_seq_dir]:
+        if not os.path.exists(p):
+            raise FileNotFoundError(f"Missing input directory: {p}")
+
     os.makedirs(output_dir, exist_ok=True)
 
     pred_dict = edit_path_predictions(
+            model_class=MODEL_CLS,
+            model_kwargs=MODEL_KWARGS,
             dataset_name=DATASET_NAME,
             model_path=model_path,
             input_dir=graph_seq_dir,

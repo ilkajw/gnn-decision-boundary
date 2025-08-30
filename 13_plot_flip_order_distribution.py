@@ -1,21 +1,20 @@
 import os
 import json
 import matplotlib.pyplot as plt
-from config import DATASET_NAME, DISTANCE_MODE
+from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
+
+# todo: delete calculation and plot for global as it's equal to 'diff_class_all' or 'same_class_all'
+
 
 # ----- paths ----
-
-ANALYSIS_DIR = f"data_control/{DATASET_NAME}/analysis"
 INPUT_PATH = os.path.join(
     ANALYSIS_DIR,
-    f"paths_per_num_flips/by_{DISTANCE_MODE}",
-    f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
+    f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
 )
 PLOT_DIR = os.path.join(
     ANALYSIS_DIR,
     "plots",
-    "flip_distributions",
-    f"by_{DISTANCE_MODE}",
+    "flip_distributions"
 )
 os.makedirs(PLOT_DIR, exist_ok=True)
 
@@ -121,7 +120,8 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
 
 if __name__ == "__main__":
 
-    # todo: delete calculation and plot for global as it's equal to 'diff_class_all' or 'same_class_all'
+    if not os.path.exists(INPUT_PATH):
+        raise FileNotFoundError(f"Missing input JSON: {INPUT_PATH}")
 
     with open(INPUT_PATH, "r") as f:
         data = json.load(f)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             k_dir = os.path.join(PLOT_DIR, f"k{k}")
             os.makedirs(k_dir, exist_ok=True)
 
-            out_path = os.path.join(k_dir, f"{set_name}_flip_order_distribution_k{k}.png")
+            out_path = os.path.join(k_dir, f"{DATASET_NAME}_{MODEL}_{set_name}_flip_order_distribution_k{k}.png")
             plot_flip_order_distribution(
                 entry,
                 k,

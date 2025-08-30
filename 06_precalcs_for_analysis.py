@@ -2,29 +2,27 @@ import os
 import json
 import re
 import torch
+from torch.serialization import add_safe_globals
+from torch_geometric.data import Data
 
-from config import DATASET_NAME
+from config import DATASET_NAME, MODEL, PREDICTIONS_DIR, ANALYSIS_DIR
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
-# ------ define input, output paths -----
-
+# ---- set input, output paths ----
 edit_paths_input_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-pred_graph_seq_input_dir = f"data_control/{DATASET_NAME}/predictions/edit_path_graphs_with_predictions"
-pred_graph_seq_cum_cost_input_dir = f"data_control/{DATASET_NAME}/predictions/" \
-                                    f"edit_path_graphs_with_predictions_CUMULATIVE_COST"
-dist_output_dir = f"data_control/{DATASET_NAME}/analysis/distances"
-
-
-output_dir = f"data_control/{DATASET_NAME}/analysis"
+pred_graph_seq_input_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions"
+# todo: add variable not needed when overwriting sequence input dir
+# wa before: pred_graph_seq_cum_cost_input_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+pred_graph_seq_cum_cost_input_dir = pred_graph_seq_input_dir
+output_dir = ANALYSIS_DIR
 dist_cost_fname = f"{DATASET_NAME}_dist_per_path.json"
 dist_num_ops_fname = f"{DATASET_NAME}_num_ops_per_path.json"
-flip_occ_edit_step_output_fname = f"{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
-flip_occ_cost_output_fname = f"{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+flip_occ_edit_step_output_fname = f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
+flip_occ_cost_output_fname = f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
 
-# ----------- helpers --------------
-
+# ---- helpers ----
 def get_distance_per_path(input_path, output_path):
 
     edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
@@ -54,7 +52,8 @@ def get_num_ops_per_path(input_path, output_path):
 
     return num_ops
 
-# todo: merge following two functions into one
+# todo: merge following two functions into one with "by_cost=True/False"
+
 
 def flip_occurrences_per_path_edit_step(input_dir, output_dir=None, output_fname=None, verbose=False):
 
@@ -70,11 +69,11 @@ def flip_occurrences_per_path_edit_step(input_dir, output_dir=None, output_fname
         :param output_dir: Directory to save dictionary of classification changes per sequence to.
         :param output_fname: Name of file to save to.
     """
-
+    add_safe_globals([Data])
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
     changes_dict = {}
 
-    for fname in os.listdir(input_dir):
+    for fname in sorted(os.listdir(input_dir)):
         if not fname.endswith(".pt"):
             continue
 
@@ -86,7 +85,7 @@ def flip_occurrences_per_path_edit_step(input_dir, output_dir=None, output_fname
         i, j = int(match.group(1)), int(match.group(2))
         filepath = os.path.join(input_dir, fname)
 
-        sequence = torch.load(filepath, weights_only=False)
+        sequence = torch.load(filepath, map_location="cpu", weights_only=False)
         prev_pred = None
         change_steps = []
 
@@ -135,7 +134,7 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
         :param output_dir: Directory to save dictionary of classification changes per sequence to.
         :param output_fname: Name of file to save to.
     """
-
+    add_safe_globals([Data])
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
     changes_dict = {}
 
@@ -151,7 +150,7 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
         i, j = int(match.group(1)), int(match.group(2))
         filepath = os.path.join(input_dir, fname)
 
-        sequence = torch.load(filepath, weights_only=False)
+        sequence = torch.load(filepath, map_location="cpu", weights_only=False)
         prev_pred = None
         change_steps = []
 
@@ -159,7 +158,7 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
         for step, g in enumerate(sequence):
 
             if not hasattr(g, "prediction"):
-                print(f"Missing prediction of graph at edit step {g.cumulative_cost} in file {fname}")
+                print(f"Missing prediction of graph at edit step {g.edit_step} in file {fname}")
                 continue
 
             pred = getattr(g, "prediction", None)
@@ -188,10 +187,14 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
 
 if __name__ == "__main__":
 
-    os.makedirs(dist_output_dir, exist_ok=True)
+    for p in [edit_paths_input_dir, pred_graph_seq_input_dir, pred_graph_seq_cum_cost_input_dir]:
+        if not os.path.exists(p):
+            raise FileNotFoundError(f"Missing input directory: {p}")
 
-    cost_output_path = os.path.join(dist_output_dir, dist_cost_fname)
-    num_ops_output_path = os.path.join(dist_output_dir, dist_num_ops_fname)
+    os.makedirs(output_dir, exist_ok=True)
+
+    cost_output_path = os.path.join(output_dir, dist_cost_fname)
+    num_ops_output_path = os.path.join(output_dir, dist_num_ops_fname)
     get_distance_per_path(input_path=edit_paths_input_dir,
                           output_path=cost_output_path)
 

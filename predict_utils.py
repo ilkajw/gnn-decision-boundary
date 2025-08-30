@@ -6,14 +6,25 @@ from torch_geometric.loader import DataLoader
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 from config import *
-from model import GAT
+from GAT import GAT
 
+# todo: fyi: functions currently only used in old pipeline files. delete later
+HIDDEN_CHANNELS = 8
+HEADS = 8
+DROPOUT = 0.2
 
-def dataset_predictions(dataset_name,
-                        output_dir,
-                        output_fname,
-                        model_path="model_control/model.pt",
-                        ):
+def infer_in_channels(dataset):
+    sample = dataset[0]
+    return sample.x.size(-1)
+
+def dataset_predictions(
+        model_cls,
+        model_kwargs,
+        dataset_name,
+        output_dir,
+        output_fname,
+        model_path="model_control/model.pt",
+        ):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -22,12 +33,15 @@ def dataset_predictions(dataset_name,
     loader = DataLoader(dataset, batch_size=1, shuffle=False)  # batch_size=1 to keep index tracking
 
     # re-instantiate model
+    # todo: delete fixed gat
     model = GAT(
         in_channels=dataset.num_features,
         hidden_channels=HIDDEN_CHANNELS,
         heads=HEADS,
         dropout=DROPOUT
     ).to(device)
+
+    model = model_cls(infer_in_channels(dataset), **model_kwargs).to(device)
     model.load_state_dict(torch.load(model_path))
     model.eval()
 
@@ -53,7 +67,7 @@ def dataset_predictions(dataset_name,
         json.dump(predictions, f, indent=2)
 
 
-def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, output_fname):
+def edit_path_predictions(model_cls, model_kwargs, dataset_name, model_path, input_dir, output_dir, output_fname):
     """
     Loads all pyg graph sequences, each indexed by (source, target graph, iteration).
     Runs predictions on all graphs per sequence.
@@ -68,19 +82,23 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
     Returns:
         list: A list of prediction dictionaries with metadata.
     """
-    # set model
+    add_safe_globals([Data])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset = TUDataset(root="data", name=dataset_name)
+
+    # set model
+    # todo: delete fixed gat
     model = GAT(
         in_channels=dataset.num_features,
         hidden_channels=HIDDEN_CHANNELS,
         heads=HEADS,
         dropout=DROPOUT
     ).to(device)
+
+    model = model_cls(infer_in_channels(dataset), **model_kwargs)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
-    os.makedirs(output_dir, exist_ok=True)
     os.makedirs(os.path.join(output_dir, "edit_path_graphs_with_predictions"), exist_ok=True)
     predictions = []
 
@@ -92,7 +110,6 @@ def edit_path_predictions(dataset_name, model_path, input_dir, output_dir, outpu
 
         # load ep graph sequence
         path = os.path.join(input_dir, filename)
-        add_safe_globals([Data])
         graph_sequence = torch.load(path, weights_only=False)
 
         updated_sequence = []

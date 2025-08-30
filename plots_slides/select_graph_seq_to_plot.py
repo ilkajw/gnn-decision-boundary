@@ -3,15 +3,16 @@ import re
 import glob
 import json
 import pickle
-from typing import Dict, List, Tuple, Optional
 import networkx as nx
+from typing import Dict, List, Tuple, Optional
 from torch_geometric.datasets import TUDataset
-from config import DATASET_NAME
+
+from config import DATASET_NAME, ROOT
 
 # --- config ---
 
-NX_INPUT_DIR = f"data_control/{DATASET_NAME}/nx_edit_path_graphs"
-SELECTED_DIR = f"data_control/{DATASET_NAME}/selected_sequences"  # to save picked sequences to
+NX_INPUT_DIR = f"{ROOT}/{DATASET_NAME}/nx_edit_path_graphs"
+SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/selected_sequences"  # to save picked sequences to
 MAX_LEN = 4
 PYG_ROOT = "data/pyg"  # for TUDataset to read labels
 

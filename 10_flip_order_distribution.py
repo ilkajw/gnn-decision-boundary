@@ -3,19 +3,17 @@ from collections import defaultdict
 import os
 import json
 
-from config import DATASET_NAME, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
+from config import DATASET_NAME, ANALYSIS_DIR, MODEL_DIR, MODEL, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
-# -------- define input, output params ---------
-
-split_path = "model_control/best_split.json"
-output_dir = f"data_control/{DATASET_NAME}/analysis/paths_per_num_flips/by_{DISTANCE_MODE}/"
-output_fname = f"{DATASET_NAME}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
+# ---- set input, output params -----
+split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
+output_dir = f"{ANALYSIS_DIR}"
+output_fname = f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 max_num_flips = 10
 
 
-# ---------------- helpers --------------------
-
+# ----- helpers -----
 def flip_distribution_over_deciles_by_num_flips(
     max_num_flips,
     dist_input_path,
@@ -67,8 +65,11 @@ def flip_distribution_over_deciles_by_num_flips(
 
         # get path distance of i, j according to distance mode
         dist = get_distance(i, j)
-        if not dist:  # None or 0
+        if dist is None:
             print(f"[WARN] missing distance for {i}, {j}")
+            continue
+        if dist == 0:
+            print(f"[WARN] zero distance for {i}, {j} – skipping to avoid div by 0")
             continue
 
         # calculate per-path decile counts, split by flip order
@@ -134,19 +135,23 @@ if __name__ == "__main__":
 
     # retrieve data according to distance mode set in config
     if DISTANCE_MODE == "cost":
-        dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+        dist_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
-    elif DISTANCE_MODE == "num_ops":
-        dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
-        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+    elif DISTANCE_MODE == "edit_step":
+        dist_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_num_ops_per_path.json"
+        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
 
     else:
-        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'num_ops'."
+        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."
               f"Assuming 'cost'.")
-        dist_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+        dist_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
+    # fail fast if inputs missing
+    for p in [split_path, dist_path, flips_path]:
+        if not os.path.exists(p):
+            raise FileNotFoundError(f"Missing input: {p}")
 
     cuts = build_index_set_cuts(
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,

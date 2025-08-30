@@ -4,7 +4,7 @@ os.environ["PYTHONHASHSEED"] = "42"
 
 from predict_utils import *
 from edit_path_graphs_utils import *
-from training_utils import kcv_original
+from training_utils import train_model_kcv
 from old.analyse_utils import *
 
 
@@ -19,11 +19,11 @@ if __name__ == "__main__":
     add_meta_data_to_path_preds = True
 
     if train_model:
-        kcv_original(dataset=dataset,
-                     output_dir="model_control",
-                     model_fname="model.pt",
-                     split_fname="best_split.json",
-                     log_fname="log.json")
+        train_model_kcv(dataset=dataset,
+                        output_dir="model_control",
+                        model_fname="model.pt",
+                        split_fname="best_split.json",
+                        log_fname="log.json")
     if predict_dataset:
         dataset_predictions(dataset_name=DATASET_NAME,
                             output_dir=f"data_control/{DATASET_NAME}/predictions/",

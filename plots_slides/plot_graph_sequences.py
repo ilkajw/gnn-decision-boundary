@@ -1,13 +1,17 @@
-import os, json, pickle
+import os
+import json
+import pickle
+import math
 from typing import List
-from config import DATASET_NAME
 import networkx as nx
 import matplotlib.pyplot as plt
 
+from config import DATASET_NAME, ROOT
+
 # --- config ---
 
-SELECTED_DIR = f"data_control/{DATASET_NAME}/selected_sequences"
-PLOT_DIR = f"data_control/{DATASET_NAME}/graph_plots_selected"
+SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/selected_sequences"
+PLOT_DIR = f"{ROOT}/{DATASET_NAME}/graph_plots_selected"
 LAYOUT = "kamada_kawai"  # "spring", "kamada_kawai", "spectral", "circular", "shell"
 NODE_ATTR = "primary_label"  # None to use node IDs
 EDGE_ATTR = "label"  # None to hide edge labels
@@ -38,7 +42,6 @@ def compute_layout(G: nx.Graph, layout: str):
         return nx.shell_layout(G)
     return nx.spring_layout(G, seed=0)
 
-import math
 
 def plot_graph_sequence(
     seq: List[nx.Graph],
@@ -48,7 +51,7 @@ def plot_graph_sequence(
     node_label_attr: str = "primary_label",
     font_size: int = 12,
     node_size: int = 800,
-    ncols: int = 2,   # number of subplot columns (so 2 → 2x2 grid if len(seq)=4)
+    ncols: int = 2,   # number of subplot columns
 ):
     if not seq:
         return
@@ -88,6 +91,15 @@ def plot_graph_sequence(
         )
         nx.draw_networkx_labels(G, pos=pos, labels=node_labels, font_size=font_size, ax=ax)
 
+        if EDGE_ATTR is not None:
+            edge_labels = nx.get_edge_attributes(G, EDGE_ATTR)
+            if edge_labels:  # only draw if labels exist
+                nx.draw_networkx_edge_labels(
+                    G, pos=pos, edge_labels=edge_labels,
+                    font_size=10, ax=ax
+                )
+            else:
+                print("'edge_labels' is None. printing edge labels skipped.")
         edit_step = G.graph.get("edit_step", k)
         ax.set_title(f"Edit Step {edit_step}:", loc='left', fontsize=14, fontweight="bold")
         ax.axis("off")
@@ -125,7 +137,7 @@ if __name__ == "__main__":
         meta = sel["meta"]
         seq = load_sequence(seq_path)
         out_path = os.path.join(PLOT_DIR, f"{kind}_g{meta['i']}_to_g{meta['j']}_it{meta['it']}.png")
-        # use classes from meta (added in selector)
+        # use classes from meta
         src_cls = meta.get("source_class", "?")
         tgt_cls = meta.get("target_class", "?")
         if kind == "same":

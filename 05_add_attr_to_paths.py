@@ -2,27 +2,29 @@ import os
 import re
 import json
 import torch
+from torch.serialization import add_safe_globals
+from torch_geometric.data import Data
 
-from config import DATASET_NAME
+from config import DATASET_NAME, MODEL, MODEL_DIR,  PREDICTIONS_DIR
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
 # --- config ---
 
 edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-base_pred_dict_fname = f"{DATASET_NAME}_predictions.json"
-path_pred_dict_fname = f"{DATASET_NAME}_edit_path_predictions.json"
-pyg_seq_with_preds_dir = f"data_control/{DATASET_NAME}/predictions\edit_path_graphs_with_predictions"
-split_path = f"model_control/best_split.json"
+base_pred_dict_fname = f"{DATASET_NAME}_{MODEL}_predictions.json"
+path_pred_dict_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
+pyg_seq_with_preds_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions"
+split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
 
-out_dir = f"data_control/{DATASET_NAME}/predictions/"
-path_pred_metadata_dict_fname = f"{DATASET_NAME}_edit_path_predictions_metadata.json"
+out_dir = PREDICTIONS_DIR
+path_pred_metadata_dict_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions_metadata.json"
 
 
 # --- helpers ---
 
-# todo: info on train, test split and correct classification never used in pipeline. delete?
-def add_metadata_to_path_preds_dict(pred_dict_path, base_pred_path, split_path, output_path):
+# todo: info on train, test split and correct classification in preds json metadata never used in pipeline. delete?
+def add_attrs_to_path_preds_dict(pred_dict_path, base_pred_path, split_path, output_path):
     """
     Enriches dictionary entries of edit path predictions with additional metadata to help later analysis:
     - true class labels of source and target
@@ -98,7 +100,7 @@ def build_cum_costs_from_ops(
         if not paths:
             continue
 
-        ep = paths[0]   # currently only one path per pair, potentially adjust for more paths from other datasets
+        ep = paths[0]   # currently only one path per pair todo: potentially adjust for more paths from other datasets
         cumulative = [0.0]
         cost = 0.0
 
@@ -126,7 +128,7 @@ def build_cum_costs_from_ops(
 def _align_costs_to_seq(seq, costs):
     """
     Make cost vector length match seq_len.
-    - If seq_len == len(costs)+1: append last cost (extra terminal graph).
+    - If seq_len == len(costs)+1: append last cost (inserted terminal graph).
     - If seq_len == len(costs)-1: drop last cost.
     """
     c = list(costs)
@@ -136,7 +138,7 @@ def _align_costs_to_seq(seq, costs):
 
     # todo: how to handle best?
     # handle paths where target graph included,
-    # assign additional cost 0.0 for last graph to underestimate true cost
+    # assign additional cost 0.0 for inserted target graph to underestimate true cost
     if max_edit_step == cost_len:
         return c + [c[-1]], "padded cost (+1)"
 
@@ -148,30 +150,31 @@ def _align_costs_to_seq(seq, costs):
         return c, None
 
 
-def add_cum_cost_to_pyg_seq_metadata(
+def add_cum_cost_to_pyg_seq(
     cum_costs,                      # dict[(i,j)] -> [cumulative costs]
     root_dir,                       # directory with *.pt sequences
     add_field_name: str = "cumulative_cost",
-    out_dir: str | None = None,
+    out_dir: str | None = None,  # if None, overwrite original sequences
 ):
     """
     Walks 'root_dir', finds files matching: g{i}_to_g{j}_it{ANY}_graph_sequence.pt,
     reads the sequence, aligns cumulative costs for (i,j), adds attribute 'cumulative_cost' to each graph
-    and writes an updated sequence copy to 'out_dir'.
+    and writes an updated sequence to 'out_dir' or overwrites input directory if 'out_dir' is None.
     """
     # compile filename pattern
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
 
     # choose a safe output directory todo: delete suffix, overwrite for simplicity
-    out_dir = out_dir or (root_dir + "_CUMULATIVE_COST")
+    out_dir = out_dir or (root_dir)
     os.makedirs(out_dir, exist_ok=True)
+    add_safe_globals([Data])
 
     processed = 0
     skipped_no_costs = 0
     skipped_no_match = 0
     missing_files = 0
 
-    for fname in os.listdir(root_dir):
+    for fname in sorted(os.listdir(root_dir)):
         if not fname.endswith(".pt"):
             continue
 
@@ -256,43 +259,53 @@ def add_cum_cost_to_pyg_seq_metadata(
     )
 
 
-def add_cum_cost_to_path_preds_dict(
+def add_cum_cost_to_path_preds_json(
     pred_json_path,
     cum_costs,                      # dict[(i,j)] -> [cumulative costs]
     add_field_name: str = "cumulative_cost",
     out_path: str | None = None,
 ):
-    # load predictions with meta-data
+    # load predictions json including meta-data
     with open(pred_json_path, "r") as f:
         entries = json.load(f)
 
     updated = []
+
+    # loop over path graphs
     for e in entries:
+
+        # get source and target index of current graph
         i = int(e["source_idx"])
         j = int(e["target_idx"])
+
+        # get edit step of current graph
         step_idx = int(e.get("edit_step", 0))
 
         key = (i, j)
         if key not in cum_costs and (j, i) in cum_costs:
             key = (j, i)
         if key not in cum_costs:
-            print(f"pair {i}, {j} not in cum cost. returning without further saving")
-            return
+            print(f"[warn] pair {(i, j)} not in cum_costs dict. skipping entry.")
+            continue
 
         # get cumulative cost list for pair
         c = cum_costs[key]
 
         # todo: how to handle best?
-        # for approx paths with last graph inserted, assign additional cost 0.0 to underestimate true cost
+        # if graph is inserted target graph, assume additional cost 0.0 to underestimate true cost,
+        # hence assign cost of previous graph
         if step_idx >= len(c):
             step_idx -= 1
 
+        # add cum cost as meta data
         e[add_field_name] = float(c[step_idx])
         updated.append(e)
 
-    # save updated predictions
+    # save updated json
     if out_path is None:
-        out_path = pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json")
+        # overwrite input dir. (before: pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json"))
+        out_path = pred_json_path
+    os.makedirs(os.path.dirname(out_path))
     with open(out_path, "w") as f:
         json.dump(updated, f, indent=2)
 
@@ -300,9 +313,15 @@ def add_cum_cost_to_path_preds_dict(
 # --- run ---
 if __name__ == "__main__":
 
+    # fail fast if inputs missing
+    for p in [edit_path_ops_dir, os.path.join(out_dir, base_pred_dict_fname),
+              os.path.join(out_dir, path_pred_dict_fname), pyg_seq_with_preds_dir, split_path]:
+        if not os.path.exists(p):
+            raise FileNotFoundError(f"Missing input directory: {p}")
+
     os.makedirs(out_dir, exist_ok=True)
 
-    add_metadata_to_path_preds_dict(
+    add_attrs_to_path_preds_dict(
             pred_dict_path=os.path.join(out_dir, path_pred_dict_fname),
             base_pred_path=os.path.join(out_dir, base_pred_dict_fname),
             split_path=split_path,
@@ -314,13 +333,13 @@ if __name__ == "__main__":
         ops_file_dir=edit_path_ops_dir
     )
 
-    add_cum_cost_to_path_preds_dict(
+    add_cum_cost_to_path_preds_json(
         pred_json_path=os.path.join(out_dir, path_pred_metadata_dict_fname),
         cum_costs=cum_costs,
         add_field_name="cumulative_cost",
     )
 
-    add_cum_cost_to_pyg_seq_metadata(
+    add_cum_cost_to_pyg_seq(
         cum_costs=cum_costs,
         root_dir=pyg_seq_with_preds_dir,
         add_field_name="cumulative_cost",

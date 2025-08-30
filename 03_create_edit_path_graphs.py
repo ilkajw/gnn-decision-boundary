@@ -7,7 +7,7 @@ import torch.nn.functional as func
 from torch_geometric.utils import from_networkx
 from networkx import is_isomorphic
 
-from config import DATASET_NAME, FULLY_CONNECTED_ONLY
+from config import ROOT, DATASET_NAME, ANALYSIS_DIR, FULLY_CONNECTED_ONLY, MODEL
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
@@ -15,8 +15,8 @@ from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDatase
 # --- config ---
 
 edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-nx_output_dir = f"data_control/{DATASET_NAME}/nx_edit_path_graphs"
-pyg_output_dir = f"data_control/{DATASET_NAME}/pyg_edit_path_graphs"
+nx_output_dir = f"{ROOT}/{DATASET_NAME}/nx_edit_path_graphs"
+pyg_output_dir = f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
 
 
 # --- definition ---
@@ -142,20 +142,23 @@ def generate_edit_path_graphs(data_dir,
             file_path = os.path.join(pyg_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
+    # todo: eig nicht intermediate
     # save paths with target graph insertion
-    os.makedirs(f"data_control/{DATASET_NAME}/analysis/", exist_ok=True)
-    with open(f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
+    os.makedirs(f"{ANALYSIS_DIR}/test", exist_ok=True)
+    with open(f"{ANALYSIS_DIR}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
 
     # save paths with no intermediate path graphs
-    os.makedirs(f"data_control/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
-    with open(f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
+    with open(f"{ANALYSIS_DIR}/test/"
               f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
         json.dump(no_intermediates, f, indent=2)
 
 
 # --- run ---
 if __name__ == "__main__":
+
+    if not os.path.exists(edit_path_ops_dir):
+        raise FileNotFoundError(f"Missing input directory: {edit_path_ops_dir}")
 
     os.makedirs(nx_output_dir, exist_ok=True)
     os.makedirs(pyg_output_dir, exist_ok=True)

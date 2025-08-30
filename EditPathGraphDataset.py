@@ -54,10 +54,14 @@ class EditPathGraphsDataset(InMemoryDataset):
     ):
         self.seq_dir = seq_dir
         self.base_pred_path = base_pred_path
-        self.flip_at = float(flip_at)
         self.drop_endpoints = bool(drop_endpoints)
         self.verbose = bool(verbose)
         self.allowed_indices = set(allowed_indices) if allowed_indices is not None else None
+        self.flip_at = float(flip_at)
+        if self.flip_at > 1.0:  # accept legacy % inputs
+            self.flip_at /= 100.0
+
+        assert 0.0 <= self.flip_at <= 1.0, "flip_at must be in [0,1]"
 
         root_dir = os.path.abspath(f"data_control/{DATASET_NAME}/processed/_editpath_inmem_root")
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
@@ -92,12 +96,12 @@ class EditPathGraphsDataset(InMemoryDataset):
         if DISTANCE_MODE == "cost":
             dist = float(getattr(g, "distance", 0.0))
             step = float(getattr(g, "cumulative_cost", 0.0))
-        elif DISTANCE_MODE == "num_ops":
+        elif DISTANCE_MODE == "edit_step":
             dist = float(getattr(g, "num_all_ops", 0.0))
             step = float(getattr(g, "edit_step", 0.0))
         else:
             print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. "
-                  f"Expected 'cost' or 'num_ops'. Assuming 'cost'.")
+                  f"Expected 'cost' or 'edit_step'. Defaulting to 'cost'.")
             dist = float(getattr(g, "distance", 0.0))
             step = float(getattr(g, "cumulative_cost", 0.0))
         return max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
@@ -120,6 +124,10 @@ class EditPathGraphsDataset(InMemoryDataset):
 
         data_list = []
         no_intermediates = []
+
+        if not os.path.isdir(self.seq_dir):
+            if self.verbose:
+                print(f"[WARN] seq_dir '{self.seq_dir}' does not exist.")
 
         for fname in files:
             seq = torch.load(os.path.join(self.seq_dir, fname), weights_only=False)
