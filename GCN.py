@@ -30,33 +30,33 @@ class GCN(torch.nn.Module):
             activation: str = "elu",  # 'relu' | 'elu' | 'gelu' | 'leaky_relu' | 'identity'
             normalization: str | None = None,
             dropout=0.5,
-            readout: str = "sum",
+            readout: str = "sum",  # 'sum' | 'mean' | 'max'
             mlp_layers: int = 1,
-            out_channels: int = 1,
+            out_channels: int = 1,  # graph-level logits dim
             improved: bool = False,
-            gat_heads: int = 4,  # to mimic gat width
+            gat_heads: int = 8,  # to mimic gat width
     ):
         super().__init__()
         assert in_channels >= 1, "in_channels must be >= 1"
         assert hidden_channels >= 1, "hidden_channels must be >= 1"
         assert num_layers >= 1, "num_layers must be >= 1"
         assert activation.lower() in _ACTS, f"unknown activation '{activation}'. choose from {list(_ACTS.keys())}."
-        assert normalization in _NORMS, f"unknown normalization '{normalization.lower()}'. choose from {list(_NORMS.keys())}."
+        assert normalization.lower() in _NORMS, f"unknown normalization '{normalization.lower()}'. choose from {list(_NORMS.keys())}."
         assert 0 <= dropout <= 1, "dropout has to be in range [0, 1]"
         assert readout in ["sum", "mean", "max"], f"unknown readout '{readout}'. choose 'mean', 'sum' or 'max'."
         assert mlp_layers >= 1, "mlp_layers must be >= 1"
         assert out_channels >= 1, "out_channels must be >= 1"
-        # todo: assert all params
+        assert gat_heads >= 1, "gat_heads must be >= 1"
 
-        Activation = _ACTS[activation.lower()]
-        Normalization = _NORMS[normalization]
+        act_cls = _ACTS[activation.lower()]
+        norm_cls = _NORMS[normalization]
 
         # mimic GAT width
         width = hidden_channels * gat_heads if num_layers > 1 else hidden_channels
 
         self.convs = nn.ModuleList()
         self.norms = nn.ModuleList() if normalization is not None else None
-        self.act = Activation()
+        self.act = act_cls()
         self.drop = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         self.readout = {
@@ -73,7 +73,7 @@ class GCN(torch.nn.Module):
         for in_d, out_d in zip(in_dims, out_dims):
             self.convs.append(GCNConv(in_d, out_d, improved=improved))
             if self.norms is not None:
-                self.norms.append(Normalization(out_d))
+                self.norms.append(norm_cls(out_d))
 
         # final head
         if mlp_layers == 1:
@@ -82,7 +82,7 @@ class GCN(torch.nn.Module):
             blocks = []
             for _ in range(mlp_layers - 1):
                 blocks += [nn.Linear(hidden_channels, hidden_channels),
-                           Activation(),  # instantiate per block for safety
+                           act_cls(),  # instantiate per block for safety
                            nn.Dropout(dropout) if dropout > 0 else nn.Identity()
                            ]
             blocks += [nn.Linear(hidden_channels, out_channels)]

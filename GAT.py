@@ -23,7 +23,7 @@ class GAT(torch.nn.Module):
             heads: int = 8,
             activation: str = "elu",  # 'relu' | 'elu' | 'gelu' | 'leaky_relu' | 'identity'
             dropout: float = 0.2,
-            readout: str = "sum",
+            readout: str = "sum",  # 'sum' | 'mean' | 'max'
             mlp_layers: int = 1,
             out_channels: int = 1,  # graph-level logits dim
             ):
@@ -38,11 +38,12 @@ class GAT(torch.nn.Module):
         assert mlp_layers >= 1, "mlp_layers must be >= 1"
         assert activation.lower() in _ACTS, f"unknown activation '{activation.lower()}'. choose from {list(_ACTS.keys())}."
 
-        Activation = _ACTS[activation.lower()]  # class
-        self.act = Activation()  # instance
+        act_cls = _ACTS[activation.lower()]  # class
+        self.act = act_cls()  # instance
         self.drop = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         # --- GATv2 stack ---
+        # todo: adapt to gcn and graphsage stack pattern
         self.convs = nn.ModuleList()
         if num_layers == 1:
             self.convs.append(GATv2Conv(in_channels, hidden_channels, heads=heads, concat=False))
@@ -66,7 +67,7 @@ class GAT(torch.nn.Module):
             blocks = []
             for _ in range(mlp_layers - 1):
                 blocks += [nn.Linear(hidden_channels, hidden_channels),
-                           Activation(),  # instantiate per block for safety
+                           act_cls(),  # instantiate per block for safety
                            nn.Dropout(dropout) if dropout > 0 else nn.Identity()
                            ]
             blocks += [nn.Linear(hidden_channels, out_channels)]
