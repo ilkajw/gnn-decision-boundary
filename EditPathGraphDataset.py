@@ -104,7 +104,11 @@ class EditPathGraphsDataset(InMemoryDataset):
                   f"Expected 'cost' or 'edit_step'. Defaulting to 'cost'.")
             dist = float(getattr(g, "distance", 0.0))
             step = float(getattr(g, "cumulative_cost", 0.0))
-        return max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
+        t = max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
+        #i = getattr(g, "source_idx", 0.0)
+        #j = getattr(g, "target_idx", 0.0)
+        #print(f"{i}, {j}: t: {t}")
+        return t  # max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
 
     def _label_for_graph(self, g, y_src: int, y_tgt: int):
         """

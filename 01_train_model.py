@@ -1,6 +1,7 @@
+import os
 from torch_geometric.datasets import TUDataset
 
-from config import *
+from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR
 from training_utils import train_model_kcv
 
 # --- config ---

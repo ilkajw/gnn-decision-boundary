@@ -1,6 +1,5 @@
-# for reproducibility
 import os
-os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # or ":16:8"
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # or ":16:8"  # for reproducibility
 import torch
 import json
 import random
@@ -10,7 +9,6 @@ from torch_geometric.loader import DataLoader
 from sklearn.model_selection import StratifiedKFold
 from config import *
 
-# todo: make compatible with new forward
 
 def setup_reproducibility(seed=42):
     if hasattr(torch, "set_float32_matmul_precision"):
@@ -26,36 +24,40 @@ def setup_reproducibility(seed=42):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
+
 def train_epoch(model, loader, optimizer, device):
     model.train()
     total_loss = 0
-    # train step per batch
+    # loop over batches for train step on each
     for data in loader:
         data = data.to(device)
         optimizer.zero_grad()  # reset gradients
-        out = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, results in [batch_size]
-        loss = func.binary_cross_entropy_with_logits(out, data.y.float().view(-1))
-        # gradients per backprop and update
+        # todo: make compatible to logit dim > 1
+        logits = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, flattened to [batch_size]
+        y_true = data.y.float().view(-1)  # flattened classes
+        loss = func.binary_cross_entropy_with_logits(logits, y_true)
+        # take gradients per backprop and update
         loss.backward()
         optimizer.step()
         total_loss += loss.item()  # accumulate loss over batches
-    return total_loss / max(1, len(loader))  # average loss over batches
+    return total_loss / max(1, len(loader))  # average total loss over batches
 
 
-# evaluate accuracy
 def evaluate_accuracy(model, loader, device, thr=0.5):
     model.eval()
     correct, n = 0, 0
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            logits = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass
+            # todo: make compatible to logit dim > 1
+            logits = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, flattened to [batch_size]
             probs = torch.sigmoid(logits)
-            pred = (probs > thr).long()                         # predicted hard labels
-            y_hard = (data.y.float().view(-1) > thr).long()     # target hard labels
+            pred = (probs > thr).long()   # hard labels by thresholding predictions
+            y_true = data.y.float().view(-1)
+            y_hard = (y_true > thr).long()  # hard labels for soft labels in augmented data
             correct += (pred == y_hard).sum().item()
             n += y_hard.numel()
-    return correct / max(1, n)
+    return correct / max(1, n)  # average acc over datapoints
 
 
 def evaluate_loss(model, loader, device):
@@ -65,9 +67,10 @@ def evaluate_loss(model, loader, device):
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            logits = model(data.x, data.edge_index, data.batch).view(-1)
-            y = data.y.float().view(-1)
-            loss = func.binary_cross_entropy_with_logits(logits, y)
+            # todo: make compatible to logit dim > 1
+            logits = model(data.x, data.edge_index, data.batch).view(-1)  # forward pass, flattened to [batch_size]
+            y_true = data.y.float().view(-1)
+            loss = func.binary_cross_entropy_with_logits(logits, y_true)
             total_loss += loss.item()
             n_batches += 1
     return total_loss / max(1, n_batches)
@@ -109,19 +112,19 @@ def train_model_kcv(
     model_kwargs = model_kwargs or {}
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    labels = [data.y.item() for data in dataset]
+    true_labels = [data.y.item() for data in dataset]
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)
     accuracies = []
 
-    # to track best across all folds/epochs
+    # init to track best model
     best_acc = -1.0
     best_model_state = None
     best_split = None
 
-    # collect per-fold histories/indices
+    # collect per-fold histories
     fold_records = []
 
-    for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), labels)):
+    for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), true_labels)):
 
         if verbose:
             print(f"\n--- fold {fold + 1} ---")
@@ -185,6 +188,7 @@ def train_model_kcv(
                     print(f"New best is model trained over fold {fold + 1} "
                           f"in epoch {epoch} with test acc {test_acc: .4f}")
                 best_acc = float(test_acc)
+                # clone for deep copy
                 best_model_state = {k: v.detach().clone().cpu() for k, v in model.state_dict().items()}
                 torch.save(best_model_state, model_path)
 
@@ -226,21 +230,19 @@ def train_model_kcv(
     }
 
     # consolidated log
-    summary = {
-        "fold_accuracies": [float(a) for a in accuracies],
-        "mean_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
+    log = {
+        "fold_test_accuracies": [float(a) for a in accuracies],
+        "mean_test_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
         "std_accuracy": float(np.std(accuracies)) if accuracies else 0.0,
-        "best_model": best_split,
         "config": {
-            "model": model_config,
             "dataset": DATASET_NAME,
+            "model": model_config,
             "K_FOLDS": K_FOLDS,
             "EPOCHS": EPOCHS,
             "LEARNING_RATE": LEARNING_RATE,
             "BATCH_SIZE": BATCH_SIZE,
             "stratified": True,
             "augmentation": "None. Original training",
-            "device": str(device),
             "env": {
                 "torch": torch.__version__,
                 "cuda_available": torch.cuda.is_available(),
@@ -249,12 +251,12 @@ def train_model_kcv(
                 "device": str(device),
             },
         },
+        "best_split_info": best_split,
         "folds": fold_records
     }
 
     with open(log_path, "w") as f:
-        json.dump(summary, f, indent=2)
+        json.dump(log, f, indent=2)
 
     if verbose:
-        print(f"\n Average accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")
-
+        print(f"\n Average test accuracy over {K_FOLDS} folds: {np.mean(accuracies): .4f}")

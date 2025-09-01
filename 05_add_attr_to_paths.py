@@ -11,13 +11,16 @@ from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 # --- config ---
 
+# todo: alles falsch
 edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-base_pred_dict_fname = f"{DATASET_NAME}_{MODEL}_predictions.json"
-path_pred_dict_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
-pyg_seq_with_preds_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions"
+base_pred_dict_fname = f"data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_edit_path_predictions.json"
+path_pred_dict_fname = f"{DATASET_NAME}_edit_path_predictions.json"
+pyg_seq_with_preds_dir = f"data_control/MUTAG/predictions/edit_path_graphs_with_predictions"
+
 split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
 
-out_dir = PREDICTIONS_DIR
+out_dir = "data_control/MUTAG/predictions/"
+out_dir_cost = "data_control/MUTAG/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
 path_pred_metadata_dict_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions_metadata.json"
 
 
@@ -314,18 +317,18 @@ def add_cum_cost_to_path_preds_json(
 if __name__ == "__main__":
 
     # fail fast if inputs missing
-    for p in [edit_path_ops_dir, os.path.join(out_dir, base_pred_dict_fname),
-              os.path.join(out_dir, path_pred_dict_fname), pyg_seq_with_preds_dir, split_path]:
-        if not os.path.exists(p):
-            raise FileNotFoundError(f"Missing input directory: {p}")
+    #for p in [edit_path_ops_dir, os.path.join(out_dir, base_pred_dict_fname),
+     #         os.path.join(out_dir, path_pred_dict_fname), pyg_seq_with_preds_dir, split_path]:
+      #  if not os.path.exists(p):
+       #     raise FileNotFoundError(f"Missing input directory: {p}")
 
     os.makedirs(out_dir, exist_ok=True)
 
     add_attrs_to_path_preds_dict(
-            pred_dict_path=os.path.join(out_dir, path_pred_dict_fname),
-            base_pred_path=os.path.join(out_dir, base_pred_dict_fname),
+            pred_dict_path="data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_edit_path_predictions.json",
+            base_pred_path=f"data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_predictions.json",
             split_path=split_path,
-            output_path=os.path.join(out_dir, path_pred_metadata_dict_fname)
+            output_path="data_control/MUTAG/predictions/MUTAG_edit_path_predictions_metadata.json"
     )
 
     cum_costs = build_cum_costs_from_ops(
@@ -334,13 +337,15 @@ if __name__ == "__main__":
     )
 
     add_cum_cost_to_path_preds_json(
-        pred_json_path=os.path.join(out_dir, path_pred_metadata_dict_fname),
+        pred_json_path="data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_edit_path_predictions.json",
         cum_costs=cum_costs,
         add_field_name="cumulative_cost",
+        output_path="data_control/MUTAG/predictions/MUTAG_edit_path_predictions_metadata.json"
     )
 
     add_cum_cost_to_pyg_seq(
         cum_costs=cum_costs,
-        root_dir=pyg_seq_with_preds_dir,
+        root_dir="data_control/MUTAG/predictions/edit_path_graphs_with_predictions",
         add_field_name="cumulative_cost",
+        out_dir="data_control/MUTAG/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
     )

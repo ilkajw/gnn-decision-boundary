@@ -43,7 +43,7 @@ class GAT(torch.nn.Module):
         self.drop = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         # --- GATv2 stack ---
-        # todo: adapt to gcn and graphsage stack pattern
+        # todo: adapt to gcn and graphsage stack construction
         self.convs = nn.ModuleList()
         if num_layers == 1:
             self.convs.append(GATv2Conv(in_channels, hidden_channels, heads=heads, concat=False))
@@ -64,7 +64,7 @@ class GAT(torch.nn.Module):
         if mlp_layers == 1:
             self.head = nn.Linear(hidden_channels, out_channels)
         else:
-            blocks = []
+            blocks: list[nn.Module] = []
             for _ in range(mlp_layers - 1):
                 blocks += [nn.Linear(hidden_channels, hidden_channels),
                            act_cls(),  # instantiate per block for safety

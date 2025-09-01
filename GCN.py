@@ -3,7 +3,6 @@ from torch import nn
 from torch.nn import LayerNorm
 from torch_geometric.nn import GCNConv, global_add_pool, BatchNorm, global_mean_pool, global_max_pool
 
-
 # supported activations
 _ACTS = {
     "relu": nn.ReLU,
@@ -29,30 +28,28 @@ class GCN(torch.nn.Module):
             num_layers: int = 4,
             activation: str = "elu",  # 'relu' | 'elu' | 'gelu' | 'leaky_relu' | 'identity'
             normalization: str | None = None,
-            dropout=0.5,
+            dropout=0.2,
             readout: str = "sum",  # 'sum' | 'mean' | 'max'
             mlp_layers: int = 1,
             out_channels: int = 1,  # graph-level logits dim
             improved: bool = False,
-            gat_heads: int = 8,  # to mimic gat width
+
     ):
         super().__init__()
         assert in_channels >= 1, "in_channels must be >= 1"
         assert hidden_channels >= 1, "hidden_channels must be >= 1"
         assert num_layers >= 1, "num_layers must be >= 1"
-        assert activation.lower() in _ACTS, f"unknown activation '{activation}'. choose from {list(_ACTS.keys())}."
-        assert normalization.lower() in _NORMS, f"unknown normalization '{normalization.lower()}'. choose from {list(_NORMS.keys())}."
+        assert activation.lower() in _ACTS, f"unknown activation '{activation.lower()}'. " \
+                                            f"choose from {list(_ACTS.keys())}."
+        assert normalization is None or normalization.lower() in _NORMS, f"unknown normalization '{normalization.lower()}'. " \
+                                                f"choose from {list(_NORMS.keys())}."
         assert 0 <= dropout <= 1, "dropout has to be in range [0, 1]"
         assert readout in ["sum", "mean", "max"], f"unknown readout '{readout}'. choose 'mean', 'sum' or 'max'."
         assert mlp_layers >= 1, "mlp_layers must be >= 1"
         assert out_channels >= 1, "out_channels must be >= 1"
-        assert gat_heads >= 1, "gat_heads must be >= 1"
 
         act_cls = _ACTS[activation.lower()]
         norm_cls = _NORMS[normalization]
-
-        # mimic GAT width
-        width = hidden_channels * gat_heads if num_layers > 1 else hidden_channels
 
         self.convs = nn.ModuleList()
         self.norms = nn.ModuleList() if normalization is not None else None
@@ -66,8 +63,9 @@ class GCN(torch.nn.Module):
         }[readout]
 
         # define per-layer input and output dims
-        in_dims = [in_channels] + [width] * max(0, num_layers - 2)
-        out_dims = [width] * max(0, num_layers - 2) + [hidden_channels] if num_layers > 1 else [hidden_channels]
+        in_dims = [in_channels] + [hidden_channels] * max(0, num_layers - 1)
+        out_dims = [hidden_channels] * max(0, num_layers - 1) + [hidden_channels] if num_layers > 1 else [
+            hidden_channels]
 
         # GCN stack
         for in_d, out_d in zip(in_dims, out_dims):
@@ -79,7 +77,7 @@ class GCN(torch.nn.Module):
         if mlp_layers == 1:
             self.head = nn.Linear(hidden_channels, out_channels)
         else:
-            blocks = []
+            blocks: list[nn.Module] = []
             for _ in range(mlp_layers - 1):
                 blocks += [nn.Linear(hidden_channels, hidden_channels),
                            act_cls(),  # instantiate per block for safety

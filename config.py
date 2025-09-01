@@ -13,8 +13,8 @@ assert MODEL in {"GAT", "GCN", "GraphSAGE"}, \
     f"Invalid MODEL={MODEL!r}, must be 'GAT', 'GCN or 'GraphSAGE'."
 MODEL_REGISTRY = {
     "GAT": (GAT, dict(hidden_channels=8, heads=8, dropout=0.2)),
-    "GCN": (GCN, dict(hidden_channels=64, dropout=0.5, gat_heads=8)),
-    "GraphSAGE": (GraphSAGE, dict(hidden_channels=64, dropout=0.5, gat_heads=8))
+    "GCN": (GCN, dict(hidden_channels=64, dropout=0.2)),
+    "GraphSAGE": (GraphSAGE, dict(hidden_channels=64, dropout=0.2))
 }
 MODEL_CLS, MODEL_KWARGS = MODEL_REGISTRY[MODEL]
 MODEL_DIR = f'models/{DATASET_NAME}/{MODEL}'
