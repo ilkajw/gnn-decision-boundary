@@ -17,7 +17,7 @@ from EditPathGraphDataset import EditPathGraphsDataset
 from GAT import GAT
 from training_utils import train_epoch, evaluate_loss, evaluate_accuracy, setup_reproducibility
 from config import (
-    ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT  # MODEL_CLS, MODEL_KWARGS
+    ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL  # MODEL_CLS, MODEL_KWARGS
 )
 
 # ----- input, output paths ----
@@ -157,7 +157,8 @@ if __name__ == "__main__":
 
     # collect per-fold histories/indices
     fold_records = []
-
+    if VERBOSE:
+        print(f"--- training {MODEL} model with flips at {FLIP_AT} ---")
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(base_ds)), labels), start=1):
         if VERBOSE:
             print(f"\n--- fold {fold} ---")
@@ -242,7 +243,7 @@ if __name__ == "__main__":
             dropout=DROPOUT,
         ).to(device)
 
-        # model = MODEL_CLS(infer_in_channels(dataset), **MODEL_KWARGS)
+        # model = MODEL_CLS(infer_in_channels(dataset), **MODEL_KWARGS).to(device)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
