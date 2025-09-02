@@ -94,16 +94,16 @@ class EditPathGraphsDataset(InMemoryDataset):
         Normalized progress t in [0,1] based on config.DISTANCE_MODE.
         """
         if DISTANCE_MODE == "cost":
-            dist = float(getattr(g, "distance", 0.0))
-            step = float(getattr(g, "cumulative_cost", 0.0))
+            dist = float(getattr(g, "distance"))
+            step = float(getattr(g, "cumulative_cost"))
         elif DISTANCE_MODE == "edit_step":
-            dist = float(getattr(g, "num_all_ops", 0.0))
-            step = float(getattr(g, "edit_step", 0.0))
+            dist = float(getattr(g, "num_all_ops"))
+            step = float(getattr(g, "edit_step"))
         else:
             print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. "
                   f"Expected 'cost' or 'edit_step'. Defaulting to 'cost'.")
-            dist = float(getattr(g, "distance", 0.0))
-            step = float(getattr(g, "cumulative_cost", 0.0))
+            dist = float(getattr(g, "distance"))
+            step = float(getattr(g, "cumulative_cost"))
         t = max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
         #i = getattr(g, "source_idx", 0.0)
         #j = getattr(g, "target_idx", 0.0)

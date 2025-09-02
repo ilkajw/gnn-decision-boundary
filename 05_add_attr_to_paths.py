@@ -11,23 +11,28 @@ from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 # --- config ---
 
-# todo: alles falsch
+# input
 edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-base_pred_dict_fname = f"data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_edit_path_predictions.json"
-path_pred_dict_fname = f"{DATASET_NAME}_edit_path_predictions.json"
-pyg_seq_with_preds_dir = f"data_control/MUTAG/predictions/edit_path_graphs_with_predictions"
 
-split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
+pyg_seq_with_preds_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions"
 
-out_dir = "data_control/MUTAG/predictions/"
-out_dir_cost = "data_control/MUTAG/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-path_pred_metadata_dict_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions_metadata.json"
+base_pred_dict_fname = f"{DATASET_NAME}_{MODEL}_predictions.json"
+base_pred_dict_path = os.path.join(PREDICTIONS_DIR, base_pred_dict_fname)
+
+path_pred_dict_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
+path_pred_dict_path = os.path.join(PREDICTIONS_DIR, path_pred_dict_fname)  # will be overwritten with enriched attr
+
+split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
+
+
+# output
+seq_out_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
 
 
 # --- helpers ---
 
 # todo: info on train, test split and correct classification in preds json metadata never used in pipeline. delete?
-def add_attrs_to_path_preds_dict(pred_dict_path, base_pred_path, split_path, output_path):
+def add_attrs_to_path_preds_dict(path_pred_json_path, base_pred_json_path, split_path, output_path):
     """
     Enriches dictionary entries of edit path predictions with additional metadata to help later analysis:
     - true class labels of source and target
@@ -35,20 +40,20 @@ def add_attrs_to_path_preds_dict(pred_dict_path, base_pred_path, split_path, out
     - whether source/target were classified correctly
 
     Args:
-        :param pred_dict_path:
+        :param path_pred_json_path:
         :param split_path: Path to saved train, test split
-        :param base_pred_path: Path to original MUTAG predictions file
+        :param base_pred_json_path: Path to original MUTAG predictions file
         :param output_path: Path to file where enriched dictionary is saved
 
     Returns:
         list: Enriched prediction dictionaries
     """
     # load path graph predictions
-    with open(pred_dict_path, "r", encoding="utf-8") as f:
+    with open(path_pred_json_path, "r", encoding="utf-8") as f:
         pred_dict = json.load(f)
 
     # load predictions on org graphs
-    with open(base_pred_path, "r", encoding="utf-8") as f:
+    with open(base_pred_json_path, "r", encoding="utf-8") as f:
         base_preds = json.load(f)
 
     # load train, test split
@@ -155,7 +160,7 @@ def _align_costs_to_seq(seq, costs):
 
 def add_cum_cost_to_pyg_seq(
     cum_costs,                      # dict[(i,j)] -> [cumulative costs]
-    root_dir,                       # directory with *.pt sequences
+    seq_dir,                       # directory with *.pt sequences
     add_field_name: str = "cumulative_cost",
     out_dir: str | None = None,  # if None, overwrite original sequences
 ):
@@ -168,7 +173,7 @@ def add_cum_cost_to_pyg_seq(
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
 
     # choose a safe output directory todo: delete suffix, overwrite for simplicity
-    out_dir = out_dir or (root_dir)
+    out_dir = out_dir or (seq_dir)
     os.makedirs(out_dir, exist_ok=True)
     add_safe_globals([Data])
 
@@ -177,7 +182,7 @@ def add_cum_cost_to_pyg_seq(
     skipped_no_match = 0
     missing_files = 0
 
-    for fname in sorted(os.listdir(root_dir)):
+    for fname in sorted(os.listdir(seq_dir)):
         if not fname.endswith(".pt"):
             continue
 
@@ -189,7 +194,7 @@ def add_cum_cost_to_pyg_seq(
 
         i, j = int(m.group(1)), int(m.group(2))
 
-        in_path = os.path.join(root_dir, fname)
+        in_path = os.path.join(seq_dir, fname)
 
         # find costs for (i,j) or (j,i)
         key = (i, j)
@@ -263,13 +268,13 @@ def add_cum_cost_to_pyg_seq(
 
 
 def add_cum_cost_to_path_preds_json(
-    pred_json_path,
+    path_pred_json_path,
     cum_costs,                      # dict[(i,j)] -> [cumulative costs]
     add_field_name: str = "cumulative_cost",
-    out_path: str | None = None,
+    out_path: str | None = None,  # if None overwrite
 ):
     # load predictions json including meta-data
-    with open(pred_json_path, "r") as f:
+    with open(path_pred_json_path, "r") as f:
         entries = json.load(f)
 
     updated = []
@@ -307,7 +312,7 @@ def add_cum_cost_to_path_preds_json(
     # save updated json
     if out_path is None:
         # overwrite input dir. (before: pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json"))
-        out_path = pred_json_path
+        out_path = path_pred_json_path
     os.makedirs(os.path.dirname(out_path))
     with open(out_path, "w") as f:
         json.dump(updated, f, indent=2)
@@ -317,18 +322,17 @@ def add_cum_cost_to_path_preds_json(
 if __name__ == "__main__":
 
     # fail fast if inputs missing
-    #for p in [edit_path_ops_dir, os.path.join(out_dir, base_pred_dict_fname),
-     #         os.path.join(out_dir, path_pred_dict_fname), pyg_seq_with_preds_dir, split_path]:
-      #  if not os.path.exists(p):
-       #     raise FileNotFoundError(f"Missing input directory: {p}")
+    for p in [edit_path_ops_dir, base_pred_dict_path, path_pred_dict_path, pyg_seq_with_preds_dir, split_path]:
+        if not os.path.exists(p):
+            raise FileNotFoundError(f"Missing input directory: {p}")
 
-    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(seq_out_dir, exist_ok=True)
 
     add_attrs_to_path_preds_dict(
-            pred_dict_path="data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_edit_path_predictions.json",
-            base_pred_path=f"data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_predictions.json",
+            path_pred_json_path=path_pred_dict_path,
+            base_pred_json_path=base_pred_dict_path,
             split_path=split_path,
-            output_path="data_control/MUTAG/predictions/MUTAG_edit_path_predictions_metadata.json"
+            output_path=path_pred_dict_path,  # overwrite
     )
 
     cum_costs = build_cum_costs_from_ops(
@@ -337,15 +341,14 @@ if __name__ == "__main__":
     )
 
     add_cum_cost_to_path_preds_json(
-        pred_json_path="data_actual_best\MUTAG\GAT\predictions\MUTAG_GAT_edit_path_predictions.json",
+        path_pred_json_path=path_pred_dict_path,
         cum_costs=cum_costs,
         add_field_name="cumulative_cost",
-        output_path="data_control/MUTAG/predictions/MUTAG_edit_path_predictions_metadata.json"
+        output_path=path_pred_dict_path,  # overwrite
     )
 
     add_cum_cost_to_pyg_seq(
         cum_costs=cum_costs,
-        root_dir="data_control/MUTAG/predictions/edit_path_graphs_with_predictions",
-        add_field_name="cumulative_cost",
-        out_dir="data_control/MUTAG/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+        seq_dir=pyg_seq_with_preds_dir,
+        add_field_name=seq_out_dir,  # write to separate dir. if None -> overwrite
     )

@@ -21,13 +21,13 @@ from config import (
 )
 
 # ----- input, output paths ----
-
+# todo: adjust the paths correctly after GAT training
 # directory with all path sequences (.pt lists)
 path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
 # old and wrong: f"data_control/{DATASET_NAME}/pyg_edit_path_graphs"
 
 # path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
-base_labels_path = f"data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"  #f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
+base_labels_path = f"data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"
 
 # output file name definitions
 output_dir = f"model_cv_augmented/flip_at_{int(FLIP_AT*100)}/{DATASET_NAME}"
@@ -205,6 +205,9 @@ if __name__ == "__main__":
             "p1": (train_n1 / train_n) if train_n > 0 else 0.0,
         }
 
+        if VERBOSE:
+            print(f"train path class shares: 0: {path_stats['n0']}, 1: {path_stats['n1']}")
+
         # final train = base train + belonging path graphs. test = base test only
         train_dataset = ConcatDataset([train_subset, path_train])
         test_dataset = test_subset
@@ -231,7 +234,7 @@ if __name__ == "__main__":
         )
 
         # init model + optimizer
-        # todo: inject model class below instead
+        # todo: use model class below instead
         model = GAT(
             in_channels=in_channels,
             hidden_channels=HIDDEN_CHANNELS,
