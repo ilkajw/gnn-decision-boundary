@@ -12,9 +12,9 @@ from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 # ---- set input, output paths ----
 edit_paths_input_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
 pred_graph_seq_input_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions"
-# todo: add variable not needed when overwriting sequence input dir
-# wa before: pred_graph_seq_cum_cost_input_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-pred_graph_seq_cum_cost_input_dir = pred_graph_seq_input_dir
+pred_graph_seq_cum_cost_input_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+# in case of overwriting: pred_graph_seq_cum_cost_input_dir = pred_graph_seq_input_dir
+
 output_dir = ANALYSIS_DIR
 dist_cost_fname = f"{DATASET_NAME}_dist_per_path.json"
 dist_num_ops_fname = f"{DATASET_NAME}_num_ops_per_path.json"

@@ -84,6 +84,9 @@ class EditPathGraphsDataset(InMemoryDataset):
     # -------------- internal helpers -------------------------
 
     def _load_base_labels(self):
+        """
+        True classes of original dataset graphs.
+        """
         with open(self.base_pred_path, "r") as f:
             base = json.load(f)
         # ensure int keys
@@ -105,8 +108,8 @@ class EditPathGraphsDataset(InMemoryDataset):
             dist = float(getattr(g, "distance"))
             step = float(getattr(g, "cumulative_cost"))
         t = max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
-        #i = getattr(g, "source_idx", 0.0)
-        #j = getattr(g, "target_idx", 0.0)
+        #i = getattr(g, "source_idx")
+        #j = getattr(g, "target_idx")
         #print(f"{i}, {j}: t: {t}")
         return t  # max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
 
@@ -228,6 +231,7 @@ class EditPathGraphsDataset(InMemoryDataset):
                   f"{' and meta to ' + meta_path if meta_path else ''}")
 
 
+# todo: delete, not needed in relevant code
 class FlatGraphDataset(InMemoryDataset):
     """
     Lightweight dataset to load a previously saved (data, slices) .pt file

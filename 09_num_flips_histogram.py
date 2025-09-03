@@ -8,7 +8,7 @@ from index_sets_utils import build_index_set_cuts
 
 
 # ---- set input, output params ----
-split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
+split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
 output_dir = f"{ANALYSIS_DIR}"
 output_fname = f"{DATASET_NAME}_{MODEL}_flips_hist_by_{DISTANCE_MODE}.json"
 

@@ -5,7 +5,7 @@ import torch
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 
-from config import DATASET_NAME, MODEL, MODEL_DIR,  PREDICTIONS_DIR
+from config import DATASET_NAME, MODEL, MODEL_DIR, PREDICTIONS_DIR
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
@@ -350,5 +350,6 @@ if __name__ == "__main__":
     add_cum_cost_to_pyg_seq(
         cum_costs=cum_costs,
         seq_dir=pyg_seq_with_preds_dir,
-        add_field_name=seq_out_dir,  # write to separate dir. if None -> overwrite
+        add_field_name="cumulative_cost",
+        out_path=seq_out_dir,  # write to separate dir. if None -> overwrite
     )

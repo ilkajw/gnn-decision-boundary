@@ -16,7 +16,7 @@ correctly_classified_only = False
 
 # ---- set input, output paths ----
 
-split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
+split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_path_length_stats_by_{DISTANCE_MODE}.json"
 
