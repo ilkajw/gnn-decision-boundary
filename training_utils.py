@@ -124,6 +124,8 @@ def train_model_kcv(
     # collect per-fold histories
     fold_records = []
 
+    print(f"--- original {MODEL} training on {DATASET_NAME} ---")
+
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), true_labels)):
 
         if verbose:

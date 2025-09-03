@@ -24,22 +24,30 @@ from config import (
 # todo: adjust the paths correctly after GAT training
 # directory with all path sequences (.pt lists)
 path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-# old and wrong: f"data_control/{DATASET_NAME}/pyg_edit_path_graphs"
+# later back to: f"{PREDICTIONS_DIR}/{DATASET_NAME}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
 
 # path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
 base_labels_path = f"data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"
+# later back to: f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_predictions.json"
 
 # output file name definitions
 output_dir = f"model_cv_augmented/flip_at_{int(FLIP_AT*100)}/{DATASET_NAME}"
+# later back to: f"models_cv_augmented/{DATASET_NAME}/{MODEL}/{flip_at_{int(FLIP_AT*100)}/"
+
 model_fname = f"{DATASET_NAME}_best_model_flip_{int(FLIP_AT*100)}_new.pt"
+# later back to:f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
+
 split_fname = f"{DATASET_NAME}_best_split_flip_{int(FLIP_AT*100)}_new.json"
+# later back to:f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"
+
 log_fname = f"{DATASET_NAME}_train_log_flip_{int(FLIP_AT*100)}_new.json"
+# later back to:f"{DATASET_NAME}_{MODEL}_train_log_flip_{int(FLIP_AT*100)}.json"
 
 # set run configs
 DROP_ENDPOINTS = True
 VERBOSE = True
 
-# todo: inject class and delete these values later
+# todo: delete when model_cls used
 HIDDEN_CHANNELS = 8
 HEADS = 8
 DROPOUT = 0.2
@@ -243,7 +251,7 @@ if __name__ == "__main__":
             dropout=DROPOUT,
         ).to(device)
 
-        # model = MODEL_CLS(infer_in_channels(dataset), **MODEL_KWARGS).to(device)
+        # model = MODEL_CLS(infer_in_channels(base_ds), **MODEL_KWARGS).to(device)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 

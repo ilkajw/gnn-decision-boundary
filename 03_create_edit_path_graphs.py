@@ -142,7 +142,6 @@ def generate_edit_path_graphs(data_dir,
             file_path = os.path.join(pyg_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
-    # todo: eig nicht intermediate
     # save paths with target graph insertion
     os.makedirs(f"{ANALYSIS_DIR}/test", exist_ok=True)
     with open(f"{ANALYSIS_DIR}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:

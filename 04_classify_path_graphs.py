@@ -11,7 +11,8 @@ from config import *
 # --- config ---
 model_path = f"{MODEL_DIR}/{MODEL}_model.pt"
 graph_seq_dir = LEGACY_PYG_SEQ_DIR  # todo: later back to f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
-output_dir = PREDICTIONS_DIR  # for graph seqs with predictions added and json summary
+# for graph seqs with predictions (subdirectory will be created for them in function) added and json summary
+output_dir = PREDICTIONS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
 
 

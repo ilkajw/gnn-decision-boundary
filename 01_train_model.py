@@ -6,9 +6,9 @@ from training_utils import train_model_kcv
 
 # --- config ---
 output_dir = MODEL_DIR
-model_fname = f"{MODEL}_model.pt"
-split_fname = f"{MODEL}_best_split.json"
-log_fname = f"{MODEL}_train_log.json"
+model_fname = f"{DATASET_NAME}_{MODEL}_model.pt"
+split_fname = f"{DATASET_NAME}_{MODEL}_best_split.json"
+log_fname = f"{DATASET_NAME}_{MODEL}_train_log.json"
 
 
 # --- run ---

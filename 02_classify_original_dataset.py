@@ -8,7 +8,7 @@ from config import *
 # --- config ---
 output_dir = PREDICTIONS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_predictions.json"
-model_path = f"{MODEL_DIR}/{MODEL}_model.pt"
+model_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_model.pt"
 model_cls = MODEL_CLS
 model_kwargs = MODEL_KWARGS
 
