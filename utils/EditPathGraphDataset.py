@@ -234,35 +234,3 @@ class EditPathGraphsDataset(InMemoryDataset):
                   f"{' and meta to ' + meta_path if meta_path else ''}")
 
 
-# todo: delete, not needed in relevant code
-class FlatGraphDataset(InMemoryDataset):
-    """
-    Lightweight dataset to load a previously saved (data, slices) .pt file
-    to avoid rebuilding from sequences for training/evaluation.
-    """
-
-    def __init__(self, saved_path, transform=None, pre_transform=None, verbose=True):
-        self.saved_path = saved_path
-        self.verbose = verbose
-        root_dir = os.path.join(os.path.dirname(saved_path) or ".", "_flat_root")
-        os.makedirs(root_dir, exist_ok=True)
-        super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
-
-        add_safe_globals([Data, DataEdgeAttr])
-        self.data, self.slices = torch.load(saved_path, weights_only=False)
-
-        if self.verbose:
-            try:
-                n = self.len()
-            except Exception:
-                n = "?"
-            print(f"[FlatGraphDataset] Loaded {n} graphs from {saved_path}")
-
-    @property
-    def raw_file_names(self): return []
-
-    @property
-    def processed_file_names(self): return []
-
-    def download(self): pass
-    def process(self): pass

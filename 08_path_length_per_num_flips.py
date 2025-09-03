@@ -2,13 +2,12 @@ import json
 import statistics as stats
 from collections import defaultdict
 
-from config import DATASET_NAME
+from config import DATASET_NAME, ANALYSIS_DIR
 
-# todo: update paths, add saving
 
 # ---- input files ----
-FLIPS_FILE = f"data_control/MUTAG/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
-DIST_FILE = f"data_control/MUTAG/analysis/{DATASET_NAME}_dist_per_path.json"
+FLIPS_FILE = f"{ANALYSIS_DIR}/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+DIST_FILE = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
 
 
 # ---- definition -----

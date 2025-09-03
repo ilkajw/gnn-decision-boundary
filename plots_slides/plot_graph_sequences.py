@@ -10,9 +10,9 @@ from config import DATASET_NAME, ROOT
 
 # --- config ---
 
-SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/selected_sequences"
-PLOT_DIR = f"{ROOT}/{DATASET_NAME}/graph_plots_selected"
-LAYOUT = "kamada_kawai"  # "spring", "kamada_kawai", "spectral", "circular", "shell"
+SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/paths_to_plot"
+PLOT_DIR = f"{ROOT}/{DATASET_NAME}/path_plots"
+LAYOUT = "kamada_kawai"  # "spring" | "kamada_kawai" | "spectral" | "circular" | "shell"
 NODE_ATTR = "primary_label"  # None to use node IDs
 EDGE_ATTR = "label"  # None to hide edge labels
 
@@ -74,7 +74,7 @@ def plot_graph_sequence(
 
     fig, axes = plt.subplots(
         nrows=nrows, ncols=ncols,
-        figsize=(6*ncols, 6*nrows),  # each subplot ~6x6 inches
+        figsize=(6*ncols, 6*nrows),
         dpi=120
     )
     axes = axes.flatten() if n > 1 else [axes]

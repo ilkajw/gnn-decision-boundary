@@ -12,7 +12,7 @@ from config import DATASET_NAME, ROOT
 # --- config ---
 
 NX_INPUT_DIR = f"{ROOT}/{DATASET_NAME}/nx_edit_path_graphs"
-SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/selected_sequences"  # to save picked sequences to
+SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/paths_to_plot"  # to save picked sequences to
 MAX_LEN = 4
 PYG_ROOT = "data/pyg"  # for TUDataset to read labels
 

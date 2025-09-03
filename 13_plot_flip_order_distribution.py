@@ -3,8 +3,6 @@ import json
 import matplotlib.pyplot as plt
 from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
 
-# todo: delete calculation + plot for global as it's equal to 'diff_class_all' or 'same_class_all'
-
 
 # ----- paths ----
 INPUT_PATH = os.path.join(
