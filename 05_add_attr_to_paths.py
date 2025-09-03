@@ -311,9 +311,9 @@ def add_cum_cost_to_path_preds_json(
 
     # save updated json
     if out_path is None:
-        # overwrite input dir. (before: pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json"))
+        # overwrite input dir. (was: pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json"))
         out_path = path_pred_json_path
-    os.makedirs(os.path.dirname(out_path))
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w") as f:
         json.dump(updated, f, indent=2)
 
@@ -344,7 +344,7 @@ if __name__ == "__main__":
         path_pred_json_path=path_pred_dict_path,
         cum_costs=cum_costs,
         add_field_name="cumulative_cost",
-        output_path=path_pred_dict_path,  # overwrite
+        out_path=path_pred_dict_path,  # overwrite
     )
 
     add_cum_cost_to_pyg_seq(
