@@ -20,6 +20,11 @@ from config import (
     ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL  # MODEL_CLS, MODEL_KWARGS
 )
 
+
+# todo: alternatively to current solution,
+#  set DROP_ENDPOINTS=False and train_dataset = path_train
+
+
 # ----- input, output paths ----
 # todo: adjust the paths correctly after GAT training
 # directory with all path sequences (.pt lists)
@@ -146,38 +151,40 @@ if __name__ == "__main__":
         root=ROOT,
         name=DATASET_NAME,
         transform=Compose([
-            to_float_y(),
+            to_float_y(),  # ensure float labels
             drop_edge_attr(),  # remove edge_attr so schema matches path graphs
-            tag_origin("org"),
+            tag_origin("org"),  # tag each graph with origin (org vs. edit)
         ])
     )
-    labels = hard_labels(base_ds)
+
+    labels = hard_labels(base_ds)  # in case of soft labelling, derive hard labels for StratifiedKFold
 
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     in_channels = infer_in_channels(base_ds)
     accuracies = []
 
-    # tracking best across all folds/epochs
+    # to track best model
     best_acc = -1.0
     best_model_state = None
     best_split = None
 
-    # collect per-fold histories/indices
+    # to collect per-fold info
     fold_records = []
+
     if VERBOSE:
         print(f"--- training {MODEL} model on augmented data with flips at {FLIP_AT} ---")
+
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(base_ds)), labels), start=1):
+
         if VERBOSE:
             print(f"\n--- fold {fold} ---")
 
-        # todo: alternatively to current solution,
-        #  set DROP_ENDPOINTS=False and train_dataset = path_train
-
+        # define train, test split on original dataset
         train_subset = Subset(base_ds, train_idx.tolist())
         test_subset = Subset(base_ds,  test_idx.tolist())
 
-        # augment train subset with path graphs whose endpoints are in train_idx
+        # augment train subset with path graphs between training graphs
         allowed_indices = set(map(int, train_idx.tolist()))
         print(f"[info] building augmented dataset...")
         path_train = EditPathGraphsDataset(
@@ -189,11 +196,13 @@ if __name__ == "__main__":
             allowed_indices=allowed_indices,  # filter for paths between graphs from train split
         )
 
-        # drop path graph meta data (edit step, cumulative cost, ...) so scheme matches org graphs
         path_train.transform = Compose([
+            # ensure float labels
             to_float_y(),
+            # drop attrs to match org schema for collating
             drop_keys(["edit_step", "cumulative_cost", "source_idx", "target_idx",
                        "iteration", "distance", "num_all_ops", "prediction", "probability"]),
+            # tag each graph with origin (org vs. edit)
             tag_origin("edit"),
         ])
 
@@ -215,9 +224,10 @@ if __name__ == "__main__":
         }
 
         if VERBOSE:
-            print(f"train path class shares: 0: {path_stats['n0']}, 1: {path_stats['n1']}")
+            print(f"[info] path graph classes: 0: {path_stats['n0']}, 1: {path_stats['n1']}")
 
-        # final train = base train + belonging path graphs. test = base test only
+        # final train = base train + belonging path graphs,
+        # final test = base test
         train_dataset = ConcatDataset([train_subset, path_train])
         test_dataset = test_subset
 
@@ -285,16 +295,16 @@ if __name__ == "__main__":
             hist["test_acc"].append(float(test_acc))
 
             if VERBOSE:
-                print(f"Epoch {epoch:03d} | train loss: {train_loss:.4f} "
-                      f"| test loss: {test_loss:.4f} | test acc: {test_acc:.4f} "
-                      f"| time: {int(m):02d}:{s:06.3f}")
+                print(f"Epoch {epoch: 03d} | train loss: {train_loss: .4f} "
+                      f"| test loss: {test_loss: .4f} | test acc: {test_acc: .4f} "
+                      f"| time: {int(m): 02d}:{s: 06.3f}")
 
             # track best across all folds/epochs
             if test_acc > best_acc:
                 if VERBOSE:
-                    print(f"New best model at fold {fold}, epoch {epoch} with test acc {test_acc:.4f}")
+                    print(f"[info] new best model in fold {fold}, epoch {epoch} with test acc {test_acc: .4f}")
                 best_acc = test_acc
-                best_model_state = model.state_dict()
+                best_model_state = {k: v.detach().clone().cpu() for k, v in model.state_dict().items()}
                 best_split = {
                     "train_idx": list(map(int, train_idx)),
                     "test_idx":  list(map(int, test_idx)),
@@ -370,7 +380,7 @@ if __name__ == "__main__":
         json.dump(log, f, indent=2)
 
     if VERBOSE:
-        print(f"\n Average test accuracy over {K_FOLDS} folds: "
-              f"{float(np.mean(accuracies)) if accuracies else 0.0:.4f}")
-        print(f"Saved best model → {model_path}")
-        print(f"Saved log → {log_path}")
+        print(f"\n [info] average test accuracy over {K_FOLDS} folds: "
+              f"{float(np.mean(accuracies)) if accuracies else 0.0: .4f}")
+        print(f"[info] saved best model → {model_path}")
+        print(f"[info] saved log → {log_path}")

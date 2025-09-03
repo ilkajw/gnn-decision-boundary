@@ -89,9 +89,9 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
     return cuts
 
 
-def graphs_correctly_classified(dataset_name=DATASET_NAME):
+def graphs_correctly_classified(dataset_name=DATASET_NAME, model=MODEL):
     """Returns the indices of all original graphs classified correctly by model selected in config."""
-    with open(f"{PREDICTIONS_DIR}/{dataset_name}_{MODEL}_predictions.json") as f:
+    with open(f"{PREDICTIONS_DIR}/{dataset_name}_{model}_predictions.json") as f:  # makes no sense as pred_dir from config
         predictions = json.load(f)
     correct_idxs = [int(i) for i, entry in predictions.items() if entry["correct"]]
     return correct_idxs

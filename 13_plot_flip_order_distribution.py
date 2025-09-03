@@ -3,7 +3,7 @@ import json
 import matplotlib.pyplot as plt
 from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
 
-# todo: delete calculation and plot for global as it's equal to 'diff_class_all' or 'same_class_all'
+# todo: delete calculation + plot for global as it's equal to 'diff_class_all' or 'same_class_all'
 
 
 # ----- paths ----
@@ -29,7 +29,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
       - top of bar: fraction of all flips in that decile
     """
     if "flip_order_distribution" not in entry:
-        print(f"[WARN] no flip_order_distribution for k={k}")
+        print(f"[warn] no flip_order_distribution for k={k}")
         return
 
     flip_order_dist = entry["flip_order_distribution"]
@@ -121,7 +121,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
 if __name__ == "__main__":
 
     if not os.path.exists(INPUT_PATH):
-        raise FileNotFoundError(f"Missing input JSON: {INPUT_PATH}")
+        raise FileNotFoundError(f"missing input JSON: {INPUT_PATH}")
 
     with open(INPUT_PATH, "r") as f:
         data = json.load(f)
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     all_sets = {"global": data["global"], **data["per_index_set"]}
 
     for set_name, stats in all_sets.items():
-        print(f"→ Plotting for index set: {set_name}")
+        print(f"→ plotting for index set: {set_name}")
         for k_str, entry in stats.items():
             if k_str == "num_pairs":   # skip metadata
                 continue
@@ -148,4 +148,4 @@ if __name__ == "__main__":
                 out_path,
                 description=f"{set_name} (n={num_paths})"
             )
-            print(f"Saved plot → {out_path}")
+            print(f"saved plot → {out_path}")

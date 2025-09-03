@@ -9,10 +9,13 @@ from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR
 
 
 # --- config ---
+# input
 model_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_model.pt"
 graph_seq_dir = LEGACY_PYG_SEQ_DIR  # todo: later back to f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
+
+# output
 # for json summary and graph seqs with predictions added
-# (further subdirectory 'edit_path_graphs_with_predictions' will be created for the latter in function)
+# (further subdirectory 'edit_path_graphs_with_predictions' will be created in function for the latter)
 output_dir = PREDICTIONS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
 
@@ -51,6 +54,8 @@ def edit_path_predictions(
     model.load_state_dict(state)
     model.eval()
 
+    add_safe_globals([Data])
+
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(os.path.join(output_dir, "edit_path_graphs_with_predictions"), exist_ok=True)
     predictions = []
@@ -63,7 +68,6 @@ def edit_path_predictions(
 
         # load ep graph sequence
         path = os.path.join(input_dir, filename)
-        add_safe_globals([Data])
         graph_sequence = torch.load(path, weights_only=False)
 
         updated_sequence = []

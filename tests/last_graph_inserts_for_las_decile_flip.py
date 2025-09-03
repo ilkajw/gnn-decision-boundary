@@ -1,10 +1,10 @@
 import os, json
-from config import DATASET_NAME, DISTANCE_MODE
+from config import DATASET_NAME, DISTANCE_MODE, ROOT, ANALYSIS_DIR
 from index_sets_utils import build_index_set_cuts
 
 K_ALLOWED = {1, 2}
-INSERTED_FILE = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_paths_with_target_graph_inserted.json"
-OUT_PATH = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_target_inserts_among_last_decile_flip_k12.json"
+INSERTED_FILE = f"{ROOT}/{DATASET_NAME}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json"
+OUT_PATH = f"{ANALYSIS_DIR}/{DATASET_NAME}_target_inserts_among_last_decile_flip_k12.json"
 
 def norm_pair(i, j):
     i, j = int(i), int(j)
@@ -41,15 +41,15 @@ def has_last_decile(flips, dist):
 if __name__ == "__main__":
     # pick inputs based on distance mode
     if DISTANCE_MODE == "cost":
-        dist_path  = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+        dist_path  = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
     elif DISTANCE_MODE == "num_ops":
-        dist_path  = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_num_ops_per_path.json"
-        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
+        dist_path  = f"{ANALYSIS_DIR}/{DATASET_NAME}_num_ops_per_path.json"
+        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_flip_occurrences_per_path_by_edit_step.json"
     else:
-        print(f"[WARN] DISTANCE_MODE={DISTANCE_MODE!r}; assuming 'cost'.")
-        dist_path  = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
+        print(f"[WARN] DISTANCE_MODE={DISTANCE_MODE!r}; defaulting to 'cost'.")
+        dist_path  = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
 
     with open(dist_path, "r") as f:        distances = json.load(f)
     with open(flips_path, "r") as f:       flips_per_path = json.load(f)

@@ -65,7 +65,7 @@ def generate_edit_path_graphs(data_dir,
     last_graph_insertions = []
     no_intermediates = []
 
-    # create graphs from operations per (source graph, target graph)
+    # create graphs from operations per (source graph, target graph) = (i, j)
     for (i, j), paths in edit_paths.items():
 
         for ep in paths:
@@ -112,11 +112,10 @@ def generate_edit_path_graphs(data_dir,
             pyg_sequence = []
             for step, g in enumerate(nx_sequence):
 
-                # todo: alternatively leave edge attrs and transform to vectors
-                # strip edge attributes as not used for learning
+                # strip edge attributes from all graphs as some are missing (are not used for inference)
                 g_no_edge_attrs = nx.Graph()
 
-                # add nodes with attr tensor x reconstructed from nx graph's scalar 'primary_label'
+                # add nodes with their attr tensor x reconstructed from scalar 'primary_label'
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
                     d['x'] = func.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
@@ -156,6 +155,7 @@ def generate_edit_path_graphs(data_dir,
 # --- run ---
 if __name__ == "__main__":
 
+    # fail fast if input missing
     if not os.path.exists(edit_path_ops_dir):
         raise FileNotFoundError(f"Missing input directory: {edit_path_ops_dir}")
 

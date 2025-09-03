@@ -53,7 +53,7 @@ class GAT(torch.nn.Module):
                 self.convs.append(GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads, concat=True))
             self.convs.append(GATv2Conv(hidden_channels * heads, hidden_channels, heads=heads, concat=False))
 
-        # --- graph presentation readout ---
+        # --- graph readout ---
         self.readout = {
             "sum": global_add_pool,
             "mean": global_mean_pool,

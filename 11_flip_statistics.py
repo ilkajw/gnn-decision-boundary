@@ -51,8 +51,8 @@ if __name__ == "__main__":
         flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
 
     else:
-        print(f"[WARN] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."
-              f"Assuming 'cost'.")
+        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."
+              f"Defaulting to 'cost'.")
         flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
     # fail fast if inputs missing

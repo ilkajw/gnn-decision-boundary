@@ -1,8 +1,8 @@
 import json, os
-from config import DATASET_NAME
+from config import DATASET_NAME, PREDICTIONS_DIR, MODEL, ROOT
 
-IN_PATH = f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json"
-OUT_PATH = f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_per_class_accuracy.json"
+IN_PATH = f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_predictions.json"
+OUT_PATH = f"{ROOT}/{DATASET_NAME}/{DATASET_NAME}_per_class_accuracy.json"
 
 def pct(x, n): return (100.0 * x / n) if n else 0.0
 

@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     if train_model:
         train_model_kcv(dataset=dataset,
-                        output_dir="model_control",
+                        output_dir="../model_control",
                         model_fname="model.pt",
                         split_fname="best_split.json",
                         log_fname="log.json")
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         dataset_predictions(dataset_name=DATASET_NAME,
                             output_dir=f"data_control/{DATASET_NAME}/predictions/",
                             output_fname=f"{DATASET_NAME}_predictions.json",
-                            model_path="model_control/model.pt")
+                            model_path="../model_control/model.pt")
 
     if gen_edit_path_graphs:
         generate_edit_path_graphs(
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     if predict_edit_paths:
         pred_dict = edit_path_predictions(
             dataset_name=DATASET_NAME,
-            model_path="model_control/model.pt",
+            model_path="../model_control/model.pt",
             input_dir=f"data_control/{DATASET_NAME}/pyg_edit_path_graphs",
             output_dir=f"data_control/{DATASET_NAME}/predictions",
             output_fname=f"{DATASET_NAME}_edit_path_predictions.json")
@@ -50,6 +50,6 @@ if __name__ == "__main__":
         add_metadata_to_path_preds_dict(
             pred_dict_path=f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_edit_path_predictions.json",
             base_pred_path=f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_predictions.json",
-            split_path=f"model_control/best_split.json",
+            split_path=f"../model_control/best_split.json",
             output_path=f"data_control/{DATASET_NAME}/predictions/{DATASET_NAME}_edit_path_predictions_metadata.json")
 

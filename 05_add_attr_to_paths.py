@@ -106,9 +106,10 @@ def build_cum_costs_from_ops(
     for (i, j), paths in edit_paths_map.items():
 
         if not paths:
+            print(f"[warn] no path found for {i}, {j}")
             continue
 
-        ep = paths[0]   # currently only one path per pair todo: potentially adjust for more paths from other datasets
+        ep = paths[0]  # currently only one path per pair todo: potentially adjust for more paths from other datasets
         cumulative = [0.0]
         cost = 0.0
 
@@ -145,12 +146,11 @@ def _align_costs_to_seq(seq, costs):
     cost_len = len(c)
 
     # todo: how to handle best?
-    # handle paths where target graph included,
+    # handle paths where target graph inserted,
     # assign additional cost 0.0 for inserted target graph to underestimate true cost
     if max_edit_step == cost_len:
         return c + [c[-1]], "padded cost (+1)"
 
-    # todo: this should not happen
     if max_edit_step > cost_len:
         return c, f"[ERROR] max_edit_step {max_edit_step} > len_costs ({cost_len}+1={cost_len+1})."
 
@@ -172,7 +172,7 @@ def add_cum_cost_to_pyg_seq(
     # compile filename pattern
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
 
-    # choose a safe output directory todo: delete suffix, overwrite for simplicity
+    # choose a safe output directory
     out_dir = out_dir or (seq_dir)
     os.makedirs(out_dir, exist_ok=True)
     add_safe_globals([Data])
@@ -189,7 +189,7 @@ def add_cum_cost_to_pyg_seq(
         m = pattern.fullmatch(fname)
         if not m:
             skipped_no_match += 1
-            print(f"[skip] not a graph-seq filename: {fname}")
+            print(f"[info] not a graph-seq filename: {fname}")
             continue
 
         i, j = int(m.group(1)), int(m.group(2))
@@ -202,7 +202,7 @@ def add_cum_cost_to_pyg_seq(
             key = (j, i)
         if key not in cum_costs:
             skipped_no_costs += 1
-            print(f"[warn] no cum_costs for pair {(i, j)} (file: {fname}). skipping.")
+            print(f"[error] no cum_costs for pair {(i, j)} (file: {fname}). skipping.")
             continue
 
         # load sequence object
@@ -210,7 +210,7 @@ def add_cum_cost_to_pyg_seq(
             obj = torch.load(in_path, map_location="cpu", weights_only=False)
         except FileNotFoundError:
             missing_files += 1
-            print(f"[warn] missing file (race condition?): {in_path}")
+            print(f"[error] missing file: {in_path}")
             continue
 
         # support dict-wrapped or raw list
@@ -243,11 +243,6 @@ def add_cum_cost_to_pyg_seq(
             #
             setattr(g, add_field_name, float(costs_aligned[step_idx]))
 
-            # todo: this is for safety only, should not be necessary
-            # also store explicit index for later reference
-            if not hasattr(g, "edit_step_index"):
-                setattr(g, "edit_step_index", int(step_idx))
-
         # save to separate output dir with same filename
         out_path = os.path.join(out_dir, fname)
         if isinstance(obj, dict) and wrapper_key is not None:
@@ -273,13 +268,13 @@ def add_cum_cost_to_path_preds_json(
     add_field_name: str = "cumulative_cost",
     out_path: str | None = None,  # if None overwrite
 ):
-    # load predictions json including meta-data
+    # load predictions json
     with open(path_pred_json_path, "r") as f:
         entries = json.load(f)
 
     updated = []
 
-    # loop over path graphs
+    # loop over all graphs (original and paths graphs)
     for e in entries:
 
         # get source and target index of current graph
@@ -287,13 +282,13 @@ def add_cum_cost_to_path_preds_json(
         j = int(e["target_idx"])
 
         # get edit step of current graph
-        step_idx = int(e.get("edit_step", 0))
+        step_idx = int(e.get("edit_step", 0))  # todo: delete default
 
         key = (i, j)
         if key not in cum_costs and (j, i) in cum_costs:
             key = (j, i)
         if key not in cum_costs:
-            print(f"[warn] pair {(i, j)} not in cum_costs dict. skipping entry.")
+            print(f"[error] pair {(i, j)} not in cum_costs dict. skipping entry.")
             continue
 
         # get cumulative cost list for pair
