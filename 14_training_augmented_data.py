@@ -20,7 +20,6 @@ from config import (
     ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL  # MODEL_CLS, MODEL_KWARGS
 )
 
-
 # todo: alternatively to current solution,
 #  set DROP_ENDPOINTS=False and train_dataset = path_train
 
@@ -152,7 +151,7 @@ if __name__ == "__main__":
         name=DATASET_NAME,
         transform=Compose([
             to_float_y(),  # ensure float labels
-            drop_edge_attr(),  # remove edge_attr so schema matches path graphs
+            drop_edge_attr(),  # remove edge_attr to match path graphs schema
             tag_origin("org"),  # tag each graph with origin (org vs. edit)
         ])
     )

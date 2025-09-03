@@ -99,7 +99,7 @@ def edit_path_predictions(
 
         # save predictions as metadata for graphs
         torch.save(updated_sequence, os.path.join(output_dir, "edit_path_graphs_with_predictions", filename))
-        print(f"Saved preds for file {filename} ")
+        print(f"[info] saved preds for file {filename} ")
 
     # save predictions dict
     with open(os.path.join(output_dir, output_fname), "w") as f:

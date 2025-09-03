@@ -76,11 +76,10 @@ def generate_edit_path_graphs(data_dir,
             def node_match(n1, n2):
                 return n1['primary_label'] == n2['primary_label']
 
-            # todo: needed for isomorphism test?
             def edge_match(e1, e2):
                 return e1['label'] == e2['label']
 
-            # todo: include edges in isomorphism test? what edge label name to consider?
+            # todo: include edges in isomorphism test
             # check if the target graph is included in sequence
             last_graph = nx_sequence[-1]
             last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
@@ -127,7 +126,7 @@ def generate_edit_path_graphs(data_dir,
                 # convert nx to pyg
                 pyg_g = from_networkx(g_no_edge_attrs)
 
-                # copy metadata to pyg instances
+                # copy attr to pyg instances
                 for meta_key, meta_val in g.graph.items():
                     setattr(pyg_g, meta_key, meta_val)
                 pyg_sequence.append(pyg_g)

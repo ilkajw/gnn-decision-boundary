@@ -38,7 +38,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
     Returns:
         dict: {num_flips: count} showing how many paths have that many flips.
     """
-    # todo: sanity check only. can be deleted later on
+    # for testing only
     same_class_odd_flips = []
     diff_class_even_flips = []
 
@@ -58,7 +58,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
 
         num_flips = len(flips)
 
-        # todo: sanity check only. can be deleted later on
+        # for testing only
         if same_class and num_flips % 2 == 1:
             same_class_odd_flips.append((i, j))
         if not same_class and num_flips % 2 == 0:

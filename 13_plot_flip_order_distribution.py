@@ -127,7 +127,7 @@ if __name__ == "__main__":
         data = json.load(f)
 
     # go through global + all index sets
-    all_sets = {"global": data["global"], **data["per_index_set"]}
+    all_sets = data.get("per_index_set", {})
 
     for set_name, stats in all_sets.items():
         print(f"→ plotting for index set: {set_name}")

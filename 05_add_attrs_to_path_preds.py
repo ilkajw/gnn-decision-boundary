@@ -31,7 +31,7 @@ seq_out_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_C
 
 # --- helpers ---
 
-# todo: info on train, test split and correct classification in preds json metadata never used in pipeline. delete?
+# todo: only info on source:idx and target_idx are used later. delete rest?
 def add_attrs_to_path_preds_dict(path_pred_json_path, base_pred_json_path, split_path, output_path):
     """
     Enriches dictionary entries of edit path predictions with additional metadata to help later analysis:
@@ -202,7 +202,7 @@ def add_cum_cost_to_pyg_seq(
             key = (j, i)
         if key not in cum_costs:
             skipped_no_costs += 1
-            print(f"[error] no cum_costs for pair {(i, j)} (file: {fname}). skipping.")
+            print(f"[ERROR] no cum_costs for pair {(i, j)} (file: {fname}). skipping.")
             continue
 
         # load sequence object
@@ -225,7 +225,7 @@ def add_cum_cost_to_pyg_seq(
         else:
             seq, wrapper_key = obj, None
 
-        # align costs to seq length to handle approximate paths
+        # align costs to seq length to handle paths with target graph insertion
         costs = cum_costs[key]
         costs_aligned, note = _align_costs_to_seq(seq=seq, costs=costs)
         if note:
@@ -237,7 +237,7 @@ def add_cum_cost_to_pyg_seq(
             # check for oob edit step
             if step_idx < 0 or step_idx >= len(costs_aligned):
                 raise ValueError(
-                    f"[error] edit_step {step_idx} out of range for pair {(i, j)} "
+                    f"[ERROR] edit_step {step_idx} out of range for pair {(i, j)} "
                     f"(len(costs_aligned)={len(costs_aligned)}, seq_len={len(seq)})"
                 )
             #
@@ -282,7 +282,7 @@ def add_cum_cost_to_path_preds_json(
         j = int(e["target_idx"])
 
         # get edit step of current graph
-        step_idx = int(e.get("edit_step", 0))  # todo: delete default
+        step_idx = int(e.get("edit_step"))
 
         key = (i, j)
         if key not in cum_costs and (j, i) in cum_costs:
@@ -306,7 +306,7 @@ def add_cum_cost_to_path_preds_json(
 
     # save updated json
     if out_path is None:
-        # overwrite input dir. (was: pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json"))
+        # overwrite input dir. was: pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json")
         out_path = path_pred_json_path
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w") as f:

@@ -7,7 +7,7 @@ from config import DATASET_NAME, ANALYSIS_DIR, MODEL_DIR, MODEL, CORRECTLY_CLASS
 from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
 # ---- set input, output params -----
-split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
+split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
 output_dir = f"{ANALYSIS_DIR}"
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 max_num_flips = 10
@@ -165,20 +165,7 @@ if __name__ == "__main__":
         "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
 
-    # todo: delete global as 'same_class_all' and 'diff_class_all', respectively, are equal
-
-    # ------------ global --------------
-
-    print("→ Computing per-num-flips decile distribution (GLOBAL)")
-    global_stats = flip_distribution_over_deciles_by_num_flips(
-        max_num_flips=max_num_flips,
-        dist_input_path=dist_path,
-        flips_input_path=flips_path,
-        output_path=None,
-        idx_pair_set=None,
-    )
-
-    # ------------ per index set --------------
+    # --- per index set calculation ---
 
     per_index_set = {}
     for key in keys:
@@ -196,7 +183,7 @@ if __name__ == "__main__":
             **stats
         }
 
-    # ---------- save to file -------------
+    # --- save to file ---
 
     data = {
         "meta": {
@@ -209,11 +196,9 @@ if __name__ == "__main__":
             "max_num_flips": max_num_flips,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         },
-        "global": global_stats,
         "per_index_set": per_index_set
     }
 
-    # save
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, output_fname)
     with open(output_path, "w") as f:

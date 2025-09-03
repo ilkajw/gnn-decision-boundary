@@ -185,7 +185,7 @@ class EditPathGraphsDataset(InMemoryDataset):
                     y=torch.tensor([y_val], dtype=torch.float),
                 )
 
-                # copy metadata
+                # copy graph attributes
                 for key in (
                     "edit_step", "cumulative_cost", "source_idx", "target_idx", "iteration",
                     "distance", "prediction", "probability", "num_all_ops"
