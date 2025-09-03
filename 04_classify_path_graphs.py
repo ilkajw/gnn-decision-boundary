@@ -4,12 +4,12 @@ import torch
 from torch_geometric.datasets import TUDataset
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
-from GAT import GAT
-from config import *
+
+from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR, PREDICTIONS_DIR, LEGACY_PYG_SEQ_DIR
 
 
 # --- config ---
-model_path = f"{MODEL_DIR}/{MODEL}_model.pt"
+model_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_model.pt"
 graph_seq_dir = LEGACY_PYG_SEQ_DIR  # todo: later back to f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
 # for json summary and graph seqs with predictions added
 # (further subdirectory 'edit_path_graphs_with_predictions' will be created for the latter in function)

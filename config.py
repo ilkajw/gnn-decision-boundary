@@ -8,7 +8,9 @@ ROOT = './data_actual_best'
 DATASET_NAME = 'MUTAG'
 
 # --- set model and model params ---
-MODEL = "GAT"  # or "GCN", "GraphSAGE
+
+MODEL = "GAT"  # <-------- define model here: "GAT" | "GCN" | "GraphSAGE
+
 assert MODEL in {"GAT", "GCN", "GraphSAGE"}, \
     f"Invalid MODEL={MODEL!r}, must be 'GAT', 'GCN or 'GraphSAGE'."
 MODEL_REGISTRY = {

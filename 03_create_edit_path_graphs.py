@@ -7,7 +7,7 @@ import torch.nn.functional as func
 from torch_geometric.utils import from_networkx
 from networkx import is_isomorphic
 
-from config import ROOT, DATASET_NAME, ANALYSIS_DIR, FULLY_CONNECTED_ONLY, MODEL
+from config import ROOT, DATASET_NAME, FULLY_CONNECTED_ONLY
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
@@ -143,12 +143,12 @@ def generate_edit_path_graphs(data_dir,
             torch.save(pyg_sequence, file_path)
 
     # save paths with target graph insertion
-    os.makedirs(f"{ANALYSIS_DIR}/test", exist_ok=True)
-    with open(f"{ANALYSIS_DIR}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
+    os.makedirs(f"{ROOT}/{DATASET_NAME}/test/", exist_ok=True)
+    with open(f"{ROOT}/{DATASET_NAME}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
 
     # save paths with no intermediate path graphs
-    with open(f"{ANALYSIS_DIR}/test/"
+    with open(f"{ROOT}/{DATASET_NAME}/test/"
               f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
         json.dump(no_intermediates, f, indent=2)
 

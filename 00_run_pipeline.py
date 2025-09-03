@@ -3,7 +3,7 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # or ":16:8"
 os.environ["PYTHONHASHSEED"] = "42"
 
 from predict_utils import *
-from edit_path_graphs_utils import *
+from old.edit_path_graphs_utils import *
 from training_utils import train_model_kcv
 from old.analyse_utils import *
 

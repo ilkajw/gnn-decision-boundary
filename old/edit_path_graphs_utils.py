@@ -1,7 +1,7 @@
 import sys
 import os
 # add submodule root to Python path
-submodule_path = os.path.abspath("external")
+submodule_path = os.path.abspath("../external")
 if submodule_path not in sys.path:
     sys.path.insert(0, submodule_path)
 
@@ -13,9 +13,9 @@ import torch.nn.functional as F
 from torch_geometric.utils import from_networkx
 from networkx import is_isomorphic
 
-from config import DATASET_NAME, FULLY_CONNECTED_ONLY
-from pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
-from pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
+from config import DATASET_NAME, FULLY_CONNECTED_ONLY, ANALYSIS_DIR, ROOT
+from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
+from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
 
 def generate_edit_path_graphs(data_dir,
@@ -139,12 +139,11 @@ def generate_edit_path_graphs(data_dir,
             torch.save(pyg_sequence, file_path)
 
     # save paths with target graph insertion
-    os.makedirs(f"data_control/{DATASET_NAME}/analysis/", exist_ok=True)
-    with open(f"data_control/{DATASET_NAME}/analysis/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
+    os.makedirs(f"{ROOT}/{DATASET_NAME}/test", exist_ok=True)
+    with open(f"{ROOT}/{DATASET_NAME}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
 
     # save paths with no intermediate path graphs
-    os.makedirs(f"data_control/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
-    with open(f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
+    with open(f"{ROOT}/{DATASET_NAME}/test/"
               f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
         json.dump(no_intermediates, f, indent=2)

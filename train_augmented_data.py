@@ -24,7 +24,7 @@ from config import (
 # todo: adjust the paths correctly after GAT training
 # directory with all path sequences (.pt lists)
 path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-# later back to: f"{PREDICTIONS_DIR}/{DATASET_NAME}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+# later back to: f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
 
 # path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
 base_labels_path = f"data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     # collect per-fold histories/indices
     fold_records = []
     if VERBOSE:
-        print(f"--- training {MODEL} model with flips at {FLIP_AT} ---")
+        print(f"--- training {MODEL} model on augmented data with flips at {FLIP_AT} ---")
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(base_ds)), labels), start=1):
         if VERBOSE:
             print(f"\n--- fold {fold} ---")

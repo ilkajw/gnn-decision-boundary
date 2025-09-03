@@ -7,7 +7,7 @@ from torch_geometric.data import InMemoryDataset, Data
 from torch.serialization import add_safe_globals
 from torch_geometric.data.data import DataEdgeAttr
 
-from config import DATASET_NAME, DISTANCE_MODE
+from config import DATASET_NAME, DISTANCE_MODE, ANALYSIS_DIR, MODEL, ROOT
 
 
 def _ensure_dir(path):
@@ -63,6 +63,8 @@ class EditPathGraphsDataset(InMemoryDataset):
 
         assert 0.0 <= self.flip_at <= 1.0, "flip_at must be in [0,1]"
 
+        # todo: change to
+        #  root_dir = os.path.abspath(f"{ROOT}/{DATASET_NAME}/processed/_editpath_inmem_root")
         root_dir = os.path.abspath(f"data_control/{DATASET_NAME}/processed/_editpath_inmem_root")
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
 
@@ -108,10 +110,11 @@ class EditPathGraphsDataset(InMemoryDataset):
             dist = float(getattr(g, "distance"))
             step = float(getattr(g, "cumulative_cost"))
         t = max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
-        #i = getattr(g, "source_idx")
-        #j = getattr(g, "target_idx")
-        #print(f"{i}, {j}: t: {t}")
-        return t  # max(0.0, min(step / dist, 1.0)) if dist > 0 else 0.0
+        # FOR TESTING
+        # i = getattr(g, "source_idx")
+        # j = getattr(g, "target_idx")
+        # print(f"{i}, {j}: t: {t}")
+        return t
 
     def _label_for_graph(self, g, y_src: int, y_tgt: int):
         """
@@ -198,9 +201,9 @@ class EditPathGraphsDataset(InMemoryDataset):
                 data_list.append(data_point)
 
         # for testing purposes only
-        os.makedirs(f"data_control/{DATASET_NAME}/analysis/no_intermediates/", exist_ok=True)
+        os.makedirs(f"{ROOT}/{DATASET_NAME}/test/", exist_ok=True)
         with open(
-            f"data_control/{DATASET_NAME}/analysis/no_intermediates/"
+            f"{ROOT}/{DATASET_NAME}/test/"
             f"{DATASET_NAME}_no_intermediate_graphs_at_dataset_build.json", "w"
         ) as f:
             json.dump(no_intermediates, f, indent=2)

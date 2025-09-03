@@ -305,7 +305,7 @@ def add_cum_cost_to_path_preds_json(
         if step_idx >= len(c):
             step_idx -= 1
 
-        # add cum cost as meta data
+        # add cum cost as attribute
         e[add_field_name] = float(c[step_idx])
         updated.append(e)
 

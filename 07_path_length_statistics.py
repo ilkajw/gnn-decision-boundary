@@ -1,4 +1,4 @@
-# path_length_statistics.py (refactor to use precalc files)
+# path_length_statistics.py
 
 import json
 import os
