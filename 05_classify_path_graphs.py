@@ -11,7 +11,7 @@ from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR
 # --- config ---
 # Input paths
 model_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_model.pt"
-graph_seq_dir = LEGACY_PYG_SEQ_DIR  # todo: later back to f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
+graph_seq_dir = f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
 
 # Output path
 # (subdirectory 'edit_path_graphs_with_predictions' will be created for sequences)

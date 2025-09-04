@@ -16,8 +16,7 @@ from torch_geometric.transforms import Compose
 from EditPathGraphDataset import EditPathGraphDataset
 from training_utils import train_epoch, evaluate_loss, evaluate_accuracy, setup_reproducibility
 from config import (
-    ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL,
-    PREDICTIONS_DIR, MODEL_CLS, MODEL_KWARGS
+    ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL, MODEL_CLS, MODEL_KWARGS
 )
 
 # todo: alternatively to current solution,
@@ -26,11 +25,11 @@ from config import (
 # todo: change true label source from dict to actual dataset
 
 # ----- Set input, output paths ----
-# todo: adjust the paths correctly after GAT training
+# todo: adjust the paths to cum cost attr in org non predicted series, no need or predicted
 # Directory with all path sequences (.pt lists)
 # using hard coded path to not have to run predictions with GCN as we only need the true label
 path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-# f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+# f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
 
 # Path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
 base_labels_path = "data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"
@@ -178,13 +177,13 @@ if __name__ == "__main__":
         print(f"[info] Building augmented dataset...")
         path_train = EditPathGraphDataset(
             seq_dir=path_seq_dir,
-            base_pred_path=base_labels_path,
+            base_pred_path=base_labels_path,  # todo: delete
             flip_at=FLIP_AT,
             drop_endpoints=DROP_ENDPOINTS,
             verbose=False,
             allowed_indices=allowed_indices,  # Filter for paths between graphs from train split
-            use_base_dataset=False,  # todo: change to True and base_ds later
-            base_dataset=None
+            use_base_dataset=False,  # todo: delete this param when done with base_pred_path
+            base_dataset=None  # todo: change to base_ds
         )
 
         path_train.transform = Compose([

@@ -136,8 +136,8 @@ def generate_edit_path_graphs(data_dir,
                 pyg_g = from_networkx(g_no_edge_attrs)
 
                 # Copy attrs to pyg instances
-                for meta_key, meta_val in g.graph.items():
-                    setattr(pyg_g, meta_key, meta_val)
+                for attr_key, attr_val in g.graph.items():
+                    setattr(pyg_g, attr_key, attr_val)
                 pyg_sequence.append(pyg_g)
 
             # Save nx graph sequence

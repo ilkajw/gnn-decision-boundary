@@ -8,8 +8,8 @@ from torch.serialization import add_safe_globals
 
 from config import DATASET_NAME, DISTANCE_MODE, ROOT
 
+# todo: fully delete base pred dict functionality
 
-# todo: implement with org ds y instead of base pred dict
 
 def _ensure_dir(path):
     Path(os.path.dirname(path) or ".").mkdir(parents=True, exist_ok=True)
@@ -46,14 +46,14 @@ class EditPathGraphDataset(InMemoryDataset):
     def __init__(
         self,
         seq_dir,
-        base_pred_path,
+        base_pred_path,  # todo: delete this param when done with base_pred_path
         flip_at: float = 0.5,
         transform=None,
         pre_transform=None,
         drop_endpoints: bool = True,
         verbose: bool = True,
         allowed_indices: set[int] | None = None,
-        use_base_dataset: bool = False,
+        use_base_dataset: bool = False,  # todo: delete this param when done with base_pred_path
         base_dataset=None,
     ):
         self.seq_dir = seq_dir
