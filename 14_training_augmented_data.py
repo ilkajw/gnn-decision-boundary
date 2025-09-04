@@ -1,5 +1,5 @@
 import os
-# for reproducibility
+# For reproducibility
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 os.environ["PYTHONHASHSEED"] = "42"
 
@@ -14,45 +14,40 @@ from torch.utils.data import ConcatDataset, Subset
 from torch_geometric.transforms import Compose
 
 from EditPathGraphDataset import EditPathGraphsDataset
-from GAT import GAT
 from training_utils import train_epoch, evaluate_loss, evaluate_accuracy, setup_reproducibility
 from config import (
     ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL,
-    PREDICTIONS_DIR  # MODEL_CLS, MODEL_KWARGS
+    PREDICTIONS_DIR, MODEL_CLS, MODEL_KWARGS
 )
 
 # todo: alternatively to current solution,
 #  set DROP_ENDPOINTS=False and train_dataset = path_train
 
-# ----- input, output paths ----
+# ----- Set input, output paths ----
 # todo: adjust the paths correctly after GAT training
-# directory with all path sequences (.pt lists)
-path_seq_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+# Directory with all path sequences (.pt lists)
+# using hard coded path to not have to run predictions with GCN as we only need the true label
+path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+# f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
 
-# path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
-base_labels_path = f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_predictions.json"
+# Path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
+base_labels_path = "data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"
+# f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_predictions.json"
 
-# output file name definitions
-output_dir = f"model_cv_augmented/flip_at_{int(FLIP_AT*100)}/{DATASET_NAME}"
+# Output files definition
+output_dir = f"model_cv_augmented/{DATASET_NAME}/{MODEL}/flip_at_{int(FLIP_AT*100)}"
 # todo: later back to: f"models_cv_augmented/{DATASET_NAME}/{MODEL}/{flip_at_{int(FLIP_AT*100)}/"
 
 model_fname = f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
-
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"
-
 log_fname = f"{DATASET_NAME}_{MODEL}_train_log_flip_{int(FLIP_AT*100)}.json"
 
 # set run configs
 DROP_ENDPOINTS = True
 VERBOSE = True
 
-# todo: delete when model_cls used
-HIDDEN_CHANNELS = 8
-HEADS = 8
-DROPOUT = 0.2
 
-
-# ----------- helpers -------------
+# ---- Helpers ----
 def infer_in_channels(dataset):
     sample = dataset[0]
     return sample.x.size(-1)
@@ -127,7 +122,7 @@ def class_stats(dataset, batch_size=2048):
     return {"n": n, "n0": n0, "n1": n1, "p0": p0, "p1": p1}
 
 
-# ------ run ------
+# ------ Run ------
 
 if __name__ == "__main__":
 
@@ -163,7 +158,7 @@ if __name__ == "__main__":
     best_model_state = None
     best_split = None
 
-    # to collect per-fold info
+    # To collect per-fold info
     fold_records = []
 
     if VERBOSE:
@@ -174,11 +169,11 @@ if __name__ == "__main__":
         if VERBOSE:
             print(f"\n--- fold {fold} ---")
 
-        # define train, test split on original dataset
+        # Define train and test split on original dataset
         train_subset = Subset(base_ds, train_idx.tolist())
         test_subset = Subset(base_ds,  test_idx.tolist())
 
-        # augment train subset with path graphs between training graphs
+        # Augment train subset with path graphs between training graphs
         allowed_indices = set(map(int, train_idx.tolist()))
         print(f"[info] building augmented dataset...")
         path_train = EditPathGraphsDataset(
@@ -187,25 +182,24 @@ if __name__ == "__main__":
             flip_at=FLIP_AT,
             drop_endpoints=DROP_ENDPOINTS,
             verbose=False,
-            allowed_indices=allowed_indices,  # filter for paths between graphs from train split
+            allowed_indices=allowed_indices,  # Filter for paths between graphs from train split
         )
 
         path_train.transform = Compose([
-            # ensure float labels
+            # Ensure float labels
             to_float_y(),
-            # drop attrs to match org schema for collating
+            # Drop attrs to match org schema for collating
             drop_keys(["edit_step", "cumulative_cost", "source_idx", "target_idx",
                        "iteration", "distance", "num_all_ops", "prediction", "probability"]),
-            # tag each graph with origin (org vs. edit)
+            # Tag each graph with origin (org vs. edit)
             tag_origin("edit"),
         ])
 
         print(f"[info] adding {len(path_train)} path graphs to train split...")
 
-        # ---- class distributions (per fold) ----
+        # ---- Class distributions per fold ----
         base_stats = class_stats(train_subset)
         path_stats = class_stats(path_train)
-        # combine by summing counts
         train_n0 = base_stats["n0"] + path_stats["n0"]
         train_n1 = base_stats["n1"] + path_stats["n1"]
         train_n = train_n0 + train_n1
@@ -220,12 +214,12 @@ if __name__ == "__main__":
         if VERBOSE:
             print(f"[info] path graph classes: 0: {path_stats['n0']}, 1: {path_stats['n1']}")
 
-        # final train = base train + belonging path graphs,
-        # final test = base test
+        # Final train set = base train + belonging path graphs,
+        # final test set = base test
         train_dataset = ConcatDataset([train_subset, path_train])
         test_dataset = test_subset
 
-        # for reproducibility
+        # For reproducibility
         g = torch.Generator()
         g.manual_seed(42)
 
@@ -246,20 +240,11 @@ if __name__ == "__main__":
             persistent_workers=False
         )
 
-        # init model + optimizer
-        # todo: use model class below instead
-        model = GAT(
-            in_channels=in_channels,
-            hidden_channels=HIDDEN_CHANNELS,
-            heads=HEADS,
-            dropout=DROPOUT,
-        ).to(device)
-
-        # model = MODEL_CLS(infer_in_channels(base_ds), **MODEL_KWARGS).to(device)
-
+        # Init model + optimizer
+        model = MODEL_CLS(infer_in_channels(base_ds), **MODEL_KWARGS).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-        # per-fold history
+        # Per-fold history
         hist = {"train_loss": [], "test_loss": [], "test_acc": [], "num_epochs": EPOCHS,
                 "sizes": {
                     "base_train": len(train_subset),
@@ -273,7 +258,7 @@ if __name__ == "__main__":
                     }
                 }}
 
-        # training epochs
+        # Training epochs
         for epoch in range(1, EPOCHS + 1):
             epoch_t0 = perf_counter()
 
@@ -293,7 +278,7 @@ if __name__ == "__main__":
                       f"| test loss: {test_loss: .4f} | test acc: {test_acc: .4f} "
                       f"| time: {int(m): 02d}:{s: 06.3f}")
 
-            # track best across all folds/epochs
+            # Track best across all folds/epochs
             if test_acc > best_acc:
                 if VERBOSE:
                     print(f"[info] new best model in fold {fold}, epoch {epoch} with test acc {test_acc: .4f}")
@@ -308,7 +293,7 @@ if __name__ == "__main__":
                     "drop_endpoints": DROP_ENDPOINTS,
                 }
 
-        # end‑of‑fold evaluation
+        # End‑of‑fold evaluation
         final_acc = evaluate_accuracy(model, test_loader, device)
         accuracies.append(final_acc)
         if VERBOSE:
@@ -326,31 +311,25 @@ if __name__ == "__main__":
             "final_accuracy": float(final_acc),
         })
 
-    # save best model weights
+    # Save
     torch.save(best_model_state, model_path)
 
-    # save best split info
     with open(split_path, "w") as f:
         json.dump(best_split, f, indent=2)
 
-    # todo: uncomment later
-    #model_config = {
-    #    "name": getattr(MODEL_CLS, "__name__", str(MODEL_CLS)),
-    #    "kwargs": {k: (v.item() if hasattr(v, "item") else v) for k, v in (MODEL_KWARGS or {}).items()},
-    #}
+    model_config = {
+        "name": getattr(MODEL_CLS, "__name__", str(MODEL_CLS)),
+        "kwargs": {k: (v.item() if hasattr(v, "item") else v) for k, v in (MODEL_KWARGS or {}).items()},
+    }
 
-    # consolidated log
+    # Consolidated log
     log = {
         "fold_test_accuracies": [float(a) for a in accuracies],
         "mean_test_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
         "std_accuracy": float(np.std(accuracies)) if accuracies else 0.0,
         "config": {
             "dataset": DATASET_NAME,
-            "model": "GAT",  # model_config,
-            # todo: delete next three from here, coming in through model_kwargs
-            "HIDDEN_CHANNELS": HIDDEN_CHANNELS,
-            "HEADS": HEADS,
-            "DROPOUT": DROPOUT,
+            "model": model_config,
             "K_FOLDS": K_FOLDS,
             "EPOCHS": EPOCHS,
             "LEARNING_RATE": LEARNING_RATE,

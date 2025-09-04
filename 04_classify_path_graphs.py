@@ -9,13 +9,12 @@ from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR
 
 
 # --- config ---
-# input
+# Input paths
 model_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_model.pt"
 graph_seq_dir = LEGACY_PYG_SEQ_DIR  # todo: later back to f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
 
-# output
-# for json summary and graph seqs with predictions added
-# (further subdirectory 'edit_path_graphs_with_predictions' will be created in function for the latter)
+# Output path
+# (subdirectory 'edit_path_graphs_with_predictions' will be created for sequences)
 output_dir = PREDICTIONS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
 
@@ -30,9 +29,9 @@ def edit_path_predictions(
         output_dir,
         output_fname):
     """
-    Loads all pyg graph sequences, each indexed by (source, target graph, iteration).
+    Loads all PyG graph sequences, each indexed by (source, target graph, iteration).
     Runs predictions on all graphs per sequence.
-    Saves graph sequence with per-graph prediction as graph metadata to file.
+    Saves graph sequence with per-graph prediction as graph attributes to file.
 
     Args:
         model_path (str): Path to the saved GAT model.
@@ -43,9 +42,15 @@ def edit_path_predictions(
     Returns:
         list: A list of prediction dictionaries with metadata.
     """
-    # set model
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset = TUDataset(root=ROOT, name=dataset_name)
+    add_safe_globals([Data])
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "edit_path_graphs_with_predictions"), exist_ok=True)
+    predictions = []
+
+    # Instantiate model and load weight state
     model = model_class(
         in_channels=dataset.num_features,
         **model_kwargs
@@ -54,25 +59,18 @@ def edit_path_predictions(
     model.load_state_dict(state)
     model.eval()
 
-    add_safe_globals([Data])
-
-    os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(os.path.join(output_dir, "edit_path_graphs_with_predictions"), exist_ok=True)
-    predictions = []
-
-    # loop through ep graph sequences indexed by source, target, iteration
+    # Loop through graph sequences
     for filename in os.listdir(input_dir):
 
         if not filename.endswith(".pt"):
             continue
 
-        # load ep graph sequence
         path = os.path.join(input_dir, filename)
         graph_sequence = torch.load(path, weights_only=False)
 
         updated_sequence = []
 
-        # predictions for each graph in sequence
+        # Predictions for each graph in sequence
         for graph in graph_sequence:
             graph = graph.to(device)
             with torch.no_grad():
@@ -80,13 +78,13 @@ def edit_path_predictions(
                 prob = torch.sigmoid(out.view(-1)).item()
                 pred = int(prob > 0.5)
 
-            # add prediction and probability to graph metadata
+            # Add prediction and probability to graph attributes
             graph.prediction = pred
             graph.probability = prob
 
             updated_sequence.append(graph)
 
-            # update dict with all predictions
+            # Update dict recording all predictions
             predictions.append({
                 "file": filename,
                 "source_idx": int(getattr(graph, 'source_idx', -1)),
@@ -96,19 +94,18 @@ def edit_path_predictions(
                 "prediction": pred,
                 "probability": prob
             })
-
-        # save predictions as metadata for graphs
+        # Save updated sequence
         torch.save(updated_sequence, os.path.join(output_dir, "edit_path_graphs_with_predictions", filename))
         print(f"[info] saved preds for file {filename} ")
 
-    # save predictions dict
+    # Save JSON with prediction records
     with open(os.path.join(output_dir, output_fname), "w") as f:
         json.dump(predictions, f, indent=2)
 
     return predictions
 
 
-# --- run ---
+# --- Run ---
 if __name__ == "__main__":
 
     for p in [model_path, graph_seq_dir]:

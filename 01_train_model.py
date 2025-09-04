@@ -4,14 +4,14 @@ from torch_geometric.datasets import TUDataset
 from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR
 from training_utils import train_model_kcv
 
-# --- config ---
+# --- Set inputs ---
 output_dir = MODEL_DIR
 model_fname = f"{DATASET_NAME}_{MODEL}_model.pt"
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split.json"
 log_fname = f"{DATASET_NAME}_{MODEL}_train_log.json"
 
 
-# --- run ---
+# --- Run ---
 if __name__ == "__main__":
 
     dataset = TUDataset(root=ROOT, name=DATASET_NAME)

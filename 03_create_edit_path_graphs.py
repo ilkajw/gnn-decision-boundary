@@ -12,14 +12,14 @@ from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
 
-# --- config ---
+# --- Set input, output paths ---
 
 edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
 nx_output_dir = f"{ROOT}/{DATASET_NAME}/nx_edit_path_graphs"
 pyg_output_dir = f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
 
 
-# --- definition ---
+# --- Function definition ---
 
 def generate_edit_path_graphs(data_dir,
                               nx_output_dir,
@@ -28,19 +28,28 @@ def generate_edit_path_graphs(data_dir,
                               seed=42,
                               fully_connected_only=FULLY_CONNECTED_ONLY):
     """
-    Generates all nx graphs from edit path sequences.
-    Optionally filters for fully connected graphs only.
-    Adds source node, target node, edit step to graph metadata for later analysis.
-    Converts nx graphs to pyg.
-    Saves each nx graph sequence identified by source graph, target graph, iteration to .pt file.
+    Generates all NetworkX graphs from edit path sequences.
+    Optionally, filters for fully connected graphs only.
+    Adds source node, target node, edit step information to graph attributes.
+    Converts NetworkX graphs to PyG.
+    Saves each NetworkX graph sequence identified by source graph, target graph, iteration to a .pkl file.
     Saves each pyg graph sequence identified by source graph, target graph, iteration to .pt file.
 
-    Args:
-        db_name (str): Dataset name.
-        seed (int): Random seed for edit path generation.
-        data_dir (str): Directory where edit paths are stored.
-        output_dir (str): Where to save the PyG graphs.
-        fully_connected_only (bool): If True, filter only connected graphs.
+    :param db_name: Dataset name (used to locate edit paths / name outputs).
+    :type db_name: str
+    :param seed: Random seed used during edit-path generation.
+    :type seed: int
+    :param data_dir: Directory where the edit-path inputs are stored.
+    :type data_dir: str | os.PathLike
+    :param pyg_output_dir: Directory where the ``.pt`` files with PyG graphs are written.
+    :type pyg_output_dir: str | os.PathLike
+    :param nx_output_dir: Directory where the ``.pkl`` files with NetworkX graphs are written.
+    :type nx_output_dir: str | os.PathLike
+    :param fully_connected_only: If ``True``, keep only graphs that are connected.
+    :type fully_connected_only: bool
+
+    :returns: ``None``.
+    :rtype: None
     """
 
     os.makedirs(pyg_output_dir, exist_ok=True)
@@ -79,7 +88,7 @@ def generate_edit_path_graphs(data_dir,
             def edge_match(e1, e2):
                 return e1['label'] == e2['label']
 
-            # todo: include edges in isomorphism test
+            # TODO: include edges in isomorphism test
             # check if the target graph is included in sequence
             last_graph = nx_sequence[-1]
             last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
@@ -100,61 +109,61 @@ def generate_edit_path_graphs(data_dir,
                 else:
                     g.graph['num_all_ops'] = len(ep.all_operations) + 1
 
-            # filter for fully connected graphs
+            # Filter for connected graphs
             if fully_connected_only:
                 nx_sequence = [g for g in nx_sequence if nx.is_connected(g)]
                 # todo: distinguish between after connectedness filter and before
                 if len(nx_sequence) <= 2:
                     no_intermediates.append((i, j))
 
-            # drop edge attrs, convert to pyg objects, copy metadata
+            # Drop edge attributes, convert to pyg objects, copy nx attributes to pyg instance
             pyg_sequence = []
             for step, g in enumerate(nx_sequence):
 
-                # strip edge attributes from all graphs as some are missing (are not used for inference)
+                # Strip edge attributes from all graphs as some are missing (are not used for inference)
                 g_no_edge_attrs = nx.Graph()
 
-                # add nodes with their attr tensor x reconstructed from scalar 'primary_label'
+                # Add nodes with their attr tensor x reconstructed from scalar 'primary_label'
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
                     d['x'] = func.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
                     g_no_edge_attrs.add_node(n, **d)
 
-                # add edges without attributes
+                # Add edges without attributes
                 g_no_edge_attrs.add_edges_from(g.edges())
 
-                # convert nx to pyg
+                # Convert nx to pyg
                 pyg_g = from_networkx(g_no_edge_attrs)
 
-                # copy attr to pyg instances
+                # Copy attrs to pyg instances
                 for meta_key, meta_val in g.graph.items():
                     setattr(pyg_g, meta_key, meta_val)
                 pyg_sequence.append(pyg_g)
 
-            # save nx graph sequence
+            # Save nx graph sequence
             nx_out_path = os.path.join(nx_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pkl")
             with open(nx_out_path, "wb") as f:
                 pickle.dump(nx_sequence, f)
 
-            # save pyg graph sequence
+            # Save pyg graph sequence
             file_path = os.path.join(pyg_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
             torch.save(pyg_sequence, file_path)
 
-    # save paths with target graph insertion
+    # Save paths with target graph insertion
     os.makedirs(f"{ROOT}/{DATASET_NAME}/test/", exist_ok=True)
     with open(f"{ROOT}/{DATASET_NAME}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
 
-    # save paths with no intermediate path graphs
+    # Save paths with no intermediate path graphs
     with open(f"{ROOT}/{DATASET_NAME}/test/"
               f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
         json.dump(no_intermediates, f, indent=2)
 
 
-# --- run ---
+# --- Run ---
 if __name__ == "__main__":
 
-    # fail fast if input missing
+    # Fail fast if input missing
     if not os.path.exists(edit_path_ops_dir):
         raise FileNotFoundError(f"Missing input directory: {edit_path_ops_dir}")
 

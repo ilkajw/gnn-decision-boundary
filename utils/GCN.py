@@ -21,6 +21,67 @@ _NORMS = {
 
 
 class GCN(torch.nn.Module):
+    """
+    Graph Convolutional Network (GCN) for graph classification.
+
+    Stacks :class:`torch_geometric.nn.GCNConv` layers, optionally applies per-layer
+    normalization (BatchNorm or LayerNorm), aggregates node embeddings with a
+    graph readout (``'sum'``, ``'mean'``, or ``'max'``), and feeds the result
+    through an MLP head to produce per-graph outputs.
+
+    :param in_channels: Input node feature dimension.
+    :type in_channels: int
+    :param hidden_channels: Hidden feature size for all GCN layers and the head.
+    :type hidden_channels: int
+    :param num_layers: Number of GCNConv layers (≥1). Default: ``4``.
+    :type num_layers: int
+    :param activation: Nonlinearity after each convolution
+        (``'relu'``, ``'elu'``, ``'gelu'``, ``'leaky_relu'``, ``'identity'``).
+        Default: ``'elu'``.
+    :type activation: str
+    :param normalization: Optional per-layer normalization:
+        ``None`` (no norm), ``'batch'`` (:class:`~torch_geometric.nn.BatchNorm`),
+        or ``'layer'`` (:class:`~torch.nn.LayerNorm`). Default: ``None``.
+    :type normalization: str | None
+    :param dropout: Drop probability applied after each conv except the last,
+        and between MLP layers when ``mlp_layers > 1``. Default: ``0.2``.
+    :type dropout: float
+    :param readout: Graph-level aggregation function (``'sum'``, ``'mean'``,
+        or ``'max'``). Default: ``'sum'``.
+    :type readout: str
+    :param mlp_layers: Number of linear blocks in the output head. If ``1``,
+        the head is a single ``Linear``; otherwise it is
+        ``[Linear → Activation → Dropout] × (mlp_layers-1)`` followed by a final
+        ``Linear``. Default: ``1``.
+    :type mlp_layers: int
+    :param out_channels: Output dimension per graph (e.g., number of classes or 1 for a logit).
+        Default: ``1``.
+    :type out_channels: int
+    :param improved: If ``True``, use the “improved” GCN formulation provided by
+        :class:`~torch_geometric.nn.GCNConv`. Default: ``False``.
+    :type improved: bool
+
+    **Inputs**
+        - **x** (*torch.Tensor*): Node features of shape ``[N, in_channels]``.
+        - **edge_index** (*torch.LongTensor*): COO edge index of shape ``[2, E]``.
+        - **batch** (*torch.LongTensor*): Graph id for each node of shape ``[N]``.
+        - **edge_weight** (*torch.Tensor*, optional): Edge weights of shape ``[E]`` (passed to GCNConv).
+
+    **Returns**
+        - *torch.Tensor*: Graph-level predictions of shape ``[num_graphs, out_channels]``.
+
+    **Notes**
+        - For ``num_layers > 1``, all conv layers output ``hidden_channels``.
+        - Dropout is **not** applied after the last convolution.
+        - Normalization layers are created only when ``normalization`` is not ``None``.
+        - ``edge_weight`` (if provided) is forwarded to each :class:`GCNConv`.
+
+    **Example**
+        >>> model = GCN(in_channels=32, hidden_channels=64, num_layers=3,
+        ...             activation='relu', normalization='batch',
+        ...             readout='mean', out_channels=2)
+        >>> out = model(x, edge_index, batch)   # shape: (num_graphs, 2)
+    """
     def __init__(
             self,
             in_channels,

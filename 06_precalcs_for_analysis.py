@@ -54,7 +54,6 @@ def get_num_ops_per_path(input_path, output_path):
 
 # todo: merge following two functions into one with "by_cost=True/False"
 
-
 def flip_occurrences_per_path_edit_step(input_dir, output_dir=None, output_fname=None, verbose=False):
 
     """

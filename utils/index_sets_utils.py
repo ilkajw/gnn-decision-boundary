@@ -39,12 +39,14 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
       - train_train_same / train_train_diff / test_test_same / test_test_diff / train_test_same / train_test_diff
       - same-class (0/1) variants for each split bucket
     """
-    # label-based global sets
+
+    # Label-based global sets
     diff_class_pairs = graph_index_pairs_diff_class(
         dataset_name=dataset_name,
         correctly_classified_only=correctly_classified_only,
         save_path=f"{ROOT}/{DATASET_NAME}/index_sets/{dataset_name}_idx_pairs_diff_class.json",
     )
+
     same_class_pairs, same_class_0_pairs, same_class_1_pairs = graph_index_pairs_same_class(
         dataset=dataset_name,
         correctly_classified_only=correctly_classified_only,
@@ -54,12 +56,12 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
     # train/test ids
     train_set, test_set = load_split_sets(split_path)
 
-    # structural buckets
+    # Structural buckets
     tt_pairs = pairs_within(train_set)              # train–train
     uu_pairs = pairs_within(test_set)               # test–test
     tu_pairs = pairs_across(train_set, test_set)    # train–test
 
-    # cuts between same/diff and test-test/train-train/test-train
+    # Cuts between same/diff and test-test/train-train/test-train
     cuts = {
         # global label sets
         "same_class_all":   same_class_pairs,
@@ -91,13 +93,13 @@ def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
 
 def graphs_correctly_classified(dataset_name=DATASET_NAME, model=MODEL):
     """Returns the indices of all original graphs classified correctly by model selected in config."""
-    with open(f"{PREDICTIONS_DIR}/{dataset_name}_{model}_predictions.json") as f:  # makes no sense as pred_dir from config
+    with open(f"{PREDICTIONS_DIR}/{dataset_name}_{model}_predictions.json") as f:  # makes no sense as pred_dir WITH DS AND MODEL from config
         predictions = json.load(f)
     correct_idxs = [int(i) for i, entry in predictions.items() if entry["correct"]]
     return correct_idxs
 
 
-# todo: potentially merge next two functions into 1 with same/diff argument
+# TODO: potentially merge next two functions into 1 with same/diff argument
 def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
                                  correctly_classified_only=True,
                                  save_dir=None
@@ -107,27 +109,26 @@ def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
     If correctly_classified_only is True, only include graphs correctly classified by the model.
     Optionally saves the result to a JSON file.
 
-    Args:
-        :param dataset: Name of graph dataset.
-        :param correctly_classified_only: If True, only pairs of indices from correctly classified graphs
-        will be considered.
-        :param save_dir: File path where to save index pair list.
+    :param dataset: Name of graph dataset.
+    :param correctly_classified_only: If True, only pairs of indices from correctly classified graphs
+           will be considered.
+    :param save_dir: File path where to save index pair list.
     """
 
-    # read in predictions of our model on graphs in original dataset
+    # Read in model predictions for original dataset graphs
     with open(f"{PREDICTIONS_DIR}/{dataset}_{MODEL}_predictions.json") as f:
         predictions = json.load(f)
 
-    # optionally, filter for correctly classified graphs only
+    # Optionally, filter for correctly classified graphs only
     if correctly_classified_only:
         idxs = graphs_correctly_classified(dataset)
     else:
         idxs = list(map(int, predictions.keys()))
 
-    # map graph idx → true label
+    # Map graph idx → true label
     labels = {int(i): entry["true_label"] for i, entry in predictions.items() if int(i) in idxs}
 
-    # build sets of graph pairs
+    # Build sets of graph pairs
     same_class_pairs = set()
     same_class_0_pairs = set()
     same_class_1_pairs = set()
@@ -140,7 +141,7 @@ def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
             elif labels[i] == 1:
                 same_class_1_pairs.add((i, j))
 
-    # optionally, save all three same-class sets
+    # Optionally, save all same-class sets
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
 
@@ -165,34 +166,33 @@ def graph_index_pairs_diff_class(dataset_name=DATASET_NAME,
     If correctly_classified_only is True, only graphs correctly classified by the model are included.
     Optionally saves the result to a JSON file.
 
-    Args:
-        :param dataset_name: Name of graph dataset.
-        :param correctly_classified_only: If True, only pairs of indices from correctly classified graphs
-        will be considered.
-        :param save_path: File path where to save index pair list.
+    :param dataset_name: Name of graph dataset.
+    :param correctly_classified_only: If True, only pairs of indices from correctly classified graphs
+           will be considered.
+    :param save_path: File path where to save index pair list.
     """
 
-    # read in predictions of our model on original dataset graphs
+    # Read in model predictions for original dataset graphs
     with open(f"{PREDICTIONS_DIR}/{dataset_name}_{MODEL}_predictions.json") as f:
         predictions = json.load(f)
 
-    # optionally, filter for correctly classified graphs only
+    # Optionally, filter for correctly classified graphs only
     if correctly_classified_only:
         correct_idxs = graphs_correctly_classified(dataset_name)
         idxs = correct_idxs
     else:
         idxs = list(map(int, predictions.keys()))
 
-    # build dictionary of graph idx → true label
+    # Build dictionary of graph idx → true label
     labels = {int(i): entry["true_label"] for i, entry in predictions.items() if int(i) in idxs}
 
-    # generate set of all graph pairs
+    # Generate set of all graph pairs
     pairs = set()
     for i, j in itertools.combinations(sorted(labels.keys()), 2):
         if labels[i] != labels[j]:
             pairs.add((i, j))
 
-    # optionally, save set to file
+    # Save set to file optionally
     if save_path is not None:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "w") as f:
