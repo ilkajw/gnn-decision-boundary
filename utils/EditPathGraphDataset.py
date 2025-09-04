@@ -9,11 +9,13 @@ from torch.serialization import add_safe_globals
 from config import DATASET_NAME, DISTANCE_MODE, ROOT
 
 
+# todo: implement with org ds y instead of base pred dict
+
 def _ensure_dir(path):
     Path(os.path.dirname(path) or ".").mkdir(parents=True, exist_ok=True)
 
 
-class EditPathGraphsDataset(InMemoryDataset):
+class EditPathGraphDataset(InMemoryDataset):
     """
     In-memory dataset from per-path .pt sequences (lists of PyG Data).
 
@@ -51,6 +53,8 @@ class EditPathGraphsDataset(InMemoryDataset):
         drop_endpoints: bool = True,
         verbose: bool = True,
         allowed_indices: set[int] | None = None,
+        use_base_dataset: bool = False,
+        base_dataset=None,
     ):
         self.seq_dir = seq_dir
         self.base_pred_path = base_pred_path
@@ -58,8 +62,17 @@ class EditPathGraphsDataset(InMemoryDataset):
         self.verbose = bool(verbose)
         self.allowed_indices = set(allowed_indices) if allowed_indices is not None else None
         self.flip_at = float(flip_at)
+        self.use_base_dataset = bool(use_base_dataset)
+        self.base_dataset = base_dataset
+        self._label_cache = {}  # idx -> int label (used only when use_base_dataset=True)
 
         assert 0.0 <= self.flip_at <= 1.0, "flip_at must be in [0,1]"
+
+        if self.use_base_dataset and self.base_dataset is None:
+            raise ValueError("use_base_dataset=True requires base_dataset to be provided.")
+        if not self.use_base_dataset and not os.path.exists(str(self.base_pred_path)):
+            print(f"[WARN] base_pred_path '{self.base_pred_path}' not found. "
+                  f"Either provide the JSON or set use_base_dataset=True with base_dataset=...")
 
         root_dir = os.path.abspath(f"{ROOT}/{DATASET_NAME}/processed/_editpath_inmem_root")
         # was for last hopefully correct run:
@@ -70,7 +83,9 @@ class EditPathGraphsDataset(InMemoryDataset):
         data_list = self._build_list()
         self.data, self.slices = self.collate(data_list)
         if self.verbose:
-            print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} | flip_at={self.flip_at}")
+            src = "base_dataset.y" if self.use_base_dataset else "JSON base_pred_path"
+            print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} "
+                  f"| flip_at={self.flip_at} | labels from {src}")
 
     # InMemoryDataset expects these
     @property
@@ -84,7 +99,7 @@ class EditPathGraphsDataset(InMemoryDataset):
 
     # -------------- internal helpers -------------------------
 
-    def _load_base_labels(self):
+    def _load_base_labels_from_json(self):
         """
         True classes of original dataset graphs.
         """
@@ -92,6 +107,41 @@ class EditPathGraphsDataset(InMemoryDataset):
             base = json.load(f)
         # ensure int keys
         return {int(k): int(v["true_label"]) for k, v in base.items()}
+
+    @staticmethod
+    def _normalize_label_from_y(y) -> int:
+        """
+        Normalize a label 'y' into a Python int.
+        Supports:
+          - scalar tensor
+          - Python int
+          - one-hot / logits tensor (argmax)
+        """
+        if y is None:
+            raise ValueError("Encountered None for y while reading from base_dataset.")
+        if torch.is_tensor(y):
+            if y.numel() == 1:
+                return int(y.detach().cpu().item())
+            # assume class dimension is last; use argmax
+            return int(torch.argmax(y, dim=-1).detach().cpu().item())
+        # fall back
+        return int(y)
+
+    def _get_label_from_dataset(self, idx: int) -> int:
+        """
+        Get and cache label for a base graph with index `idx` from self.base_dataset.
+        """
+        if idx in self._label_cache:
+            return self._label_cache[idx]
+        try:
+            base_item = self.base_dataset[int(idx)]
+        except Exception as e:
+            raise IndexError(f"Failed to access base_dataset at index {idx}: {e}")
+        if not hasattr(base_item, "y"):
+            raise AttributeError(f"base_dataset[{idx}] has no attribute 'y'.")
+        label = self._normalize_label_from_y(base_item.y)
+        self._label_cache[idx] = label
+        return label
 
     def _t_from_graph(self, g):
         """
@@ -104,7 +154,7 @@ class EditPathGraphsDataset(InMemoryDataset):
             dist = float(getattr(g, "num_all_ops"))
             step = float(getattr(g, "edit_step"))
         else:
-            print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. "
+            print(f"[WARN] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. "
                   f"Expected 'cost' or 'edit_step'. Defaulting to 'cost'.")
             dist = float(getattr(g, "distance"))
             step = float(getattr(g, "cumulative_cost"))
@@ -130,23 +180,26 @@ class EditPathGraphsDataset(InMemoryDataset):
 
         add_safe_globals([Data])
 
-        base_labels = self._load_base_labels()
+        # Fail fast if sequence directory is missing
+        if not os.path.isdir(self.seq_dir):
+            raise FileNotFoundError(f"seq_dir '{self.seq_dir}' does not exist.")
+
+        # Only load JSON if we're in the old mode
+        base_labels = None
+        if not self.use_base_dataset:
+            base_labels = self._load_base_labels_from_json()
+
         files = sorted([f for f in os.listdir(self.seq_dir) if f.endswith(".pt")])
 
         data_list = []
         no_intermediates = []
-
-        if not os.path.isdir(self.seq_dir):
-            if self.verbose:
-                print(f"[WARN] seq_dir '{self.seq_dir}' does not exist.")
 
         # Loop through sequence files, then through sequence to add graphs
         for fname in files:
 
             seq = torch.load(os.path.join(self.seq_dir, fname), weights_only=False)
             if not seq:
-                if self.verbose:
-                    print(f"[WARN] missing graph sequence expected in {fname}")
+                print(f"[WARN] missing graph sequence expected in {fname}")
                 continue
 
             g0 = seq[0]
@@ -158,12 +211,16 @@ class EditPathGraphsDataset(InMemoryDataset):
                 if (i not in self.allowed_indices) or (j not in self.allowed_indices):
                     continue
 
-            if i not in base_labels or j not in base_labels:
-                if self.verbose:
+            # Get source and target graph classes depending on mode (dict vs. dataset)
+            if self.use_base_dataset:
+                y_src = self._get_label_from_dataset(i)
+                y_tgt = self._get_label_from_dataset(j)
+            else:
+                if i not in base_labels or j not in base_labels:
                     print(f"[WARN] missing base label for {i} or {j} in {fname}.")
-                continue
-            y_src = base_labels[i]
-            y_tgt = base_labels[j]
+                    continue
+                y_src = base_labels[i]
+                y_tgt = base_labels[j]
 
             # Optionally drop source and target graph
             if self.drop_endpoints:
@@ -186,6 +243,7 @@ class EditPathGraphsDataset(InMemoryDataset):
                     y=torch.tensor([y_val], dtype=torch.float),
                 )
 
+                # Copy graph attributes to dataset graph
                 for key in (
                     "edit_step", "cumulative_cost", "source_idx", "target_idx", "iteration",
                     "distance", "prediction", "probability", "num_all_ops"
@@ -225,6 +283,9 @@ class EditPathGraphsDataset(InMemoryDataset):
                 "flip_at": self.flip_at,
                 "distance_mode": DISTANCE_MODE,
                 "num_graphs": self.len(),
+                "use_base_dataset": self.use_base_dataset,
+                "base_dataset_cls": type(self.base_dataset).__name__ if self.base_dataset is not None else None,
+
             }
             with open(meta_output_path, "w") as f:
                 json.dump(meta, f, indent=2)

@@ -13,7 +13,7 @@ from torch_geometric.loader import DataLoader
 from torch.utils.data import ConcatDataset, Subset
 from torch_geometric.transforms import Compose
 
-from EditPathGraphDataset import EditPathGraphsDataset
+from EditPathGraphDataset import EditPathGraphDataset
 from training_utils import train_epoch, evaluate_loss, evaluate_accuracy, setup_reproducibility
 from config import (
     ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL,
@@ -22,6 +22,8 @@ from config import (
 
 # todo: alternatively to current solution,
 #  set DROP_ENDPOINTS=False and train_dataset = path_train
+
+# todo: change true label source from dict to actual dataset
 
 # ----- Set input, output paths ----
 # todo: adjust the paths correctly after GAT training
@@ -37,14 +39,13 @@ base_labels_path = "data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions
 # Output files definition
 output_dir = f"model_cv_augmented/{DATASET_NAME}/{MODEL}/flip_at_{int(FLIP_AT*100)}"
 # todo: later back to: f"models_cv_augmented/{DATASET_NAME}/{MODEL}/{flip_at_{int(FLIP_AT*100)}/"
-
 model_fname = f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"
 log_fname = f"{DATASET_NAME}_{MODEL}_train_log_flip_{int(FLIP_AT*100)}.json"
 
-# set run configs
-DROP_ENDPOINTS = True
-VERBOSE = True
+# Set run parameters
+DROP_ENDPOINTS = True  # drop source and target graphs in EditPathGraphDataset
+VERBOSE = True  # print training progress
 
 
 # ---- Helpers ----
@@ -135,25 +136,24 @@ if __name__ == "__main__":
     # for reproducibility
     setup_reproducibility(seed=42)
 
-    # base dataset
     base_ds = TUDataset(
         root=ROOT,
         name=DATASET_NAME,
         transform=Compose([
-            to_float_y(),  # ensure float labels
-            drop_edge_attr(),  # remove edge_attr to match path graphs schema
-            tag_origin("org"),  # tag each graph with origin (org vs. edit)
+            to_float_y(),  # Ensure float labels
+            drop_edge_attr(),  # Remove edge_attr to match path graph schema
+            tag_origin("org"),  # Tag each graph origin "original"
         ])
     )
 
-    labels = hard_labels(base_ds)  # in case of soft labelling, derive hard labels for StratifiedKFold
+    labels = hard_labels(base_ds)  # In case of soft labelling, derive hard labels for StratifiedKFold
 
     skf = StratifiedKFold(n_splits=K_FOLDS, shuffle=True, random_state=42)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     in_channels = infer_in_channels(base_ds)
     accuracies = []
 
-    # to track best model
+    # To track best model
     best_acc = -1.0
     best_model_state = None
     best_split = None
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     fold_records = []
 
     if VERBOSE:
-        print(f"--- training {MODEL} model on augmented data with flips at {FLIP_AT} ---")
+        print(f"--- Training {MODEL} model on augmented data with flips at {FLIP_AT} ---")
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(base_ds)), labels), start=1):
 
@@ -175,27 +175,28 @@ if __name__ == "__main__":
 
         # Augment train subset with path graphs between training graphs
         allowed_indices = set(map(int, train_idx.tolist()))
-        print(f"[info] building augmented dataset...")
-        path_train = EditPathGraphsDataset(
+        print(f"[info] Building augmented dataset...")
+        path_train = EditPathGraphDataset(
             seq_dir=path_seq_dir,
             base_pred_path=base_labels_path,
             flip_at=FLIP_AT,
             drop_endpoints=DROP_ENDPOINTS,
             verbose=False,
             allowed_indices=allowed_indices,  # Filter for paths between graphs from train split
+            use_base_dataset=False,  # todo: change to True and base_ds later
+            base_dataset=None
         )
 
         path_train.transform = Compose([
-            # Ensure float labels
-            to_float_y(),
-            # Drop attrs to match org schema for collating
-            drop_keys(["edit_step", "cumulative_cost", "source_idx", "target_idx",
-                       "iteration", "distance", "num_all_ops", "prediction", "probability"]),
-            # Tag each graph with origin (org vs. edit)
-            tag_origin("edit"),
+            to_float_y(),  # Ensure float labels
+
+            drop_keys(["edit_step", "cumulative_cost", "source_idx",  # Drop attrs to match org schema for collating
+                       "target_idx", "iteration", "distance",
+                       "num_all_ops", "prediction", "probability"]),
+            tag_origin("edit"),  # Tag each graph with origin "edit path"
         ])
 
-        print(f"[info] adding {len(path_train)} path graphs to train split...")
+        print(f"[info] Adding {len(path_train)} path graphs to train split...")
 
         # ---- Class distributions per fold ----
         base_stats = class_stats(train_subset)
@@ -212,7 +213,7 @@ if __name__ == "__main__":
         }
 
         if VERBOSE:
-            print(f"[info] path graph classes: 0: {path_stats['n0']}, 1: {path_stats['n1']}")
+            print(f"[info] Path graph classes: 0: {path_stats['n0']}, 1: {path_stats['n1']}")
 
         # Final train set = base train + belonging path graphs,
         # final test set = base test
@@ -281,7 +282,7 @@ if __name__ == "__main__":
             # Track best across all folds/epochs
             if test_acc > best_acc:
                 if VERBOSE:
-                    print(f"[info] new best model in fold {fold}, epoch {epoch} with test acc {test_acc: .4f}")
+                    print(f"[info] New best model in fold {fold}, epoch {epoch} with test acc {test_acc: .4f}")
                 best_acc = test_acc
                 best_model_state = {k: v.detach().clone().cpu() for k, v in model.state_dict().items()}
                 best_split = {
@@ -317,12 +318,12 @@ if __name__ == "__main__":
     with open(split_path, "w") as f:
         json.dump(best_split, f, indent=2)
 
+    # Consolidated log
     model_config = {
         "name": getattr(MODEL_CLS, "__name__", str(MODEL_CLS)),
         "kwargs": {k: (v.item() if hasattr(v, "item") else v) for k, v in (MODEL_KWARGS or {}).items()},
     }
 
-    # Consolidated log
     log = {
         "fold_test_accuracies": [float(a) for a in accuracies],
         "mean_test_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
@@ -353,7 +354,7 @@ if __name__ == "__main__":
         json.dump(log, f, indent=2)
 
     if VERBOSE:
-        print(f"\n [info] average test accuracy over {K_FOLDS} folds: "
+        print(f"\n [info] Average test accuracy over {K_FOLDS} folds: "
               f"{float(np.mean(accuracies)) if accuracies else 0.0: .4f}")
-        print(f"[info] saved best model → {model_path}")
-        print(f"[info] saved log → {log_path}")
+        print(f"[info] Saved best model → {model_path}")
+        print(f"[info] Saved log → {log_path}")

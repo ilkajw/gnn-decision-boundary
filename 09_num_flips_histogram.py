@@ -38,7 +38,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
     Returns:
         dict: {num_flips: count} showing how many paths have that many flips.
     """
-    # for testing only
+    # For testing only
     same_class_odd_flips = []
     diff_class_even_flips = []
 
@@ -46,10 +46,10 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
     with open(flips_input_path) as f:
         flips_per_path = json.load(f)
 
-    # initialize histogram
+    # Initialize histogram
     flip_histogram = defaultdict(int)
 
-    # count paths per number of flips
+    # Count paths per number of flips
     for pair_str, flips in flips_per_path.items():
         i, j = map(int, pair_str.split(","))
 
@@ -66,7 +66,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
 
         flip_histogram[num_flips] += 1
 
-    # optionally save
+    # Optionally save
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as f:
@@ -87,7 +87,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
 
 if __name__ == "__main__":
 
-    # retrieve per-path flip info according to distance mode set in config
+    # Retrieve per-path flip info according to distance mode set in config
     if DISTANCE_MODE == "cost":
         flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
@@ -99,12 +99,12 @@ if __name__ == "__main__":
               f"Assuming 'cost'.")
         flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
-    # fail fast if inputs missing
+    # Fail fast if inputs missing
     for p in [split_path, flips_path]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input: {p}")
 
-    # build all index-set cuts (same/diff + train/train, test/test, train/test)
+    # Build all index-set cuts (same/diff + train/train, test/test, train/test)
     idx_pair_sets = build_index_set_cuts(
         dataset_name=DATASET_NAME,
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
@@ -151,14 +151,14 @@ if __name__ == "__main__":
         "results": {}
     }
 
-    # run histograms for every index set
+    # Run histograms for every index set
     for key, same_flag in keys_and_flags:
 
-        # retrieve index pairs for this index set
+        # Retrieve index pairs for index set
         idx_pair_set = idx_pair_sets[key]
         print(f"→ counting flips histogram for {key} ({len(idx_pair_set)} pairs)")
 
-        # absolute values
+        # Calculate histogram with absolute values
         hist_abs = count_paths_by_num_flips(
             idx_pair_set=idx_pair_set,
             flips_input_path=flips_path,
@@ -166,17 +166,17 @@ if __name__ == "__main__":
             same_class=same_flag,
         )
 
-        # relative values
+        # Calculate relative values
         hist_rel = to_relative(hist_abs)
 
-        # store all data for this index pair set
+        # Records for this index set
         data["results"][key] = {
             "num_pairs": len(idx_pair_set),
             "hist_abs": hist_abs,  # {num_flips: count}
             "hist_rel": hist_rel,  # {num_flips: proportion}
         }
 
-    # save
+    # Save
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, output_fname)
     with open(output_path, "w") as f:
