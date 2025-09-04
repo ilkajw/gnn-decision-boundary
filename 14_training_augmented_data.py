@@ -19,9 +19,6 @@ from config import (
     ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL, MODEL_CLS, MODEL_KWARGS
 )
 
-# todo: alternatively to current solution,
-#  set DROP_ENDPOINTS=False and train_dataset = path_train
-
 # todo: change true label source from dict to actual dataset
 
 # ----- Set input, output paths ----
