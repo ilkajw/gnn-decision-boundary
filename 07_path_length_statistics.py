@@ -74,9 +74,9 @@ if __name__ == "__main__":
 
     # pick the right precalc file
     if DISTANCE_MODE == "cost":
-        dist_path = os.path.join(ANALYSIS_DIR, f"{DATASET_NAME}_dist_per_path.json")
+        dist_path = os.path.join("data_actual_best\MUTAG\GAT/analysis/by_cost", f"{DATASET_NAME}_dist_per_path.json")
     elif DISTANCE_MODE == "edit_step":
-        dist_path = os.path.join(ANALYSIS_DIR, f"{DATASET_NAME}_num_ops_per_path.json")
+        dist_path = os.path.join("data_actual_best\MUTAG\GAT/analysis/by_cost", f"{DATASET_NAME}_num_ops_per_path.json")
     else:
         print(f"[warn] unexpected DISTANCE_MODE='{DISTANCE_MODE}', defaulting to 'cost'")
         dist_path = os.path.join(ANALYSIS_DIR, f"{DATASET_NAME}_dist_per_path.json")

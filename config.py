@@ -9,7 +9,7 @@ DATASET_NAME = 'MUTAG'
 
 # --- set model and model params ---
 
-MODEL = "GCN"  # <-------- define model here: "GAT" | "GCN" | "GraphSAGE
+MODEL = "GAT"  # <-------- define model here: "GAT" | "GCN" | "GraphSAGE
 
 assert MODEL in {"GAT", "GCN", "GraphSAGE"}, \
     f"Invalid MODEL={MODEL!r}, must be 'GAT', 'GCN or 'GraphSAGE'."
@@ -37,11 +37,12 @@ CORRECTLY_CLASSIFIED_ONLY = True  # only consider paths with correctly classifie
 FULLY_CONNECTED_ONLY = True  # only consider fully connected, hence plausible, edit path graphs
 
 # --- paths ---
-ANALYSIS_DIR = f'{ROOT}/{DATASET_NAME}/{MODEL}/analysis/by_{DISTANCE_MODE}/'
+ANALYSIS_DIR = f'{ROOT}/{DATASET_NAME}/{MODEL}/analysis/by_{DISTANCE_MODE}/' \
+               f'correctly_classified={CORRECTLY_CLASSIFIED_ONLY}'
 LEGACY_PYG_SEQ_DIR = os.path.join("data_control", DATASET_NAME, "pyg_edit_path_graphs")
 PREDICTIONS_DIR = f"{ROOT}/{DATASET_NAME}/{MODEL}/predictions"
 
 # todo: put dist path and flips path in config
 
 # --- synthetic dataset params ---
-FLIP_AT = 0.5  # path progress
+FLIP_AT = 0.9  # path progress

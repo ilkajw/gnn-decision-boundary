@@ -8,7 +8,7 @@ from torch_geometric.data import Data
 from config import DATASET_NAME, MODEL, MODEL_DIR, PREDICTIONS_DIR, ROOT
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
-# TODO: change implementation: add cum cost to graph sequence without needed them to be predicted
+# TODO: check if all done: change implementation: add cum cost to graph sequence without needed them to be predicted
 
 # --- Set input paths ---
 edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"

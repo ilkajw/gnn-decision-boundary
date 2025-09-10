@@ -8,7 +8,7 @@ from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
 # ---- set input, output params -----
 split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
-output_dir = f"{ANALYSIS_DIR}"
+output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 max_num_flips = 10
 
@@ -135,12 +135,12 @@ if __name__ == "__main__":
 
     # retrieve data according to distance mode set in config
     if DISTANCE_MODE == "cost":
-        dist_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
+        dist_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_dist_per_path.json"
+        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
     elif DISTANCE_MODE == "edit_step":
-        dist_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_num_ops_per_path.json"
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
+        dist_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_num_ops_per_path.json"
+        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
 
     else:
         print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."

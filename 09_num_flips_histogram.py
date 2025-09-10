@@ -9,7 +9,7 @@ from index_sets_utils import build_index_set_cuts
 
 # ---- set input, output params ----
 split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
-output_dir = f"{ANALYSIS_DIR}"
+output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_flips_hist_by_{DISTANCE_MODE}.json"
 
 # to save lists of paths incorrectly having even/odd num flips
@@ -89,10 +89,10 @@ if __name__ == "__main__":
 
     # Retrieve per-path flip info according to distance mode set in config
     if DISTANCE_MODE == "cost":
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
+        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
     elif DISTANCE_MODE == "edit_step":
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
+        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
 
     else:
         print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."

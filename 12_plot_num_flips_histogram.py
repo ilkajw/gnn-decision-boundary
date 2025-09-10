@@ -219,3 +219,30 @@ if __name__ == "__main__":
         title=None,
         save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
     )
+
+    idx_sets = ["diff_class_all"]
+
+    # absolute values
+    h_abs = load_histograms(idx_sets, normalized=False)
+    if not h_abs:
+        raise SystemExit("No histograms found in consolidated file — did you run the single-writer script?")
+    abs_totals = totals_from_abs(h_abs)
+    plot_histograms_from_dict(
+        histograms=h_abs,
+        totals=abs_totals,
+        normalized=False,
+        title=None,
+        save_path=os.path.join(PLOT_DIR,
+                               f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+    )
+
+    # normalized values
+    h_rel = load_histograms(idx_sets, normalized=True)
+    plot_histograms_from_dict(
+        histograms=h_rel,
+        totals=abs_totals,
+        normalized=True,
+        title=None,
+        save_path=os.path.join(PLOT_DIR,
+                               f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+    )
