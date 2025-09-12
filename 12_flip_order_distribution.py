@@ -1,13 +1,25 @@
 from datetime import datetime, timezone
-from collections import defaultdict
+from collections import defaultdict, Counter
 import os
 import json
 
-from config import DATASET_NAME, ANALYSIS_DIR, MODEL_DIR, MODEL, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
+
+from config import DATASET_NAME, ANALYSIS_DIR, MODEL_DIR, MODEL, CORRECTLY_CLASSIFIED_ONLY, \
+    MODEL_DEPENDENT_PRECALCULATIONS_DIR, DISTANCE_MODE, MODEL_INDEPENDENT_PRECALCULATIONS_DIR
 from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
 # ---- set input, output params -----
 split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
+
+# retrieve data according to distance mode set in config
+if DISTANCE_MODE == "cost":
+    dist_path = os.path.join(MODEL_INDEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_dist_per_path.json")
+    flips_path = os.path.join(MODEL_DEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json")
+
+else:
+    dist_path = os.path.join(MODEL_INDEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_num_ops_per_path.json")
+    flips_path = os.path.join(MODEL_DEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json")
+
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 max_num_flips = 10
@@ -20,10 +32,11 @@ def flip_distribution_over_deciles_by_num_flips(
     flips_input_path,
     idx_pair_set=None,
     output_path=None,
-    include_paths=False
+    include_paths=False,
+    correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
 ):
     # to filter if defined
-    if CORRECTLY_CLASSIFIED_ONLY:
+    if correctly_classified_only:
         correct = graphs_correctly_classified()
 
     # load path distance and flips data
@@ -36,56 +49,74 @@ def flip_distribution_over_deciles_by_num_flips(
         s1, s2 = f"{i},{j}", f"{j},{i}"
         return distances.get(s1, distances.get(s2))
 
-    # accumulators
+    # Accumulators
     abs_counts_by_k = {k: [0] * 10 for k in range(1, max_num_flips + 1)}
     flip_order_counts_by_k = {
         k: [[0] * 10 for _ in range(k)] for k in range(1, max_num_flips + 1)
     }
+
+    ops_counts_by_k = {
+        k: [Counter() for _ in range(10)] for k in range(1, max_num_flips + 1)
+    }
+
+    # To collect contributing paths
     paths_by_k = {k: [] for k in range(1, max_num_flips + 1)} if include_paths else None
+    # To track number of contributing paths per k
     num_paths_by_k = defaultdict(int)
 
     for pair_str, flips in flips_per_path.items():
+        # Skip paths without flips
         if not flips:
             continue
         i, j = map(int, pair_str.split(","))
 
-        # filter for index set
+        # Filter for index set given as argument
         if idx_pair_set is not None and (i, j) not in idx_pair_set and (j, i) not in idx_pair_set:
             continue
 
-        # filter for correctness. for index_sets, these have already been filtered
-        if idx_pair_set is None and CORRECTLY_CLASSIFIED_ONLY:
+        # Filter for correctness. If index_set given, these have already been filtered
+        if idx_pair_set is None and correctly_classified_only:
             if i not in correct or j not in correct:
                 continue
 
-        # only consider num flips up to k
+        # Only consider num flips up to k
         k = len(flips)
         if k < 1 or k > max_num_flips:
             continue
 
-        # get path distance of i, j according to distance mode
+        # Get path distance measure of (i, j) according to distance mode
         dist = get_distance(i, j)
         if dist is None:
-            print(f"[WARN] missing distance for {i}, {j}")
-            continue
-        if dist == 0:
-            print(f"[WARN] zero distance for {i}, {j} – skipping to avoid div by 0")
-            continue
+            raise ValueError(f"[ERR] missing distance for ({i}, {j})")
+        if not isinstance(dist, (int, float)):
+            raise TypeError(f"[ERR] non-numeric distance for ({i}, {j}): {type(dist)}")
+        if dist <= 0:
+            raise ValueError(f"[ERR] non-positive distance for ({i}, {j}): {dist}")
 
-        # calculate per-path decile counts, split by flip order
+        # Calculate per-path decile counts, split by flip order
         decile_counts = [0] * 10
-        for flip_idx, (step, _lbl) in enumerate(flips):
+        for flip_idx, flip in enumerate(flips):
+
+            if not isinstance(flip, (list, tuple)) or len(flip) < 3:
+                raise ValueError(
+                    f"Flip entry must be a triple (step/cost, class, operation). Got: {flip} for pair {i},{j}")
+            step, _lbl, op = flip
+            if not isinstance(step, (int, float)) or step < 0:
+                raise TypeError(f"'step/cost' must be non-negative number; got {step} (type={type(step)}) for {i},{j}")
+            if not isinstance(op, str):
+                raise TypeError(f"'operation' must be a string label, got {type(op)} for pair {i},{j}")
+
             rel = step / dist
             d = int(min(rel * 10, 9))  # bin 0..9, clamp 1.0 to 9
-            decile_counts[d] += 1
-            # per-flip-order
-            flip_order_counts_by_k[k][flip_idx][d] += 1
+            decile_counts[d] += 1  # Accumulate absolutes
+            flip_order_counts_by_k[k][flip_idx][d] += 1  # Accumulate per flip order counts
+            ops_counts_by_k[k][d][op] += 1  # Accumulate operation counts by decile
 
         total_flips = sum(decile_counts)
         if total_flips == 0:
             continue
 
-        # accumulate absolutes
+        # Accumulate absolutes
         acc = abs_counts_by_k[k]
         for d in range(10):
             acc[d] += decile_counts[d]
@@ -94,21 +125,30 @@ def flip_distribution_over_deciles_by_num_flips(
         if include_paths:
             paths_by_k[k].append({"pair": [i, j], "flips": flips})
 
-    # build result
+    # Build result
     result = {}
     for k in range(1, max_num_flips + 1):
         abs_counts = abs_counts_by_k[k]
         total_abs = sum(abs_counts)
-        if total_abs > 0:
-            global_prop = [c / total_abs for c in abs_counts]
-        else:
-            global_prop = [0.0] * 10
+        global_prop = [c / total_abs if total_abs > 0 else 0.0 for c in abs_counts]
 
-        # per-flip-order distribution
+        # Per-flip-order distribution
         flip_order_distribution = {
             str(order + 1): {str(d): int(flip_order_counts_by_k[k][order][d]) for d in range(10)}
             for order in range(k)
         }
+
+        # Operation distribution
+        ops_by_decile = {}
+        for d in range(10):
+            decile_total = abs_counts[d]  # total flips in this decile for this k
+            counter = ops_counts_by_k[k][d]
+            abs_ops = {op: int(cnt) for op, cnt in counter.items()} if decile_total > 0 else {}
+            norm_ops = {op: (cnt / decile_total) for op, cnt in counter.items()} if decile_total > 0 else {}
+            ops_by_decile[str(d)] = {
+                "abs": abs_ops,
+                "norm": norm_ops,
+            }
 
         # store relative and absolute values per-k
         entry = {
@@ -116,8 +156,10 @@ def flip_distribution_over_deciles_by_num_flips(
             "abs": {str(d): int(abs_counts[d]) for d in range(10)},
             "norm": {str(d): float(global_prop[d]) for d in range(10)},
             "flip_order_distribution": flip_order_distribution,
+            "ops_by_decile": ops_by_decile,
         }
-        # optionally add set of contributing paths
+
+        # Optionally store set of contributing paths
         if include_paths:
             entry["paths"] = paths_by_k[k]
         result[str(k)] = entry
@@ -132,21 +174,6 @@ def flip_distribution_over_deciles_by_num_flips(
 
 # -------- run analysis ---------------
 if __name__ == "__main__":
-
-    # retrieve data according to distance mode set in config
-    if DISTANCE_MODE == "cost":
-        dist_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
-
-    elif DISTANCE_MODE == "edit_step":
-        dist_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_num_ops_per_path.json"
-        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
-
-    else:
-        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."
-              f"Assuming 'cost'.")
-        dist_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
     # fail fast if inputs missing
     for p in [split_path, dist_path, flips_path]:
@@ -177,6 +204,7 @@ if __name__ == "__main__":
             flips_input_path=flips_path,
             output_path=None,
             idx_pair_set=idx_set,
+            correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         )
         per_index_set[key] = {
             "num_pairs": len(idx_set),

@@ -32,7 +32,7 @@ seq_out_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_C
 
 # --- Helpers ---
 
-# TODO: only info on source_idx and target_idx are used later. delete rest?
+# TODO: info is not used later. delete?
 def add_attrs_to_path_preds_dict(path_pred_json_path, base_pred_json_path, split_path, output_path):
     """
     Enriches dictionary entries of edit path predictions with additional metadata to help later analysis:

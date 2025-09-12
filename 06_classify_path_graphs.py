@@ -92,7 +92,8 @@ def edit_path_predictions(
                 "iteration": int(getattr(graph, 'iteration', -1)),
                 "edit_step": int(getattr(graph, 'edit_step', -1)),
                 "prediction": pred,
-                "probability": prob
+                "probability": prob,
+                "distance": int(getattr(graph, 'distance', -1))  # todo: this isnt there yet as it hasnt run yet
             })
         # Save updated sequence
         torch.save(updated_sequence, os.path.join(output_dir, "edit_path_graphs_with_predictions", filename))

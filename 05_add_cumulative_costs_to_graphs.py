@@ -13,6 +13,7 @@ from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 # --- Set input paths ---
 edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
 pyg_seq_with_preds_dir = f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
+json_path = f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
 
 # --- Set output path ---
 seq_out_dir = f"{ROOT}/{DATASET_NAME}/edit_path_graphs"  # overwrite
@@ -256,7 +257,7 @@ def add_cum_cost_to_path_preds_json(
 if __name__ == "__main__":
 
     # Fail fast if inputs missing
-    for p in [edit_path_ops_dir, pyg_seq_with_preds_dir]:
+    for p in [edit_path_ops_dir, json_path, pyg_seq_with_preds_dir]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input directory: {p}")
 
@@ -268,9 +269,13 @@ if __name__ == "__main__":
         ops_file_dir=edit_path_ops_dir
     )
 
+    add_cum_cost_to_path_preds_json(path_pred_json_path=json_path,
+                                    cum_costs=cum_costs,
+                                    )
+
     add_cum_cost_to_pyg_seq(
         cum_costs=cum_costs,
         seq_dir=pyg_seq_with_preds_dir,
         add_field_name="cumulative_cost",
-        out_path=seq_out_dir,  # write to separate dir. if None -> overwrite
+        out_dir=seq_out_dir,  # if None -> overwrite
     )
