@@ -2,7 +2,7 @@
 
 This repository provides a pipeline to analyse the classification behaviour of a GAT, GCN or GraphSAGE model on 
 edit paths between graphs from a TUDataset. 
-For that, it uses the repository 'pg_gnn_decision_boundary' and precalculated optimal edit operations from it 
+For that, it uses the repository `pg_gnn_decision_boundary` and precalculated optimal edit operations from it 
 to build the edit path graphs.
 
 It trains the model on the original dataset with k-fold cross validation and selects the best weight state according to 
@@ -30,45 +30,47 @@ Here, define
 - the model architecture to use in original dataset training and/or augmented dataset training with `MODEL`
 - the model hyperparameters with `MODEL_KWARGS`
 - training parameters `K_FOLDS`, `EPOCHS`, `LEARNING_RATE`, `BATCH_SIZE`
-- whether in analysis, to measure path progress according to the cost function or number of operations 
+- for analysis, whether to measure path progress according to the cost function or number of operations 
 with `DISTANCE_MODE`
-- whether only to consider fully conneted path graph with `FULLY_CONNECTED_ONLY`
+- whether only to consider fully connected path graph with `FULLY_CONNECTED_ONLY`
 - whether to only consider paths with correctly classified source and target graph in analysis 
 with `CORRECTLY_CLASSIFIED_ONLY`
-- for augmented data training, after what percent of path progress to change the label for graphs on paths graphs between 
+- for augmented data training, after what percentage of path progress to change the label for graphs on paths graphs between 
 graphs of different class, with `FLIP_AT`
 
 #### 01_train_model_on_original_dataset.py
 
-The file defines the initial GNN training on the original TUDatatset with k-fold cross validation. It saves the 
+The file defines the initial GNN training on the original TUDataset with k-fold cross validation. It saves the 
 best weight state according to test accuracy, as well as mean and sample standard deviation over
 final test accuracies per fold as baseline measures.
 
 #### 02_classify_original_dataset.py
 
-The file classifies all graphs from the TUDataset and saves classification to a JSON, to later retrieve which 
-graphs are classified correctly.
+All graphs from the TUDataset are classified with the trained GNN and classifications are saved to a JSON, 
+to later retrieve which graphs are classified correctly.
 
 #### 03_create_path_graphs.py
 
 The file accesses the repo `pg_gnn_decision_boundary`, where precomputed optimal edit operations are stored, and its 
-`create_edit_path_graphs` method. The file creates path graph sequences for every pair from the dataset in NetworkX and 
-PyG format each. Thereby, it drops edge attributes and adds graph attributes on source graph, target graph, optimization
-iteration, edit_step, edit operation. Every sequence is saved to a `.pt` or `.pkl` file, respectively. 
+`utils.EditPath.create_edit_path_graphs` method. The file creates path graph sequences for every pair from the dataset in NetworkX and 
+PyG format each. Doing so, it drops edge attributes and adds graph attributes on source graph, target graph, optimization
+iteration, edit step and the edit operation the graph results from. Every sequence is saved to a `.pt` or `.pkl` file, 
+respectively. 
 
 #### 04_assign_cumulative_costs.py
-Here, the cost function used during edit path calculation can be set to reconstruct cumulative costs per path graph and
-add them as graph attributes to the prior created graphs in the sequence files.
+Here, set the cost function used during edit path calculation. Then, cumulative costs per path graph are reconstructed 
+and added as graph attributes to the prior created graphs in the PyG sequences.
 
 #### 05_classify_path_graphs.py
-Path graph from the prior created sequences are defined with the best model trained on the original dataset. 
+Path graphs from the prior created sequences are defined with the best model trained on the original dataset. 
 Predictions are stored as graph attributes and a JSON with all graphs, their attributes and prediction is created.
 
 #### 06_precalculations.py
 
-A map for distances and the number of operations per path is calculated, as well as a history of flip occurrences per 
+A map on distances and on the number of operations per path is calculated. Further, a history of flip occurrences per 
 path with the triggering edit operation per flip and its path position is computed, one with path positions measured 
 according to the cost function, one according to the number of operations.
+
 
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
