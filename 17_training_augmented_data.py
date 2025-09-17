@@ -16,24 +16,25 @@ from torch_geometric.transforms import Compose
 from EditPathGraphDataset import EditPathGraphDataset
 from training_utils import train_epoch, evaluate_loss, evaluate_accuracy, setup_reproducibility
 from config import (
-    ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL, MODEL_CLS, MODEL_KWARGS
+    ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL, MODEL_CLS, MODEL_KWARGS,
+    DISTANCE_MODE
 )
 
 # todo: change true label source from dict to actual dataset
 
 # ----- Set input, output paths ----
-# todo: adjust the paths to cum cost attr in org non predicted series, no need or predicted
+# todo: adjust the paths to original series with cum costs, no need for predictions
 # Directory with all path sequences (.pt lists)
 # using hard coded path to not have to run predictions with GCN as we only need the true label
 path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-# f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
+# os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
 
 # Path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
 base_labels_path = "data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"
-# f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_predictions.json"
+# os.join.path(PREDICTIONS_DIR, f"{DATASET_NAME}_{MODEL}_predictions.json")
 
 # Output files definition
-output_dir = f"model_cv_augmented/{DATASET_NAME}/{MODEL}/flip_at_{int(FLIP_AT*100)}"
+output_dir = f"model_cv_augmented/{DATASET_NAME}/{MODEL}/by_{DISTANCE_MODE}/flip_at_{int(FLIP_AT*100)}"
 # todo: later back to: f"models_cv_augmented/{DATASET_NAME}/{MODEL}/{flip_at_{int(FLIP_AT*100)}/"
 model_fname = f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"
@@ -174,12 +175,12 @@ if __name__ == "__main__":
         print(f"[info] Building augmented dataset...")
         path_train = EditPathGraphDataset(
             seq_dir=path_seq_dir,
-            base_pred_path=base_labels_path,  # todo: delete
+            base_pred_path=base_labels_path,  # todo: delete for new implementation
             flip_at=FLIP_AT,
             drop_endpoints=DROP_ENDPOINTS,
             verbose=False,
             allowed_indices=allowed_indices,  # Filter for paths between graphs from train split
-            use_base_dataset=False,  # todo: delete this param when done with base_pred_path
+            use_base_dataset=False,  # todo: delete this param when using new implementation
             base_dataset=None  # todo: change to base_ds
         )
 
@@ -323,7 +324,7 @@ if __name__ == "__main__":
     log = {
         "fold_test_accuracies": [float(a) for a in accuracies],
         "mean_test_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
-        "std_accuracy": float(np.std(accuracies)) if accuracies else 0.0,
+        "std_ddof=1_accuracy": float(np.std(accuracies, ddof=1)) if accuracies else 0.0,
         "config": {
             "dataset": DATASET_NAME,
             "model": model_config,

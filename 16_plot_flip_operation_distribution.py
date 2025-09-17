@@ -2,6 +2,8 @@ import os
 import json
 import math
 import matplotlib.pyplot as plt
+
+from matplotlib.colors import to_rgb
 from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
 
 # ----- paths -----
@@ -31,12 +33,28 @@ def _collect_ops(ops_by_decile: dict[str, dict]) -> list[str]:
     return sorted(ops)
 
 
+def _lighten(color, factor=0.5):
+    """Blend color toward white by given factor (0=original, 1=white)."""
+    r, g, b = to_rgb(color)
+    return (r + (1-r)*factor, g + (1-g)*factor, b + (1-b)*factor)
+
 def _color_for_ops(ops: list[str]):
-    """Deterministic color mapping for ops using tab20 cycling."""
-    cmap = plt.cm.get_cmap("tab20")
+    color_map = {
+        "remove_edge": plt.cm.tab10(3),    # yellow (tab10[1] is golden yellow)
+        "add_edge": plt.cm.tab10(1),       # orange
+        "remove_node": plt.cm.tab10(4),    # purple
+        "add_node": plt.cm.tab10(2),       # green
+        "relabel_node": plt.cm.tab10(0),   # blue
+        "target_graph_insertion": (0.5, 0.5, 0.5),  # grey as RGB tuple
+    }
+
     colors = {}
-    for idx, op in enumerate(ops):
-        colors[op] = cmap(idx % 20)
+    for op in ops:
+        if op in color_map:
+            colors[op] = color_map[op]
+        else:
+            # fallback: light gray if something unexpected appears
+            colors[op] = (0.8, 0.8, 0.8)
     return colors
 
 

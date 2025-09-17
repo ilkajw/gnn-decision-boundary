@@ -14,16 +14,17 @@ Notes
   are passed through ``sigmoid`` and thresholded at ``0.5``.
 - Uses ``batch_size=1`` to keep dataset indices aligned with output keys.
 """
-
+import os
 import json
 import torch
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 
-from config import *
+from config import ROOT, MODEL, MODEL_DIR, DATASET_NAME, PREDICTIONS_DIR, MODEL_CLS, MODEL_KWARGS
 
 # --- Set input, output paths ---
-model_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_model.pt"
+model_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_model.pt")
+
 model_cls = MODEL_CLS
 model_kwargs = MODEL_KWARGS
 

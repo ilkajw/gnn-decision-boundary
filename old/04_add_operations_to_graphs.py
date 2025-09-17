@@ -5,13 +5,13 @@ import torch
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 
-from config import DATASET_NAME, MODEL, PREDICTIONS_DIR
+from config import ROOT, DATASET_NAME, MODEL, PREDICTIONS_DIR
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 # --- Set input paths ---
-edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-path_predictions_json = f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
-sequence_directory = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
+edit_path_ops_dir = os.path.join("../external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
+path_predictions_json = os.path.join(PREDICTIONS_DIR, f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json")
+sequence_directory = os.path.join(ROOT, DATASET_NAME, 'pyg_edit_path_graphs')
 
 # --- Set output path ---
 out_file = path_predictions_json  # Overwrite

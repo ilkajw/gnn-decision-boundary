@@ -3,20 +3,21 @@ import json
 from collections import defaultdict
 
 from datetime import datetime, timezone
-from config import DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
+from config import DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE, FLIPS_PATH
 from index_sets_utils import build_index_set_cuts
 
 
 # ---- set input, output params ----
-split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
+split_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_best_split.json")
+
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_flips_hist_by_{DISTANCE_MODE}.json"
 
 # to save lists of paths incorrectly having even/odd num flips
-test_output_dir = f"{ANALYSIS_DIR}/test"
+test_output_dir = os.path.join(ANALYSIS_DIR, "test")
 
 
-# ---- helpers ----
+# ---- Helper functions ----
 def to_relative(counts_dict):
     # counts_dict: {"0": int, "1": int, ...} or {0: int, 1: int, ...}
     total = sum(counts_dict.values())
@@ -87,20 +88,8 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
 
 if __name__ == "__main__":
 
-    # Retrieve per-path flip info according to distance mode set in config
-    if DISTANCE_MODE == "cost":
-        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
-
-    elif DISTANCE_MODE == "edit_step":
-        flips_path = f"data_actual_best\MUTAG\GAT/analysis/by_cost/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
-
-    else:
-        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."
-              f"Assuming 'cost'.")
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
-
     # Fail fast if inputs missing
-    for p in [split_path, flips_path]:
+    for p in [split_path, FLIPS_PATH]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input: {p}")
 
@@ -145,7 +134,7 @@ if __name__ == "__main__":
             "distance_mode": DISTANCE_MODE,
             "correctly_classified_only": CORRECTLY_CLASSIFIED_ONLY,
             "split_path": split_path,
-            "flips_path": flips_path,
+            "flips_path": FLIPS_PATH,
             "generated_at": datetime.now(timezone.utc).isoformat()
         },
         "results": {}
@@ -161,7 +150,7 @@ if __name__ == "__main__":
         # Calculate histogram with absolute values
         hist_abs = count_paths_by_num_flips(
             idx_pair_set=idx_pair_set,
-            flips_input_path=flips_path,
+            flips_input_path=FLIPS_PATH,
             output_path=None,
             same_class=same_flag,
         )

@@ -4,21 +4,12 @@ import os
 import json
 
 
-from config import DATASET_NAME, ANALYSIS_DIR, MODEL_DIR, MODEL, CORRECTLY_CLASSIFIED_ONLY, \
-    MODEL_DEPENDENT_PRECALCULATIONS_DIR, DISTANCE_MODE, MODEL_INDEPENDENT_PRECALCULATIONS_DIR
+from config import DATASET_NAME, ANALYSIS_DIR, MODEL_DIR, MODEL, CORRECTLY_CLASSIFIED_ONLY, DISTANCES_PATH, FLIPS_PATH,\
+    DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
 # ---- set input, output params -----
-split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
-
-# retrieve data according to distance mode set in config
-if DISTANCE_MODE == "cost":
-    dist_path = os.path.join(MODEL_INDEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_dist_per_path.json")
-    flips_path = os.path.join(MODEL_DEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json")
-
-else:
-    dist_path = os.path.join(MODEL_INDEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_num_ops_per_path.json")
-    flips_path = os.path.join(MODEL_DEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json")
+split_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_best_split.json")
 
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
@@ -176,7 +167,7 @@ def flip_distribution_over_deciles_by_num_flips(
 if __name__ == "__main__":
 
     # fail fast if inputs missing
-    for p in [split_path, dist_path, flips_path]:
+    for p in [split_path, DISTANCES_PATH, FLIPS_PATH]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input: {p}")
 
@@ -200,8 +191,8 @@ if __name__ == "__main__":
         print(f"→ Computing per-num-flips decile distribution for {key} ({len(idx_set)} pairs)")
         stats = flip_distribution_over_deciles_by_num_flips(
             max_num_flips=max_num_flips,
-            dist_input_path=dist_path,
-            flips_input_path=flips_path,
+            dist_input_path=DISTANCES_PATH,
+            flips_input_path=FLIPS_PATH,
             output_path=None,
             idx_pair_set=idx_set,
             correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
@@ -219,8 +210,8 @@ if __name__ == "__main__":
             "distance_mode": DISTANCE_MODE,
             "correctly_classified_only": CORRECTLY_CLASSIFIED_ONLY,
             "split_path": split_path,
-            "dist_path": dist_path,
-            "flips_path": flips_path,
+            "dist_path": DISTANCES_PATH,
+            "flips_path": FLIPS_PATH,
             "max_num_flips": max_num_flips,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         },

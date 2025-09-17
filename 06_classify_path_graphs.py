@@ -8,18 +8,18 @@ from torch_geometric.data import Data
 from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR, PREDICTIONS_DIR, LEGACY_PYG_SEQ_DIR
 
 
-# --- config ---
-# Input paths
-model_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_model.pt"
-graph_seq_dir = f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
+# --- Input paths ---
+model_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_model.pt")
 
-# Output path
-# (subdirectory 'edit_path_graphs_with_predictions' will be created for sequences)
+graph_sequences_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
+
+# ---- Output path ----
+# (subdirectory 'edit_path_graphs_with_predictions' will be created for predicted graph sequences)
 output_dir = PREDICTIONS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
 
 
-# --- function definition ---
+# --- Function definition ---
 def edit_path_predictions(
         model_class,
         model_kwargs,
@@ -27,7 +27,9 @@ def edit_path_predictions(
         model_path,
         input_dir,
         output_dir,
-        output_fname):
+        output_fname,
+        verbose=False
+):
     """
     Loads all PyG graph sequences, each indexed by (source, target graph, iteration).
     Runs predictions on all graphs per sequence.
@@ -90,14 +92,18 @@ def edit_path_predictions(
                 "source_idx": int(getattr(graph, 'source_idx', -1)),
                 "target_idx": int(getattr(graph, 'target_idx', -1)),
                 "iteration": int(getattr(graph, 'iteration', -1)),
+                "operation": getattr(graph, 'operation', None),
                 "edit_step": int(getattr(graph, 'edit_step', -1)),
+                "cumulative_cost": getattr(graph, 'cumulative_cost', -1),
                 "prediction": pred,
                 "probability": prob,
-                "distance": int(getattr(graph, 'distance', -1))  # todo: this isnt there yet as it hasnt run yet
+                "path_distance": int(getattr(graph, 'distance', -1)),
+                "num_operations_incl_insertion": getattr(graph, "num_operations_incl_insertion", -1),
             })
         # Save updated sequence
         torch.save(updated_sequence, os.path.join(output_dir, "edit_path_graphs_with_predictions", filename))
-        print(f"[info] saved preds for file {filename} ")
+        if verbose:
+            print(f"[info] Saved predictions for file {filename} ")
 
     # Save JSON with prediction records
     with open(os.path.join(output_dir, output_fname), "w") as f:
@@ -109,7 +115,7 @@ def edit_path_predictions(
 # --- Run ---
 if __name__ == "__main__":
 
-    for p in [model_path, graph_seq_dir]:
+    for p in [model_path, graph_sequences_dir]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input directory: {p}")
 
@@ -120,6 +126,8 @@ if __name__ == "__main__":
             model_kwargs=MODEL_KWARGS,
             dataset_name=DATASET_NAME,
             model_path=model_path,
-            input_dir=graph_seq_dir,
+            input_dir=graph_sequences_dir,
             output_dir=output_dir,
-            output_fname=output_fname)
+            output_fname=output_fname,
+            verbose=False
+    )

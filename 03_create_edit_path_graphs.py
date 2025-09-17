@@ -13,20 +13,21 @@ from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDatase
 
 
 # --- Set input, output paths ---
-
-edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-nx_output_dir = f"{ROOT}/{DATASET_NAME}/nx_edit_path_graphs"
-pyg_output_dir = f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
+edit_path_ops_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
+nx_output_dir = os.path.join(ROOT, DATASET_NAME, 'nx_edit_path_graphs')
+pyg_output_dir = os.path.join(ROOT, DATASET_NAME, 'pyg_edit_path_graphs')
 
 
 # --- Function definition ---
 
-def generate_edit_path_graphs(data_dir,
-                              nx_output_dir,
-                              pyg_output_dir,
-                              db_name=DATASET_NAME,
-                              seed=42,
-                              fully_connected_only=FULLY_CONNECTED_ONLY):
+def generate_edit_path_graphs(
+        db_name,
+        data_dir,
+        nx_output_dir,
+        pyg_output_dir,
+        fully_connected_only,
+        seed=42,
+):
     """
     Generates all NetworkX graphs from edit path sequences.
     Optionally, filters for fully connected graphs only.
@@ -89,25 +90,24 @@ def generate_edit_path_graphs(data_dir,
                 return e1['label'] == e2['label']
 
             # TODO: include edges in isomorphism test
-            # check if the target graph is included in sequence
+            # Check if the target graph is included in sequence
             last_graph = nx_sequence[-1]
             last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
             if not last_and_target_graph_isomorphic or len(nx_sequence) < 2:
-                nx_sequence.append(nx_graphs[j])
+                nx_sequence.append(nx_graphs[j].copy())
+                nx_sequence[-1].graph["operation"] = "target_graph_insertion"
                 last_graph_insertions.append((i, j))  # track target graph insertions
+
+            num_operations = len(nx_sequence) - 1
 
             # assign metadata to each nx graph in sequence
             for step, g in enumerate(nx_sequence):
-                g.graph['edit_step'] = step
                 g.graph['source_idx'] = i
                 g.graph['target_idx'] = j
                 g.graph['iteration'] = ep.iteration
                 g.graph['distance'] = ep.distance
-                # todo: how handled best?
-                if last_and_target_graph_isomorphic:
-                    g.graph['num_all_ops'] = len(ep.all_operations)
-                else:
-                    g.graph['num_all_ops'] = len(ep.all_operations) + 1
+                g.graph['edit_step'] = step
+                g.graph['num_operations_incl_insertion'] = num_operations
 
             # Filter for connected graphs
             if fully_connected_only:
@@ -146,17 +146,18 @@ def generate_edit_path_graphs(data_dir,
                 pickle.dump(nx_sequence, f)
 
             # Save pyg graph sequence
-            file_path = os.path.join(pyg_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
-            torch.save(pyg_sequence, file_path)
+            pyg_out_path = os.path.join(pyg_output_dir, f"g{i}_to_g{j}_it{ep.iteration}_graph_sequence.pt")
+            torch.save(pyg_sequence, pyg_out_path)
 
     # Save paths with target graph insertion
-    os.makedirs(f"{ROOT}/{DATASET_NAME}/test/", exist_ok=True)
-    with open(f"{ROOT}/{DATASET_NAME}/test/{DATASET_NAME}_paths_with_target_graph_inserted.json", "w") as f:
+    test_out_dir = os.path.join(ROOT, DATASET_NAME, "test")
+    os.makedirs(test_out_dir, exist_ok=True)
+    with open(os.path.join(test_out_dir, f"{DATASET_NAME}_paths_with_target_graph_inserted.json"), "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
 
     # Save paths with no intermediate path graphs
-    with open(f"{ROOT}/{DATASET_NAME}/test/"
-              f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json", "w") as f:
+    with open(os.path.join(test_out_dir,
+                           f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json"), "w") as f:
         json.dump(no_intermediates, f, indent=2)
 
 
@@ -171,10 +172,10 @@ if __name__ == "__main__":
     os.makedirs(pyg_output_dir, exist_ok=True)
 
     generate_edit_path_graphs(
+        db_name=DATASET_NAME,
         data_dir=edit_path_ops_dir,
         nx_output_dir=nx_output_dir,
         pyg_output_dir=pyg_output_dir,
-        db_name=DATASET_NAME,
         fully_connected_only=FULLY_CONNECTED_ONLY,
         seed=42
     )

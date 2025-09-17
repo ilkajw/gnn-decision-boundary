@@ -5,30 +5,28 @@ import torch
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 
-
-from config import DATASET_NAME, MODEL, PREDICTIONS_DIR, ANALYSIS_DIR, ROOT, \
-    MODEL_DEPENDENT_PRECALCULATIONS_DIR, MODEL_INDEPENDENT_PRECALCULATIONS_DIR
+from config import DATASET_NAME, MODEL, PREDICTIONS_DIR, ROOT, MODEL_DEPENDENT_PRECALCULATIONS_DIR, \
+    MODEL_INDEPENDENT_PRECALCULATIONS_DIR
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
-# ---- set input, output paths ----
-edit_paths_input_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-pred_graph_seq_input_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions"
-pred_graph_seq_cum_cost_input_dir = f"{PREDICTIONS_DIR}/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-# in case of overwriting: pred_graph_seq_cum_cost_input_dir = pred_graph_seq_input_dir
+# ---- Set inputs ----
+edit_paths_input_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
+graph_sequences_input_dir = os.path.join(PREDICTIONS_DIR, "edit_path_graphs_with_predictions")
 
-# Output file definitions
+
+# ----- Set outputs ----
 dist_cost_fname = f"{DATASET_NAME}_dist_per_path.json"
 dist_num_ops_fname = f"{DATASET_NAME}_num_ops_per_path.json"
 dist_output_path = os.path.join(MODEL_INDEPENDENT_PRECALCULATIONS_DIR, dist_cost_fname)
 num_ops_output_path = os.path.join(MODEL_INDEPENDENT_PRECALCULATIONS_DIR, dist_num_ops_fname)
 
-model_dependent_output_dir = MODEL_DEPENDENT_PRECALCULATIONS_DIR
+# Files going into MODEL_DEPENDENT_PRECALCULATIONS_DIR
 flip_occ_edit_step_output_fname = f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
 flip_occ_cost_output_fname = f"{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
 
 
-# ---- helpers ----
+# ---- Function definitions ----
 def cost_distance_per_path(input_path, output_path):
 
     edit_paths = load_edit_paths_from_file(db_name=DATASET_NAME,
@@ -45,8 +43,8 @@ def cost_distance_per_path(input_path, output_path):
 
 
 def num_operations_per_path(
-        sequences_dir=f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs",
-        output_path=f"{ROOT}/{DATASET_NAME}/path_precalculations"
+        sequences_dir=os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs"),
+        output_path=os.path.join(ROOT, DATASET_NAME, "precalculations")
 ):
 
     add_safe_globals([Data])
@@ -71,11 +69,11 @@ def num_operations_per_path(
             raise RuntimeError(f"Loaded sequence is empty or not list/tuple: {fname}")
         first = sequence[0]
         try:
-            val = first["num_all_ops"]  # Data supports dict-style access
+            val = first["num_operations_incl_insertion"]
         except Exception as e:
-            raise KeyError(f"'num_all_ops' missing in first element of {fname}") from e
+            raise KeyError(f"'num_operations_incl_insertion' missing in first element of {fname}") from e
         if not isinstance(val, (int, float)):
-            raise TypeError(f"'num_all_ops' is not numeric in {fname}: {type(val)}")
+            raise TypeError(f"'num_operations_incl_insertion' is not numeric in {fname}: {type(val)}")
         num_operations[f"{i},{j}"] = int(val)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
@@ -122,6 +120,10 @@ def flip_occurrences_per_path_edit_step(input_dir, output_dir=None, output_fname
 
         # loop through each sequence from i to j and track at which steps changes happen to which class
         for g in sequence:
+
+            # Handle 38 sequences with operation null for their start graphs
+            if getattr(g, "edit_step") == 0 and not hasattr(g, "operation"):
+                setattr(g, "operation", "start")
 
             if not hasattr(g, "edit_step"):
                 raise AttributeError(f"'edit_step' missing in a graph of {fname}")
@@ -198,6 +200,10 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
         # loop through each sequence from i to j and track at which steps changes happen to which class
         for g in sequence:
 
+            # Handle 38 sequences with operation null for their start graphs
+            if getattr(g, "edit_step") == 0 and not hasattr(g, "operation"):
+                setattr(g, "operation", "start")
+
             if not hasattr(g, "cumulative_cost"):
                 raise AttributeError(
                     f"'cumulative_cost' missing at edit_step={getattr(g, 'edit_step', '?')} in {fname}")
@@ -238,7 +244,7 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
 
 if __name__ == "__main__":
 
-    for p in [edit_paths_input_dir, pred_graph_seq_input_dir, pred_graph_seq_cum_cost_input_dir]:
+    for p in [edit_paths_input_dir, graph_sequences_input_dir]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input directory: {p}")
 
@@ -248,15 +254,15 @@ if __name__ == "__main__":
     cost_distance_per_path(input_path=edit_paths_input_dir,
                            output_path=dist_output_path)
 
-    num_operations_per_path(sequences_dir=pred_graph_seq_cum_cost_input_dir,
+    num_operations_per_path(sequences_dir=graph_sequences_input_dir,
                             output_path=num_ops_output_path)
 
     flip_occurrences_per_path_edit_step(
-        input_dir=pred_graph_seq_cum_cost_input_dir,
+        input_dir=graph_sequences_input_dir,
         output_dir=MODEL_DEPENDENT_PRECALCULATIONS_DIR,
         output_fname=flip_occ_edit_step_output_fname)
 
     flip_occurrences_per_path_cum_cost(
-        input_dir=pred_graph_seq_cum_cost_input_dir,
+        input_dir=graph_sequences_input_dir,
         output_dir=MODEL_DEPENDENT_PRECALCULATIONS_DIR,
         output_fname=flip_occ_cost_output_fname)

@@ -8,15 +8,16 @@ from torch_geometric.data import Data
 from config import DATASET_NAME, MODEL, MODEL_DIR, PREDICTIONS_DIR, ROOT
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
-# TODO: check if all done: change implementation: add cum cost to graph sequence without needed them to be predicted
+# TODO: check if all done: change implementation:
+#  add cum cost to original graphs without predictions (change order)
 
 # --- Set input paths ---
-edit_path_ops_dir = f"external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}"
-pyg_seq_with_preds_dir = f"{ROOT}/{DATASET_NAME}/pyg_edit_path_graphs"
-json_path = f"{PREDICTIONS_DIR}/{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
+edit_path_ops_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
+graph_sequence_directory = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
+#json_path = os.path.join(PREDICTIONS_DIR, f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json")
 
 # --- Set output path ---
-seq_out_dir = f"{ROOT}/{DATASET_NAME}/edit_path_graphs"  # overwrite
+seq_out_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
 
 
 # --- Helpers ---
@@ -257,25 +258,20 @@ def add_cum_cost_to_path_preds_json(
 if __name__ == "__main__":
 
     # Fail fast if inputs missing
-    for p in [edit_path_ops_dir, json_path, pyg_seq_with_preds_dir]:
+    for p in [edit_path_ops_dir, graph_sequence_directory]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input directory: {p}")
 
     os.makedirs(seq_out_dir, exist_ok=True)
-
 
     cum_costs = build_cum_costs_from_ops(
         db_name=DATASET_NAME,
         ops_file_dir=edit_path_ops_dir
     )
 
-    add_cum_cost_to_path_preds_json(path_pred_json_path=json_path,
-                                    cum_costs=cum_costs,
-                                    )
-
     add_cum_cost_to_pyg_seq(
         cum_costs=cum_costs,
-        seq_dir=pyg_seq_with_preds_dir,
+        seq_dir=graph_sequence_directory,
         add_field_name="cumulative_cost",
         out_dir=seq_out_dir,  # if None -> overwrite
     )

@@ -1,23 +1,20 @@
+import os
 import json
 import statistics as stats
 from collections import defaultdict
 
-from config import DATASET_NAME, ANALYSIS_DIR
+from config import DATASET_NAME, ANALYSIS_DIR, DISTANCES_PATH, FLIPS_PATH
 
+# TODO:  calculate with numpy
 
-# ---- input files ----
-FLIPS_FILE = f"{ANALYSIS_DIR}/{DATASET_NAME}_flip_occurrences_per_path_by_cost.json"
-DIST_FILE = f"{ANALYSIS_DIR}/{DATASET_NAME}_dist_per_path.json"
-
-
-# ---- definition -----
+# ---- Function definition -----
 def safe_stdev(values):
     return float(stats.stdev(values)) if len(values) > 1 else 0.0
 
 def main():
-    with open(FLIPS_FILE, "r") as f:
+    with open(FLIPS_PATH, "r") as f:
         flips = json.load(f)
-    with open(DIST_FILE, "r") as f:
+    with open(DISTANCES_PATH, "r") as f:
         dists = json.load(f)
 
     per_k = defaultdict(list)

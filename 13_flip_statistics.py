@@ -3,12 +3,13 @@ import json
 import numpy as np
 from datetime import datetime, timezone
 
-from config import DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE
+from config import DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR, CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE, FLIPS_PATH
 from index_sets_utils import build_index_set_cuts
 
 
 # ---- define input, output params -----
-split_path = f"{MODEL_DIR}/{MODEL}_best_split.json"
+split_path = os.path.join(MODEL_DIR, f"{MODEL}_best_split.json")
+
 output_dir = f"{ANALYSIS_DIR}"
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_stats_by_{DISTANCE_MODE}.json"
 
@@ -43,25 +44,13 @@ def get_num_flips_for_idxset_paths(pairs, changes_dict):
 
 if __name__ == "__main__":
 
-    # retrieve per-path flip info according to distance mode set in config
-    if DISTANCE_MODE == "cost":
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
-
-    elif DISTANCE_MODE == "edit_step":
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_edit_step.json"
-
-    else:
-        print(f"[warn] config.DISTANCE_MODE has unexpected value '{DISTANCE_MODE}'. Expected 'cost' or 'edit_step'."
-              f"Defaulting to 'cost'.")
-        flips_path = f"{ANALYSIS_DIR}/{DATASET_NAME}_{MODEL}_flip_occurrences_per_path_by_cost.json"
-
     # fail fast if inputs missing
-    for p in [split_path, flips_path]:
+    for p in [split_path, FLIPS_PATH]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input: {p}")
 
     # load precomputed flip history per path
-    with open(flips_path, "r") as f:
+    with open(FLIPS_PATH, "r") as f:
         flips_dict = json.load(f)
 
     # build all index-pair set cuts as 'cut_name' -> 'list of graph pairs included'
@@ -87,7 +76,7 @@ if __name__ == "__main__":
             "distance_mode": DISTANCE_MODE,
             "correctly_classified_only": CORRECTLY_CLASSIFIED_ONLY,
             "split_path": split_path,
-            "flips_path": flips_path,
+            "flips_path": FLIPS_PATH,
             "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         },
         "per_index_set": results,

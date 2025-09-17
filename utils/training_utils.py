@@ -7,7 +7,7 @@ import numpy as np
 import torch.nn.functional as func
 from torch_geometric.loader import DataLoader
 from sklearn.model_selection import StratifiedKFold
-from config import *
+from config import K_FOLDS, MODEL, DATASET_NAME, BATCH_SIZE, LEARNING_RATE, EPOCHS, MODEL_CLS, MODEL_KWARGS
 
 
 def setup_reproducibility(seed=42):

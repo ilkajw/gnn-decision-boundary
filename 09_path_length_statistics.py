@@ -6,17 +6,17 @@ import numpy as np
 
 from config import (
     DATASET_NAME, DISTANCE_MODE, MODEL, MODEL_DIR, ANALYSIS_DIR,
-    CORRECTLY_CLASSIFIED_ONLY
+    CORRECTLY_CLASSIFIED_ONLY, DISTANCES_PATH, FLIPS_PATH
 )
 from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
 
-# set if to calculate for all paths or paths between correctly classified endpoints only
+# Set if to calculate for all paths or paths between correctly classified endpoints only
 correctly_classified_only = False
 
-# ---- set input, output paths ----
+# ---- Set input, output paths ----
+split_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_best_split.json")
 
-split_path = f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json"
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_path_length_stats_by_{DISTANCE_MODE}.json"
 
@@ -72,15 +72,6 @@ def path_length_statistics(path_lengths: dict):
 # ---- run ----
 if __name__ == "__main__":
 
-    # pick the right precalc file
-    if DISTANCE_MODE == "cost":
-        dist_path = os.path.join("data_actual_best\MUTAG\GAT/analysis/by_cost", f"{DATASET_NAME}_dist_per_path.json")
-    elif DISTANCE_MODE == "edit_step":
-        dist_path = os.path.join("data_actual_best\MUTAG\GAT/analysis/by_cost", f"{DATASET_NAME}_num_ops_per_path.json")
-    else:
-        print(f"[warn] unexpected DISTANCE_MODE='{DISTANCE_MODE}', defaulting to 'cost'")
-        dist_path = os.path.join(ANALYSIS_DIR, f"{DATASET_NAME}_dist_per_path.json")
-
     # build all index-set cuts
     idx_pair_sets = build_index_set_cuts(
         dataset_name=DATASET_NAME,
@@ -90,7 +81,7 @@ if __name__ == "__main__":
 
     # ---- global stats ----
     all_lengths = load_lengths_from_precalc(
-        dist_path=dist_path,
+        dist_path=DISTANCES_PATH,
         idx_set=None,
         correctly_classified_only=correctly_classified_only
     )
@@ -100,7 +91,7 @@ if __name__ == "__main__":
     per_set_stats = {}
     for key, idx_set in idx_pair_sets.items():
         lengths = load_lengths_from_precalc(
-            dist_path=dist_path,
+            dist_path=DISTANCES_PATH,
             idx_set=idx_set,
             correctly_classified_only=correctly_classified_only
         )
@@ -115,7 +106,7 @@ if __name__ == "__main__":
     data = {
         "dataset": DATASET_NAME,
         "distance_mode": DISTANCE_MODE,
-        "source_file": dist_path,
+        "source_file": DISTANCES_PATH,
         "global": all_stats,
         "per_index_set": per_set_stats,
     }
