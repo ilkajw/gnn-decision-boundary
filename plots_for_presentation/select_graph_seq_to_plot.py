@@ -9,16 +9,16 @@ from torch_geometric.datasets import TUDataset
 
 from config import DATASET_NAME, ROOT
 
-# --- config ---
+# --- Config ---
 
-NX_INPUT_DIR = f"{ROOT}/{DATASET_NAME}/nx_edit_path_graphs"
-SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/paths_to_plot"  # to save picked sequences to
+NX_INPUT_DIR = os.path.join(ROOT, DATASET_NAME, "nx_edit_path_graphs")
+SELECTED_DIR = os.path.join(ROOT, DATASET_NAME, "paths_to_plot")  # to save picked sequences to
 MAX_LEN = 4
-PYG_ROOT = "data/pyg"  # for TUDataset to read labels
+PYG_ROOT = os.path.join("data", "pyg")  # for TUDataset to read labels
 
 os.makedirs(SELECTED_DIR, exist_ok=True)
 
-# --- helpers ---
+# --- Helpers ---
 
 _fname_re = re.compile(r"g(\d+)_to_g(\d+)_it(\d+)_graph_sequence\.pkl$")
 
@@ -60,16 +60,21 @@ def collect_index(nx_dir: str):
 
 
 def choose_sequence(index, label_map: Dict[int, int], max_len: int, same: bool):
+
     def is_same(i, j): return label_map.get(i) == label_map.get(j)
+
     candidates = [
         row for row in index
-        if row["len"] <= max_len and ((is_same(row["i"], row["j"]) and same) or (not is_same(row["i"], row["j"]) and not same))
+        if row["len"] <= max_len and ((is_same(row["i"], row["j"]) and same)
+                                      or (not is_same(row["i"], row["j"]) and not same))
     ]
+
     if not candidates:
         return None
+
     best = max(candidates, key=lambda r: (r["len"], r["it"], r["path"]))
     best_seq = load_sequence(best["path"])
-    # add class info
+    # Add class info
     i, j = best["i"], best["j"]
     best["source_class"] = label_map[i]
     best["target_class"] = label_map[j]
@@ -81,7 +86,7 @@ def save_sequence(seq: List[nx.Graph], out_path: str):
         pickle.dump(seq, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-# --- run ---
+# --- Run ---
 
 if __name__ == "__main__":
     label_map = load_true_labels_pyg(name=DATASET_NAME)

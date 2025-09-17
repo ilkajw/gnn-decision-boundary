@@ -35,8 +35,8 @@ base_labels_path = "data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions
 
 # Output files definition
 output_dir = f"model_cv_augmented/{DATASET_NAME}/{MODEL}/by_{DISTANCE_MODE}/flip_at_{int(FLIP_AT*100)}"
-# todo: later back to: os.path.join("models_cv_augmented", DATASET_NAME, MODEL,
-#                                   f"by_{DISTANCE_MODE}", f"flip_at_{int(FLIP_AT*100)})"
+# os.path.join("models_cv_augmented", DATASET_NAME, MODEL,
+#              f"by_{DISTANCE_MODE}", f"flip_at_{int(FLIP_AT*100)})"
 model_fname = f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"
 log_fname = f"{DATASET_NAME}_{MODEL}_train_log_flip_{int(FLIP_AT*100)}.json"
@@ -47,6 +47,7 @@ VERBOSE = True  # print training progress
 
 
 # ---- Helpers ----
+
 def infer_in_channels(dataset):
     sample = dataset[0]
     return sample.x.size(-1)
@@ -190,7 +191,7 @@ if __name__ == "__main__":
             drop_keys(["edit_step", "cumulative_cost", "source_idx",  # Drop attrs to match org schema for collating
                        "target_idx", "iteration", "distance",
                        "num_all_ops", "prediction", "probability"]),
-            tag_origin("edit"),  # Tag each graph with origin "edit path"
+            tag_origin("edit"),  # Tag each graph with origin "edit"
         ])
 
         print(f"[info] Adding {len(path_train)} path graphs to train split...")

@@ -5,19 +5,27 @@ import torch
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 
-from config import DATASET_NAME, MODEL, MODEL_DIR, PREDICTIONS_DIR, ROOT
+from config import DATASET_NAME, ROOT
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
-# TODO: check if all done: change implementation:
-#  add cum cost to original graphs without predictions (change order)
 
 # --- Set input paths ---
+
 edit_path_ops_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
-graph_sequence_directory = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
-#json_path = os.path.join(PREDICTIONS_DIR, f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json")
+graph_sequences_input_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
 
 # --- Set output path ---
-seq_out_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
+
+graph_sequences_output_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
+
+# --- Cost function to reconstruct cumulative costs ---
+
+node_del_cost = 1
+node_ins_cost = 1
+edge_del_cost = 1
+edge_ins_cost = 1
+node_subst_cost = 0
+edge_subst_cost = 0
 
 
 # --- Helpers ---
@@ -257,20 +265,26 @@ def add_cum_cost_to_path_predictions_json(
 if __name__ == "__main__":
 
     # Fail fast if inputs missing
-    for p in [edit_path_ops_dir, graph_sequence_directory]:
+    for p in [edit_path_ops_dir, graph_sequences_input_dir]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input directory: {p}")
 
-    os.makedirs(seq_out_dir, exist_ok=True)
+    os.makedirs(graph_sequences_output_dir, exist_ok=True)
 
     cum_costs = build_cum_costs_from_ops(
         db_name=DATASET_NAME,
-        ops_file_dir=edit_path_ops_dir
+        ops_file_dir=edit_path_ops_dir,
+        node_del_cost=node_del_cost,
+        node_ins_cost=node_ins_cost,
+        edge_del_cost=edge_del_cost,
+        edge_ins_cost=edge_ins_cost,
+        node_subst_cost=node_subst_cost,
+        edge_subst_cost=edge_subst_cost,
     )
 
     add_cum_cost_to_pyg_sequences(
         cum_costs=cum_costs,
-        seq_dir=graph_sequence_directory,
+        seq_dir=graph_sequences_input_dir,
         add_field_name="cumulative_cost",
-        out_dir=seq_out_dir,  # if None, overwrite
+        out_dir=graph_sequences_output_dir,  # if None, overwrite
     )

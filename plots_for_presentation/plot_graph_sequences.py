@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 
 from config import DATASET_NAME, ROOT
 
-# --- config ---
+# --- Config ---
 
-SELECTED_DIR = f"{ROOT}/{DATASET_NAME}/paths_to_plot"
-PLOT_DIR = f"{ROOT}/{DATASET_NAME}/path_plots"
+SELECTED_DIR = os.path.join(ROOT, DATASET_NAME, "paths_to_plot")
+PLOT_DIR = os.path.join(ROOT, DATASET_NAME, "path_plots")
 LAYOUT = "kamada_kawai"  # "spring" | "kamada_kawai" | "spectral" | "circular" | "shell"
 NODE_ATTR = "primary_label"  # None to use node IDs
 EDGE_ATTR = "label"  # None to hide edge labels
@@ -19,7 +19,7 @@ EDGE_ATTR = "label"  # None to hide edge labels
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
-# --- helpers ---
+# --- Helpers ---
 
 def load_sequence(path: str) -> List[nx.Graph]:
     with open(path, "rb") as f:
@@ -56,7 +56,7 @@ def plot_graph_sequence(
     if not seq:
         return
 
-    # consistent layout across sequence
+    # Consistent layout across sequence
     if layout == "spring":
         pos = nx.spring_layout(seq[0], seed=0)
     elif layout == "kamada_kawai":
@@ -80,7 +80,8 @@ def plot_graph_sequence(
     axes = axes.flatten() if n > 1 else [axes]
 
     for k, (G, ax) in enumerate(zip(seq, axes)):
-        # build labels as "id:label"
+
+        # Build labels as "id:label"
         node_labels = {
             n: f"{n}:{d.get(node_label_attr, '?')}" for n, d in G.nodes(data=True)
         }
@@ -99,7 +100,7 @@ def plot_graph_sequence(
                     font_size=10, ax=ax
                 )
             else:
-                print("'edge_labels' is None. printing edge labels skipped.")
+                print("'edge_labels' is None. Printing edge labels skipped.")
         edit_step = G.graph.get("edit_step", k)
         ax.set_title(f"Edit Step {edit_step}:", loc='left', fontsize=14, fontweight="bold")
         ax.axis("off")
@@ -117,8 +118,10 @@ def plot_graph_sequence(
     print(f"Saved plot → {save_path}")
 
 
-# ------------ run ------------
+# ---- Run ----
+
 if __name__ == "__main__":
+
     manifest_path = os.path.join(SELECTED_DIR, "selected_sequences_manifest.json")
     if not os.path.exists(manifest_path):
         raise FileNotFoundError(f"Manifest not found: {manifest_path}")
