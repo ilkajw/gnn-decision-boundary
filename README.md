@@ -21,7 +21,7 @@ The repo defines a k-fold cross validation training on training sets augmented w
 calculates test accuracy statistics to compare training stability to original dataset training.
 
 
-### Features
+### Functionality
 
 #### config.py
 
