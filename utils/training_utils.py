@@ -60,7 +60,7 @@ def train_epoch(model, loader, optimizer, device):
     for data in loader:
         data = data.to(device)
         optimizer.zero_grad()  # Reset gradients
-        # todo: make compatible to logit dim > 1
+        # TODO: make compatible to logit dim > 1
         logits = model(data.x, data.edge_index, data.batch).view(-1)  # Forward pass, flattened to [batch_size]
         y_true = data.y.float().view(-1)  # Flattened classes
         loss = func.binary_cross_entropy_with_logits(logits, y_true)
@@ -185,12 +185,12 @@ def train_model_kcv(
     # To collect per-fold histories
     fold_records = []
 
-    print(f"--- original {MODEL} training on {DATASET_NAME} ---")
+    print(f"--- {MODEL} training on original {DATASET_NAME} datatset ---")
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(dataset)), true_labels)):
 
         if verbose:
-            print(f"\n--- fold {fold + 1} ---")
+            print(f"\n--- Fold {fold + 1} ---")
 
         train_dataset = dataset[train_idx.tolist()]
         test_dataset = dataset[test_idx.tolist()]
@@ -273,6 +273,7 @@ def train_model_kcv(
         })
 
     # ---- Save ----
+
     os.makedirs(output_dir, exist_ok=True)
 
     torch.save(best_model_state, model_path)

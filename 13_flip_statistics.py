@@ -7,14 +7,13 @@ from config import DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR, CORRECTLY_CLASS
 from index_sets_utils import build_index_set_cuts
 
 
-# ---- define input, output params -----
+# ---- Define input, output paths -----
 split_path = os.path.join(MODEL_DIR, f"{MODEL}_best_split.json")
-
 output_dir = f"{ANALYSIS_DIR}"
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_stats_by_{DISTANCE_MODE}.json"
 
 
-# ----- helpers -----
+# ----- Helpers -----
 def stats_from_counts(counts):
     if not counts:
         return {"num_paths": 0, "mean": 0.0, "median": 0.0, "std": 0.0, "min": 0, "max": 0}
@@ -44,16 +43,16 @@ def get_num_flips_for_idxset_paths(pairs, changes_dict):
 
 if __name__ == "__main__":
 
-    # fail fast if inputs missing
+    # Fail fast if inputs missing
     for p in [split_path, FLIPS_PATH]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input: {p}")
 
-    # load precomputed flip history per path
+    # Load precomputed flip history per path
     with open(FLIPS_PATH, "r") as f:
         flips_dict = json.load(f)
 
-    # build all index-pair set cuts as 'cut_name' -> 'list of graph pairs included'
+    # Build all index-pair set cuts as 'cut_name' -> 'list of graph pairs included'
     index_sets = build_index_set_cuts(
         correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
         split_path=split_path,
@@ -69,7 +68,7 @@ if __name__ == "__main__":
             **stats_from_counts(counts),
         }
 
-    # summarize results
+    # Summarize results
     data = {
         "meta": {
             "dataset": DATASET_NAME,
@@ -82,7 +81,7 @@ if __name__ == "__main__":
         "per_index_set": results,
     }
 
-    # save summary
+    # Save summary
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, output_fname)
     with open(output_path, "w") as f:

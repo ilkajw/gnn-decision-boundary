@@ -20,10 +20,10 @@ from config import (
     DISTANCE_MODE
 )
 
-# todo: change true label source from dict to actual dataset
+# TODO: change true label source from dict to actual dataset
 
 # ----- Set input, output paths ----
-# todo: adjust the paths to original series with cum costs, no need for predictions
+# TODO: adjust the paths
 # Directory with all path sequences (.pt lists)
 # using hard coded path to not have to run predictions with GCN as we only need the true label
 path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
@@ -35,7 +35,8 @@ base_labels_path = "data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions
 
 # Output files definition
 output_dir = f"model_cv_augmented/{DATASET_NAME}/{MODEL}/by_{DISTANCE_MODE}/flip_at_{int(FLIP_AT*100)}"
-# todo: later back to: f"models_cv_augmented/{DATASET_NAME}/{MODEL}/{flip_at_{int(FLIP_AT*100)}/"
+# todo: later back to: os.path.join("models_cv_augmented", DATASET_NAME, MODEL,
+#                                   f"by_{DISTANCE_MODE}", f"flip_at_{int(FLIP_AT*100)})"
 model_fname = f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"
 log_fname = f"{DATASET_NAME}_{MODEL}_train_log_flip_{int(FLIP_AT*100)}.json"
@@ -120,7 +121,7 @@ def class_stats(dataset, batch_size=2048):
     return {"n": n, "n0": n0, "n1": n1, "p0": p0, "p1": p1}
 
 
-# ------ Run ------
+# ---- Run ----
 
 if __name__ == "__main__":
 
@@ -130,7 +131,6 @@ if __name__ == "__main__":
     split_path = os.path.join(output_dir, split_fname)
     log_path = os.path.join(output_dir, log_fname)
 
-    # for reproducibility
     setup_reproducibility(seed=42)
 
     base_ds = TUDataset(
@@ -276,7 +276,7 @@ if __name__ == "__main__":
                       f"| test loss: {test_loss: .4f} | test acc: {test_acc: .4f} "
                       f"| time: {int(m): 02d}:{s: 06.3f}")
 
-            # Track best across all folds/epochs
+            # Track best across all folds and epochs
             if test_acc > best_acc:
                 if VERBOSE:
                     print(f"[info] New best model in fold {fold}, epoch {epoch} with test acc {test_acc: .4f}")
@@ -295,7 +295,7 @@ if __name__ == "__main__":
         final_acc = evaluate_accuracy(model, test_loader, device)
         accuracies.append(final_acc)
         if VERBOSE:
-            print(f"Fold {fold} | Accuracy: {final_acc:.4f} | "
+            print(f"Fold {fold} | Accuracy: {final_acc: .4f} | "
                   f"train_total={len(train_subset)+len(path_train)} "
                   f"(base {len(train_subset)} + path {len(path_train)})")
 
@@ -315,7 +315,7 @@ if __name__ == "__main__":
     with open(split_path, "w") as f:
         json.dump(best_split, f, indent=2)
 
-    # Consolidated log
+    # Summarize
     model_config = {
         "name": getattr(MODEL_CLS, "__name__", str(MODEL_CLS)),
         "kwargs": {k: (v.item() if hasattr(v, "item") else v) for k, v in (MODEL_KWARGS or {}).items()},
@@ -324,7 +324,7 @@ if __name__ == "__main__":
     log = {
         "fold_test_accuracies": [float(a) for a in accuracies],
         "mean_test_accuracy": float(np.mean(accuracies)) if accuracies else 0.0,
-        "std_ddof=1_accuracy": float(np.std(accuracies, ddof=1)) if accuracies else 0.0,
+        "std_(ddof=1)_test_accuracy": float(np.std(accuracies, ddof=1)) if accuracies else 0.0,
         "config": {
             "dataset": DATASET_NAME,
             "model": model_config,
@@ -347,6 +347,8 @@ if __name__ == "__main__":
         "best_split_info": best_split,
         "folds": fold_records
     }
+
+    # Save
     with open(log_path, "w") as f:
         json.dump(log, f, indent=2)
 

@@ -5,15 +5,15 @@ import torch
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 
-from config import ANALYSIS_DIR, DATASET_NAME, MODEL, MODEL_INDEPENDENT_PRECALCULATIONS_DIR
+from config import ANALYSIS_DIR, DATASET_NAME, MODEL_INDEPENDENT_PRECALCULATIONS_DIR
 
-# ---------- CONFIG (edit these) ----------
+# ---------- CONFIG ----------
 SEQUENCES_DIR = r"../data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
 DISTANCES_JSON = fr"{MODEL_INDEPENDENT_PRECALCULATIONS_DIR}\{DATASET_NAME}_dist_per_path.json"  # {"i,j": distance}
 OUTPUT_JSON = fr"{ANALYSIS_DIR}/test/cost_vs_distance_mismatches.json"
 
 
-# -----------------------------------------
+# ----------
 
 def load_distances(path: str) -> dict:
     if not os.path.exists(path):
@@ -31,11 +31,13 @@ def load_distances(path: str) -> dict:
             raise ValueError(f"Non-positive distance for {k}: {v}")
     return distances
 
+
 def parse_filename(fname: str):
     m = re.fullmatch(r"g(\d+)_to_g(\d+)_it(\d+)_graph_sequence\.pt", fname)
     if not m:
         raise RuntimeError(f"Unexpected filename format: {fname}")
     return int(m.group(1)), int(m.group(2)), int(m.group(3))
+
 
 def check_sequences_against_distances(sequences_dir: str, distances_map: dict, out_json: str):
     if not os.path.exists(sequences_dir):
@@ -98,7 +100,9 @@ def check_sequences_against_distances(sequences_dir: str, distances_map: dict, o
     print(f"Mismatches: {len(mismatches)}")
     print(f"Saved JSON -> {out_json}")
 
+
 if __name__ == "__main__":
+
     distances = load_distances(DISTANCES_JSON)
     check_sequences_against_distances(
         sequences_dir=SEQUENCES_DIR,

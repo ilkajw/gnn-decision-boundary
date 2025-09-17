@@ -7,11 +7,14 @@ from config import DATASET_NAME, ANALYSIS_DIR, DISTANCES_PATH, FLIPS_PATH
 
 # TODO:  calculate with numpy
 
-# ---- Function definition -----
+
+# ---- Function definitions -----
+
 def safe_stdev(values):
     return float(stats.stdev(values)) if len(values) > 1 else 0.0
 
-def main():
+
+def calculate_stats():
     with open(FLIPS_PATH, "r") as f:
         flips = json.load(f)
     with open(DISTANCES_PATH, "r") as f:
@@ -25,7 +28,7 @@ def main():
             length = dists[key]
             per_k[k].append(length)
 
-    header = f"{'k':>4}  {'count':>6}  {'mean':>10}  {'median':>10}  {'stddev':>10}  {'max':>10}"
+    header = f"{'k': >4}  {'count': >6}  {'mean': >10}  {'median': >10}  {'stddev': >10}  {'max': >10}"
     print(header)
     print("-" * len(header))
 
@@ -38,6 +41,10 @@ def main():
         print(f"{k: >4}  {len(vals): >6}  {mean_v: >10.4f}  {med_v: >10.4f}  {std_v: >10.4f}  {max_v: >10.4f}")
 
     # todo: save
-# ---- run ----
+
+
+# ---- Run ----
+
 if __name__ == "__main__":
-    main()
+
+    calculate_stats()

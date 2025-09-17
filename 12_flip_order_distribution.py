@@ -8,15 +8,14 @@ from config import DATASET_NAME, ANALYSIS_DIR, MODEL_DIR, MODEL, CORRECTLY_CLASS
     DISTANCE_MODE
 from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
-# ---- set input, output params -----
+# ---- Set input, output parameters -----
 split_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_best_split.json")
-
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json"
 max_num_flips = 10
 
 
-# ----- helpers -----
+# ----- Helpers -----
 def flip_distribution_over_deciles_by_num_flips(
     max_num_flips,
     dist_input_path,
@@ -26,11 +25,11 @@ def flip_distribution_over_deciles_by_num_flips(
     include_paths=False,
     correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
 ):
-    # to filter if defined
+    # To filter if defined
     if correctly_classified_only:
         correct = graphs_correctly_classified()
 
-    # load path distance and flips data
+    # Load path distances and flips data
     with open(dist_input_path, "r") as f:
         distances = json.load(f)
     with open(flips_input_path, "r") as f:
@@ -45,17 +44,18 @@ def flip_distribution_over_deciles_by_num_flips(
     flip_order_counts_by_k = {
         k: [[0] * 10 for _ in range(k)] for k in range(1, max_num_flips + 1)
     }
-
     ops_counts_by_k = {
         k: [Counter() for _ in range(10)] for k in range(1, max_num_flips + 1)
     }
 
     # To collect contributing paths
     paths_by_k = {k: [] for k in range(1, max_num_flips + 1)} if include_paths else None
+
     # To track number of contributing paths per k
     num_paths_by_k = defaultdict(int)
 
     for pair_str, flips in flips_per_path.items():
+
         # Skip paths without flips
         if not flips:
             continue
@@ -91,14 +91,17 @@ def flip_distribution_over_deciles_by_num_flips(
             if not isinstance(flip, (list, tuple)) or len(flip) < 3:
                 raise ValueError(
                     f"Flip entry must be a triple (step/cost, class, operation). Got: {flip} for pair {i},{j}")
+
             step, _lbl, op = flip
+
             if not isinstance(step, (int, float)) or step < 0:
                 raise TypeError(f"'step/cost' must be non-negative number; got {step} (type={type(step)}) for {i},{j}")
+
             if not isinstance(op, str):
                 raise TypeError(f"'operation' must be a string label, got {type(op)} for pair {i},{j}")
 
             rel = step / dist
-            d = int(min(rel * 10, 9))  # bin 0..9, clamp 1.0 to 9
+            d = int(min(rel * 10, 9))  # bin 0...9, clamp 1.0 to 9
             decile_counts[d] += 1  # Accumulate absolutes
             flip_order_counts_by_k[k][flip_idx][d] += 1  # Accumulate per flip order counts
             ops_counts_by_k[k][d][op] += 1  # Accumulate operation counts by decile
@@ -141,7 +144,7 @@ def flip_distribution_over_deciles_by_num_flips(
                 "norm": norm_ops,
             }
 
-        # store relative and absolute values per-k
+        # Store relative and absolute values per-k
         entry = {
             "num_paths": int(num_paths_by_k[k]),
             "abs": {str(d): int(abs_counts[d]) for d in range(10)},
@@ -163,10 +166,10 @@ def flip_distribution_over_deciles_by_num_flips(
     return result
 
 
-# -------- run analysis ---------------
+# ---- Run analysis ----
 if __name__ == "__main__":
 
-    # fail fast if inputs missing
+    # Fail fast if inputs missing
     for p in [split_path, DISTANCES_PATH, FLIPS_PATH]:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Missing input: {p}")
@@ -183,7 +186,7 @@ if __name__ == "__main__":
         "same_train_test", "same_0_train_test", "same_1_train_test", "diff_train_test",
     ]
 
-    # --- per index set calculation ---
+    # --- Per index set calculation ---
 
     per_index_set = {}
     for key in keys:
@@ -202,7 +205,7 @@ if __name__ == "__main__":
             **stats
         }
 
-    # --- save to file ---
+    # --- Save to file ---
 
     data = {
         "meta": {

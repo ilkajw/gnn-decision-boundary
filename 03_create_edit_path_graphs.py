@@ -16,7 +16,7 @@ from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDatase
 edit_path_ops_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
 nx_output_dir = os.path.join(ROOT, DATASET_NAME, 'nx_edit_path_graphs')
 pyg_output_dir = os.path.join(ROOT, DATASET_NAME, 'pyg_edit_path_graphs')
-
+test_output_dir = os.path.join(ROOT, DATASET_NAME, "test")
 
 # --- Function definition ---
 
@@ -25,6 +25,7 @@ def generate_edit_path_graphs(
         data_dir,
         nx_output_dir,
         pyg_output_dir,
+        test_output_dir,
         fully_connected_only,
         seed=42,
 ):
@@ -56,7 +57,7 @@ def generate_edit_path_graphs(
     os.makedirs(pyg_output_dir, exist_ok=True)
     os.makedirs(nx_output_dir, exist_ok=True)
 
-    # load nx graphs from original dataset
+    # Load nx graphs from original dataset
     dataset = GraphDataset(root=data_dir,
                            name=db_name,
                            from_existing_data="TUDataset",
@@ -64,43 +65,47 @@ def generate_edit_path_graphs(
     dataset.create_nx_graphs()
     nx_graphs = dataset.nx_graphs
 
-    # load all pre-calculated edit path operations
+    # Load all pre-calculated edit path operations from file
     edit_paths = load_edit_paths_from_file(db_name=db_name, file_path=data_dir)
     if edit_paths is None:
         raise RuntimeError("Edit path file not found. Run generation first.")
 
     num_node_classes = dataset.unique_node_labels  # for reconstruction of node feature tensor x from integer values
 
-    # to track
+    # To track behaviour
     last_graph_insertions = []
-    no_intermediates = []
+    no_intermediates_before_filter = []
+    no_intermediates_after_filter = []
 
-    # create graphs from operations per (source graph, target graph) = (i, j)
+    # Create graphs from operations per (source graph, target graph) = (i, j)
     for (i, j), paths in edit_paths.items():
 
         for ep in paths:
 
-            # create edit path graph sequence for path between i, j
+            # Create edit path graph sequence for path between i, j
             nx_sequence = ep.create_edit_path_graphs(nx_graphs[i], nx_graphs[j], seed=seed)
 
+            if len(nx_sequence) <= 2:
+                no_intermediates_before_filter.append((i, j))
+
+            # Check if the target graph is included in sequence
             def node_match(n1, n2):
                 return n1['primary_label'] == n2['primary_label']
 
             def edge_match(e1, e2):
                 return e1['label'] == e2['label']
 
-            # TODO: include edges in isomorphism test
-            # Check if the target graph is included in sequence
+            # TODO: include edges in isomorphism test as soon as edge labels consistent in external repo
             last_graph = nx_sequence[-1]
             last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
             if not last_and_target_graph_isomorphic or len(nx_sequence) < 2:
                 nx_sequence.append(nx_graphs[j].copy())
                 nx_sequence[-1].graph["operation"] = "target_graph_insertion"
-                last_graph_insertions.append((i, j))  # track target graph insertions
+                last_graph_insertions.append((i, j))
 
             num_operations = len(nx_sequence) - 1
 
-            # assign metadata to each nx graph in sequence
+            # Assign metadata to each nx graph in sequence
             for step, g in enumerate(nx_sequence):
                 g.graph['source_idx'] = i
                 g.graph['target_idx'] = j
@@ -114,16 +119,17 @@ def generate_edit_path_graphs(
                 nx_sequence = [g for g in nx_sequence if nx.is_connected(g)]
                 # todo: distinguish between after connectedness filter and before
                 if len(nx_sequence) <= 2:
-                    no_intermediates.append((i, j))
+                    no_intermediates_after_filter.append((i, j))
 
-            # Drop edge attributes, convert to pyg objects, copy nx attributes to pyg instance
+            # Create equal nx graphs without edge attributes at all due to external repo behaviour with inconsistent
+            # edge labeling, convert nx to pyg objects, copy nx attributes to pyg instance
             pyg_sequence = []
             for step, g in enumerate(nx_sequence):
 
-                # Strip edge attributes from all graphs as some are missing (are not used for inference)
+                # Instantiate empty nx graph, add nodes with labels and edges
                 g_no_edge_attrs = nx.Graph()
 
-                # Add nodes with their attr tensor x reconstructed from scalar 'primary_label'
+                # During node addition, reconstruct 'x' tensor from scalar 'primary_label'
                 for n, d in g.nodes(data=True):
                     label = d['primary_label']
                     d['x'] = func.one_hot(torch.tensor(label), num_classes=num_node_classes).float()
@@ -135,7 +141,7 @@ def generate_edit_path_graphs(
                 # Convert nx to pyg
                 pyg_g = from_networkx(g_no_edge_attrs)
 
-                # Copy attrs to pyg instances
+                # Copy attributes to pyg instances
                 for attr_key, attr_val in g.graph.items():
                     setattr(pyg_g, attr_key, attr_val)
                 pyg_sequence.append(pyg_g)
@@ -150,15 +156,18 @@ def generate_edit_path_graphs(
             torch.save(pyg_sequence, pyg_out_path)
 
     # Save paths with target graph insertion
-    test_out_dir = os.path.join(ROOT, DATASET_NAME, "test")
-    os.makedirs(test_out_dir, exist_ok=True)
-    with open(os.path.join(test_out_dir, f"{DATASET_NAME}_paths_with_target_graph_inserted.json"), "w") as f:
+    os.makedirs(test_output_dir, exist_ok=True)
+    with open(os.path.join(test_output_dir, f"{DATASET_NAME}_paths_with_target_graph_inserted.json"), "w") as f:
         json.dump(last_graph_insertions, f, indent=2)
 
     # Save paths with no intermediate path graphs
-    with open(os.path.join(test_out_dir,
-                           f"{DATASET_NAME}_no_intermediate_graphs_at_graph_seq_creation.json"), "w") as f:
-        json.dump(no_intermediates, f, indent=2)
+    with open(os.path.join(test_output_dir,
+                           f"{DATASET_NAME}_no_interm_graphs_at_graph_creation_before_connect_filter.json"), "w") as f:
+        json.dump(no_intermediates_before_filter, f, indent=2)
+
+    with open(os.path.join(test_output_dir,
+                           f"{DATASET_NAME}_no_interm_graphs_at_graph_creation_after_connect_filter.json"), "w") as f:
+        json.dump(no_intermediates_before_filter, f, indent=2)
 
 
 # --- Run ---
@@ -176,6 +185,7 @@ if __name__ == "__main__":
         data_dir=edit_path_ops_dir,
         nx_output_dir=nx_output_dir,
         pyg_output_dir=pyg_output_dir,
+        test_output_dir=test_output_dir,
         fully_connected_only=FULLY_CONNECTED_ONLY,
         seed=42
     )

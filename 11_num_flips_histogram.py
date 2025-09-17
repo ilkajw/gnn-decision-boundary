@@ -7,13 +7,13 @@ from config import DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR, CORRECTLY_CLASS
 from index_sets_utils import build_index_set_cuts
 
 
-# ---- set input, output params ----
+# ---- Set input, output params ----
 split_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_best_split.json")
 
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_flips_hist_by_{DISTANCE_MODE}.json"
 
-# to save lists of paths incorrectly having even/odd num flips
+# To save lists of paths incorrectly having even/odd number of flips
 test_output_dir = os.path.join(ANALYSIS_DIR, "test")
 
 
@@ -26,7 +26,12 @@ def to_relative(counts_dict):
     return {str(k): (counts_dict[k] / total) for k in counts_dict.keys()}
 
 
-def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, same_class=False):
+def count_paths_by_num_flips(
+        idx_pair_set,
+        flips_input_path,
+        output_path=None,
+        same_class=False
+):
     """
     For a given set of index pairs, count how many paths have 0, 1, 2, ... flips.
 <
@@ -43,7 +48,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
     same_class_odd_flips = []
     diff_class_even_flips = []
 
-    # load flip data
+    # Load flip data from file
     with open(flips_input_path) as f:
         flips_per_path = json.load(f)
 
@@ -59,7 +64,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
 
         num_flips = len(flips)
 
-        # for testing only
+        # For testing only
         if same_class and num_flips % 2 == 1:
             same_class_odd_flips.append((i, j))
         if not same_class and num_flips % 2 == 0:
@@ -74,6 +79,7 @@ def count_paths_by_num_flips(idx_pair_set, flips_input_path, output_path=None, s
             json.dump(dict(flip_histogram), f, indent=2)
 
     os.makedirs(test_output_dir, exist_ok=True)
+
     if same_class:
         output_path = os.path.join(test_output_dir, f"{DATASET_NAME}_{MODEL}_same_class_odd_flips.json")
         with open(output_path, "w") as f:

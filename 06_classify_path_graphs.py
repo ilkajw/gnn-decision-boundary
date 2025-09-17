@@ -8,14 +8,14 @@ from torch_geometric.data import Data
 from config import ROOT, DATASET_NAME, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR, PREDICTIONS_DIR, LEGACY_PYG_SEQ_DIR
 
 
-# --- Input paths ---
+# ---- Input paths ----
 model_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_model.pt")
-
 graph_sequences_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
 
-# ---- Output path ----
-# (subdirectory 'edit_path_graphs_with_predictions' will be created for predicted graph sequences)
+# ---- Output paths ----
 output_dir = PREDICTIONS_DIR
+# subdirectory will be created within output_dir for predicted graph sequences
+sequences_subdir_name = 'edit_path_graphs_with_predictions'
 output_fname = f"{DATASET_NAME}_{MODEL}_edit_path_predictions.json"
 
 
@@ -27,6 +27,7 @@ def edit_path_predictions(
         model_path,
         input_dir,
         output_dir,
+        sequences_subdir_name,
         output_fname,
         verbose=False
 ):
@@ -49,7 +50,7 @@ def edit_path_predictions(
     dataset = TUDataset(root=ROOT, name=dataset_name)
     add_safe_globals([Data])
     os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(os.path.join(output_dir, "edit_path_graphs_with_predictions"), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, sequences_subdir_name), exist_ok=True)
     predictions = []
 
     # Instantiate model and load weight state
@@ -101,7 +102,7 @@ def edit_path_predictions(
                 "num_operations_incl_insertion": getattr(graph, "num_operations_incl_insertion", -1),
             })
         # Save updated sequence
-        torch.save(updated_sequence, os.path.join(output_dir, "edit_path_graphs_with_predictions", filename))
+        torch.save(updated_sequence, os.path.join(output_dir, sequences_subdir_name, filename))
         if verbose:
             print(f"[info] Saved predictions for file {filename} ")
 
@@ -128,6 +129,7 @@ if __name__ == "__main__":
             model_path=model_path,
             input_dir=graph_sequences_dir,
             output_dir=output_dir,
+            sequences_subdir_name=sequences_subdir_name,
             output_fname=output_fname,
             verbose=False
     )

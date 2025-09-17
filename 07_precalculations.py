@@ -200,7 +200,8 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
         # loop through each sequence from i to j and track at which steps changes happen to which class
         for g in sequence:
 
-            # Handle 38 sequences with operation null for their start graphs
+            # Handle sequences with operation null for their start graphs
+            # TODO: put handling into graph creation
             if getattr(g, "edit_step") == 0 and not hasattr(g, "operation"):
                 setattr(g, "operation", "start")
 

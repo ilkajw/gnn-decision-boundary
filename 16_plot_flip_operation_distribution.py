@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgb
 from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
 
-# ----- paths -----
+# ----- Set input, ouput paths -----
+
 INPUT_PATH = os.path.join(
     ANALYSIS_DIR,
     f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
@@ -14,10 +15,12 @@ INPUT_PATH = os.path.join(
 PLOT_DIR = os.path.join(
     ANALYSIS_DIR,
     "plots",
-    "flip_distributions_ops"  # new folder for ops composition plots
+    "flip_distributions_ops"
 )
 os.makedirs(PLOT_DIR, exist_ok=True)
 
+
+# ---- Function definitions ----
 
 def _collect_ops(ops_by_decile: dict[str, dict]) -> list[str]:
     """Collect a stable, sorted list of operation labels present across all deciles."""
@@ -39,8 +42,9 @@ def _lighten(color, factor=0.5):
     return (r + (1-r)*factor, g + (1-g)*factor, b + (1-b)*factor)
 
 def _color_for_ops(ops: list[str]):
+
     color_map = {
-        "remove_edge": plt.cm.tab10(3),    # yellow (tab10[1] is golden yellow)
+        "remove_edge": plt.cm.tab10(3),    # red
         "add_edge": plt.cm.tab10(1),       # orange
         "remove_node": plt.cm.tab10(4),    # purple
         "add_node": plt.cm.tab10(2),       # green
@@ -53,7 +57,7 @@ def _color_for_ops(ops: list[str]):
         if op in color_map:
             colors[op] = color_map[op]
         else:
-            # fallback: light gray if something unexpected appears
+            # fallback
             colors[op] = (0.8, 0.8, 0.8)
     return colors
 
@@ -71,10 +75,10 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
     ops_by_decile = entry["ops_by_decile"]
     decile_total_norm = entry["norm"]  # dict of decile -> fraction of all flips in that decile
 
-    # gather operations and colors
+    # Gather operations and colors
     ops = _collect_ops(ops_by_decile)
     if not ops:
-        print(f"[info] no operations to plot for k={k}")
+        print(f"[WARN] No operations for k={k}")
         return
     op_colors = _color_for_ops(ops)
 
@@ -82,7 +86,7 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
     bottoms = [0.0] * 10
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # for each op, stack its contribution across deciles
+    # For each op, stack its contribution across deciles
     for op in ops:
         ys = []
         for d in xs:
@@ -93,7 +97,7 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
         bars = ax.bar(xs, ys, bottom=bottoms, label=op, color=op_colors[op])
         bottoms = [b + y for b, y in zip(bottoms, ys)]
 
-        # optional: label segment with within-decile share if it's visually meaningful
+        # Optional: label segment with within-decile share if it's visually meaningful
         for rect, d in zip(bars, xs):
             dkey = str(d)
             op_share = float(ops_by_decile.get(dkey, {}).get("norm", {}).get(op, 0.0))
@@ -106,13 +110,13 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
                     fontsize=8, color="black", weight="bold"
                 )
 
-    # total labels at top of bars
+    # Total labels at top of bars
     for x, total in zip(xs, bottoms):
         if total > 0:
             ax.text(x, total + 0.002, f"{total:.2f}", ha="center", va="bottom", fontsize=9, weight="bold")
 
     ymin, ymax = ax.get_ylim()
-    ax.set_ylim(ymin, ymax * 1.12)  # add a bit of headroom
+    ax.set_ylim(ymin, ymax * 1.12)
 
     # styling
     ax.set_xlabel("Edit-Pfad-Segment")
@@ -134,10 +138,11 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
     plt.close(fig)
 
 
-# ------------ run -----------------
+# ---- Run ----
+
 if __name__ == "__main__":
     if not os.path.exists(INPUT_PATH):
-        raise FileNotFoundError(f"missing input JSON: {INPUT_PATH}")
+        raise FileNotFoundError(f"Missing input JSON: {INPUT_PATH}")
 
     with open(INPUT_PATH, "r") as f:
         data = json.load(f)
@@ -145,14 +150,17 @@ if __name__ == "__main__":
     all_sets = data.get("per_index_set", {})
 
     for set_name, stats in all_sets.items():
-        print(f"→ plotting ops-composition for index set: {set_name}")
+
+        print(f"→ Plotting ops-composition for index set: {set_name}")
+
         for k_str, entry in stats.items():
+
             if k_str == "num_pairs":   # skip metadata
                 continue
             k = int(k_str)
             num_paths = entry.get("num_paths", "NA")
 
-            # subfolder per k
+            # Subfolder per k
             k_dir = os.path.join(PLOT_DIR, f"k{k}")
             os.makedirs(k_dir, exist_ok=True)
 
@@ -165,4 +173,4 @@ if __name__ == "__main__":
                 out_path,
                 description=f"{set_name} (n={num_paths})"
             )
-            print(f"saved plot → {out_path}")
+            print(f"Saved plot → {out_path}")

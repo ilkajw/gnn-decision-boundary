@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
 
 
-# ----- paths ----
+# ----- Set input, output paths ----
 INPUT_PATH = os.path.join(
     ANALYSIS_DIR,
     f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
@@ -17,7 +17,7 @@ PLOT_DIR = os.path.join(
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
-# ---- plotting ----
+# ---- Function definition ----
 
 def plot_flip_order_distribution(entry: dict, k: int, save_path: str, description=None):
     """
@@ -35,19 +35,19 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
     xs = list(range(10))
     bottoms = [0.0] * 10
 
-    # --- totals per flip order and global ---
+    # Totals per flip order and global
     totals_per_order = {
         order: sum(flip_order_dist[str(order + 1)].values())
         for order in range(n_orders)
     }
     total_all = sum(totals_per_order.values())
 
-    # color palette (blue, yellow, grey)
+    # Color palette (blue, yellow, grey)
     colors = ["#1f77b4", "#f2c94c", "#808080"]
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # --- stack per flip order ---
+    # Stack per flip order
     for order in range(n_orders):
         order_key = str(order + 1)  # flip name: 1, 2, 3, ...
         raw = [flip_order_dist[order_key][str(d)] for d in xs]
@@ -61,7 +61,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
                       label=f"Flip {order + 1}",
                       color=colors[order % len(colors)]
                       )
-        # only show per-flip oder distribution values if k>1. for k=1 total bar value is equal
+        # Only show per-flip oder distribution values if k>1. For k=1 total bar value is equal
         if k > 1:
             # segment labels = share of that flip-order’s flips
             for rect, raw_val in zip(bars, raw):
@@ -80,7 +80,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
 
         bottoms = [b + y for b, y in zip(bottoms, ys)]
 
-    # --- total labels on top of bars ---
+    # Total labels on top of bars
     for x, b in zip(xs, bottoms):
         if b > 0:
             ax.text(
@@ -93,7 +93,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
     ymin, ymax = ax.get_ylim()
     ax.set_ylim(ymin, ymax * 1.1)  # add 10% space on top
 
-    # --- styling ---
+    # Styling
     ax.set_xlabel("Edit-Pfad-Segment")
     ax.set_ylabel("Anteil Flips")
     if description:
@@ -114,7 +114,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
     plt.close(fig)
 
 
-# ------------ run -----------------
+# ---- Run ----
 
 if __name__ == "__main__":
 
@@ -124,22 +124,28 @@ if __name__ == "__main__":
     with open(INPUT_PATH, "r") as f:
         data = json.load(f)
 
-    # go through global + all index sets
+    # Go through global + all index sets
     all_sets = data.get("per_index_set", {})
 
     for set_name, stats in all_sets.items():
+
         print(f"→ plotting for index set: {set_name}")
+
         for k_str, entry in stats.items():
-            if k_str == "num_pairs":   # skip metadata
+
+            if k_str == "num_pairs":  # skip metadata
                 continue
             k = int(k_str)
             num_paths = entry.get("num_paths", "NA")
 
-            # create subfolder for this k
+            # Create subfolder for k
             k_dir = os.path.join(PLOT_DIR, f"k{k}")
             os.makedirs(k_dir, exist_ok=True)
 
-            out_path = os.path.join(k_dir, f"{DATASET_NAME}_{MODEL}_{set_name}_flip_order_distribution_k{k}.png")
+            out_path = os.path.join(
+                k_dir,
+                f"{DATASET_NAME}_{MODEL}_{set_name}_flip_order_distribution_k{k}.png"
+            )
             plot_flip_order_distribution(
                 entry,
                 k,

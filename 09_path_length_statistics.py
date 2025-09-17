@@ -11,20 +11,20 @@ from config import (
 from index_sets_utils import build_index_set_cuts, graphs_correctly_classified
 
 
-# Set if to calculate for all paths or paths between correctly classified endpoints only
+# Set whether to calculate for all paths or paths between correctly classified endpoints only
 correctly_classified_only = False
 
 # ---- Set input, output paths ----
 split_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_best_split.json")
-
 output_dir = ANALYSIS_DIR
 output_fname = f"{DATASET_NAME}_{MODEL}_path_length_stats_by_{DISTANCE_MODE}.json"
 
 
-# ----- helpers ----
+# ----- Helpers ----
+
 def load_lengths_from_precalc(
-        dist_path: str,
-        idx_set=None,
+        distances_path: str,
+        idx_set = None,
         correctly_classified_only: bool = CORRECTLY_CLASSIFIED_ONLY
         ):
     """
@@ -33,10 +33,11 @@ def load_lengths_from_precalc(
     and optionally filter to an index-pair set and correctly-classified graphs.
     Returns: {(i,j): value, ...}
     """
-    with open(dist_path, "r") as f:
+
+    with open(distances_path, "r") as f:
         raw = json.load(f)
 
-    # optional filter for correctness (global case only)
+    # Optional filter for correctness (global case only)
     correct = set()
     if correctly_classified_only and idx_set is None:
         correct = set(graphs_correctly_classified())
@@ -44,10 +45,10 @@ def load_lengths_from_precalc(
     out = {}
     for pair_str, val in raw.items():
         i, j = map(int, pair_str.split(","))
-        # filter by idx_set (unordered)
+        # Filter by idx_set
         if idx_set is not None and (i, j) not in idx_set and (j, i) not in idx_set:
             continue
-        # global correctness filter (per-index-set cuts already did this upstream)
+        # Global correctness filter (per-index-set cuts already did this upstream)
         if correctly_classified_only and idx_set is None:
             if i not in correct or j not in correct:
                 continue
@@ -62,36 +63,38 @@ def path_length_statistics(path_lengths: dict):
     return {
         "num_paths": len(vals),
         "mean":   float(np.mean(vals)),
-        "std_dev":float(np.std(vals)),
+        "std_dev": float(np.std(vals)),
         "median": float(np.median(vals)),
         "min":    float(np.min(vals)),
         "max":    float(np.max(vals)),
     }
 
 
-# ---- run ----
+# ---- Run ----
 if __name__ == "__main__":
 
-    # build all index-set cuts
+    # Build all index-set cuts
     idx_pair_sets = build_index_set_cuts(
         dataset_name=DATASET_NAME,
         correctly_classified_only=correctly_classified_only,
         split_path=split_path,
     )
 
-    # ---- global stats ----
+    # ---- Global stats ----
+
     all_lengths = load_lengths_from_precalc(
-        dist_path=DISTANCES_PATH,
+        distances_path=DISTANCES_PATH,
         idx_set=None,
         correctly_classified_only=correctly_classified_only
     )
     all_stats = path_length_statistics(all_lengths)
 
-    # ---- per-index-set stats ----
+    # ---- Per-index-set stats ----
+
     per_set_stats = {}
     for key, idx_set in idx_pair_sets.items():
         lengths = load_lengths_from_precalc(
-            dist_path=DISTANCES_PATH,
+            distances_path=DISTANCES_PATH,
             idx_set=idx_set,
             correctly_classified_only=correctly_classified_only
         )
@@ -102,7 +105,7 @@ if __name__ == "__main__":
             "coverage": float(len(lengths) / max(1, len(idx_set))),
         }
 
-    # save
+    # Save
     data = {
         "dataset": DATASET_NAME,
         "distance_mode": DISTANCE_MODE,

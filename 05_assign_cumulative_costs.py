@@ -87,7 +87,6 @@ def _align_costs_to_seq(seq, costs):
     max_edit_step = getattr(last_graph, 'edit_step')
     cost_len = len(c)
 
-    # todo: how to handle best?
     # Handle paths where target graph inserted,
     # assign additional cost 0.0 for inserted target graph to underestimate true cost
     if max_edit_step == cost_len:
@@ -100,8 +99,8 @@ def _align_costs_to_seq(seq, costs):
         return c, None
 
 
-def add_cum_cost_to_pyg_seq(
-    cum_costs,                      # dict[(i,j)] -> [cumulative costs]
+def add_cum_cost_to_pyg_sequences(
+    cum_costs,                     # dict[(i,j)] -> [cumulative costs]
     seq_dir,                       # directory with *.pt sequences
     add_field_name: str = "cumulative_cost",
     out_dir: str | None = None,  # if None, overwrite original sequences
@@ -204,7 +203,7 @@ def add_cum_cost_to_pyg_seq(
     )
 
 
-def add_cum_cost_to_path_preds_json(
+def add_cum_cost_to_path_predictions_json(
     path_pred_json_path,
     cum_costs,                      # dict[(i,j)] -> [cumulative costs]
     add_field_name: str = "cumulative_cost",
@@ -236,18 +235,18 @@ def add_cum_cost_to_path_preds_json(
         # Get edit step of current graph
         step_idx = int(e.get("edit_step"))
 
-        # todo: how to handle best?
-        # If graph is inserted target graph, assume additional cost 0.0 to underestimate true cost,
+        # If graph is an inserted target graph, assume additional cost 0.0 to underestimate true cost,
         # hence assign cost of previous graph
         if step_idx >= len(c):
             step_idx -= 1
 
-        # Add cum cost as attribute
+        # Add cum cost as attribute from cum cost list at corresponding index
         e[add_field_name] = float(c[step_idx])
         updated.append(e)
 
+    # Save
     if out_path is None:
-        # Overwrite input dir. was: pred_json_path.replace(".json", f"_WITH_{add_field_name.upper()}.json")
+        # Overwrite input directory
         out_path = path_pred_json_path
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w") as f:
@@ -269,9 +268,9 @@ if __name__ == "__main__":
         ops_file_dir=edit_path_ops_dir
     )
 
-    add_cum_cost_to_pyg_seq(
+    add_cum_cost_to_pyg_sequences(
         cum_costs=cum_costs,
         seq_dir=graph_sequence_directory,
         add_field_name="cumulative_cost",
-        out_dir=seq_out_dir,  # if None -> overwrite
+        out_dir=seq_out_dir,  # if None, overwrite
     )

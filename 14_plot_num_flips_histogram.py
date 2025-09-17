@@ -6,12 +6,12 @@ from matplotlib import pyplot as plt
 
 from config import DATASET_NAME, DISTANCE_MODE, ANALYSIS_DIR, MODEL
 
-# ---- set input, output paths -----
+# ---- Set output paths ----
 PLOT_DIR = os.path.join(ANALYSIS_DIR, "plots", "histograms")
 os.makedirs(PLOT_DIR, exist_ok=True)
 
 
-# ----- helpers ------
+# ---- Helpers ----
 def histograms_file() -> str:
     return os.path.join(ANALYSIS_DIR,
                         f"{DATASET_NAME}_{MODEL}_flips_hist_by_{DISTANCE_MODE}.json"
@@ -44,7 +44,7 @@ def load_histograms(keys: List[str], normalized: bool) -> Dict[str, Dict[int, fl
             print(f"[warn] Missing key in consolidated results: {k}")
             continue
         hist = results[k].get(field, {})
-        # keys may be strings or ints, normalize to ints
+        # Keys may be strings or ints, normalize to ints
         out[k] = {int(kk): float(v) for kk, v in hist.items()}
 
     return out
@@ -79,7 +79,7 @@ def plot_histograms_from_dict(
     n_series = len(names)
     width = 0.8 / max(n_series, 1)
 
-    # color palette (blue, grey, yellow)
+    # Color palette (blue, grey, yellow)
     colors = ["#1f77b4", '#808080', "#f2c94c"]
 
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -88,14 +88,14 @@ def plot_histograms_from_dict(
         vals = [histograms[name].get(k, 0.0) for k in all_k]
         xpos = [x + idx * width for x in range(len(all_k))]
 
-        # insert number of contributing paths to legend if available
+        # Insert number of contributing paths to legend
         if totals is not None and name in totals:
             label_text = f"{name} (n={int(totals[name])})"
         else:
-            print(f"[warn] totals not available for '{name}'.")
+            print(f"[warn] Totals not available for '{name}'.")
             label_text = name
 
-        # define plot bar per series
+        # Define plot bar per series
         bars = ax.bar(
             xpos,
             vals,
@@ -105,7 +105,7 @@ def plot_histograms_from_dict(
             linewidth=0.5,
         )
 
-        # annotate values on bars
+        # Annotate values on bars
         for rect, y in zip(bars, vals):
             label = f"{y: .2f}" if normalized else f"{int(y)}"
             ax.annotate(
@@ -135,15 +135,15 @@ def plot_histograms_from_dict(
     plt.close(fig)
 
 
-# --------------- run plotting ----------------
+# ---- Run ----
 
 if __name__ == "__main__":
 
-    # -------- histograms for same, same_0, same_1 ------------
+    # ---- Histograms for same, same_0, same_1 ----
 
     idx_sets = ["same_class_all", "same_class_0_all", "same_class_1_all"]
 
-    # absolute values
+    # Absolute values
     h_abs = load_histograms(idx_sets, normalized=False)
     if not h_abs:
         raise SystemExit("No histograms found in consolidated file — did you run the single-writer script?")
@@ -153,24 +153,30 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=False,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
 
-    # normalized values
+    # Normalized values
     h_rel = load_histograms(idx_sets, normalized=True)
     plot_histograms_from_dict(
         histograms=h_rel,
         totals=abs_totals,
         normalized=True,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
 
-    # -------------- histograms for same, train-train vs test-test -------------------
+    # ---- Histograms for same, train-train vs test-test ----
 
     idx_sets = ["same_train_train", "same_test_test", "same_train_test"]
 
-    # absolute values
+    # Absolute values
     h_abs = load_histograms(idx_sets, normalized=False)
     if not h_abs:
         raise SystemExit("No histograms found in consolidated file — did you run the single-writer script?")
@@ -180,20 +186,26 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=False,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
 
-    # normalized values
+    # Normalized values
     h_rel = load_histograms(idx_sets, normalized=True)
     plot_histograms_from_dict(
         histograms=h_rel,
         totals=abs_totals,
         normalized=True,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
 
-    # -------------- histograms diff class, train vs test ----------------
+    # ---- Histograms diff class, train vs. test ----
 
     idx_sets = ["diff_train_train", "diff_test_test", "diff_train_test"]
 
@@ -207,22 +219,28 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=False,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
 
-    # normalized values
+    # Normalized values
     h_rel = load_histograms(idx_sets, normalized=True)
     plot_histograms_from_dict(
         histograms=h_rel,
         totals=abs_totals,
         normalized=True,
         title=None,
-        save_path=os.path.join(PLOT_DIR, f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
 
     idx_sets = ["diff_class_all"]
 
-    # absolute values
+    # Absolute values
     h_abs = load_histograms(idx_sets, normalized=False)
     if not h_abs:
         raise SystemExit("No histograms found in consolidated file — did you run the single-writer script?")
@@ -232,17 +250,21 @@ if __name__ == "__main__":
         totals=abs_totals,
         normalized=False,
         title=None,
-        save_path=os.path.join(PLOT_DIR,
-                               f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_abs_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
 
-    # normalized values
+    # Normalized values
     h_rel = load_histograms(idx_sets, normalized=True)
     plot_histograms_from_dict(
         histograms=h_rel,
         totals=abs_totals,
         normalized=True,
         title=None,
-        save_path=os.path.join(PLOT_DIR,
-                               f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"),
+        save_path=os.path.join(
+            PLOT_DIR,
+            f"{DATASET_NAME}_{MODEL}_flips_hist_norm_by_{DISTANCE_MODE}_{'_'.join(idx_sets)}.png"
+        ),
     )
