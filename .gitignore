@@ -3,5 +3,5 @@ __pycache__/
 edit_path_graphs/
 data/
 model/
-/old_leave_out/
-/tests_leave_out
+/old/
+/tests/
