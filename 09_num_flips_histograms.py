@@ -1,4 +1,16 @@
-# TODO: file descriptor
+"""
+Build flips-per-path histograms for multiple index-set cuts.
+
+Reads per-path flip lists (FLIPS_PATH) and index-set cuts, counts how many
+paths have 0,1,2,... flips for each cut (absolute and relative frequencies),
+and writes a consolidated JSON to ANALYSIS_DIR with per-index-set histograms.
+Also saves small test JSONs listing paths with odd/even parity where relevant.
+
+Requires config variables: DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR,
+CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE, FLIPS_PATH.
+Outputs: ANALYSIS_DIR/<DATASET_NAME>_<MODEL>_flips_hist_by_<DISTANCE_MODE>.json
+(and test JSONs in ANALYSIS_DIR/test).
+"""
 
 import os
 import json

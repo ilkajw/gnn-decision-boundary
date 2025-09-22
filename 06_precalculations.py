@@ -61,7 +61,6 @@ def num_operations_per_path(
         sequences_dir=os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs"),
         output_path=os.path.join(ROOT, DATASET_NAME, "precalculations")
 ):
-    # TODO: docstring
     add_safe_globals([Data])
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
     num_operations = {}

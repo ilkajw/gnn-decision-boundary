@@ -85,7 +85,6 @@ def to_float_y():
 
 
 def drop_edge_attr():
-    # TODO: docstring
     def _tf(data):
         if 'edge_attr' in data:
             del data.edge_attr
@@ -94,7 +93,6 @@ def drop_edge_attr():
 
 
 def drop_keys(keys):
-    # TODO: docstring
     keys = set(keys)
 
     def _tf(data):
@@ -106,7 +104,6 @@ def drop_keys(keys):
 
 
 def tag_origin(tag: str):
-    # TODO: docstring
     def _tf(data):
         data.origin = tag
         data.is_original = 1 if tag == "org" else 0
