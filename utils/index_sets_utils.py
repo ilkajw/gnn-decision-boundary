@@ -31,7 +31,7 @@ def cut_pairs(base_pairs, allowed_pairs):
 
 def build_index_set_cuts(dataset_name=f"{DATASET_NAME}",
                          correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
-                         split_path=f"{MODEL_DIR}/{MODEL}_best_split.json",
+                         split_path=f"{MODEL_DIR}/{DATASET_NAME}_{MODEL}_best_split.json",
                          ):
     """
     Returns a dict of pair-sets covering:

@@ -41,24 +41,30 @@ def _lighten(color, factor=0.5):
     r, g, b = to_rgb(color)
     return (r + (1-r)*factor, g + (1-g)*factor, b + (1-b)*factor)
 
-def _color_for_ops(ops: list[str]):
 
-    color_map = {
-        "remove_edge": plt.cm.tab10(3),    # red
-        "add_edge": plt.cm.tab10(1),       # orange
-        "remove_node": plt.cm.tab10(4),    # purple
-        "add_node": plt.cm.tab10(2),       # green
-        "relabel_node": plt.cm.tab10(0),   # blue
-        "target_graph_insertion": (0.5, 0.5, 0.5),  # grey as RGB tuple
+def _hex_to_rgb01(hex_color: str):
+    hex_color = hex_color.lstrip("#")
+    r = int(hex_color[0:2], 16) / 255.0
+    g = int(hex_color[2:4], 16) / 255.0
+    b = int(hex_color[4:6], 16) / 255.0
+    return (r, g, b)
+
+
+def _color_for_ops(ops: list[str]):
+    # High-contrast, colorblind-friendly, with yellow for relabel_node
+    palette = {
+        "add_edge": "#f2c94c",              # yellow
+        "remove_edge": "#F9E79F",           # darker yellow
+        "add_node": "#1f77b4",              # green
+        "relabel_node": "#7FA6D6",          # light green
+        "remove_node": "#B5CCE7",           # teal / matplotlib blue
+        "target_graph_insertion": "#7F7F7F" # dark gray
     }
 
     colors = {}
     for op in ops:
-        if op in color_map:
-            colors[op] = color_map[op]
-        else:
-            # fallback
-            colors[op] = (0.8, 0.8, 0.8)
+        hex_col = palette.get(op, "#BDBDBD")  # fallback light gray
+        colors[op] = _hex_to_rgb01(hex_col)
     return colors
 
 
@@ -120,7 +126,7 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
 
     # styling
     ax.set_xlabel("Edit-Pfad-Segment")
-    ax.set_ylabel("Anteil Flips (gesamt) • Segmentanteile nach Operation")
+    ax.set_ylabel("Anteil Klassifikationswechsel • Segmentanteile nach Operation")
     if description:
         ax.text(
             0.5, 0.97, description,

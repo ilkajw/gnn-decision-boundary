@@ -95,7 +95,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
 
     # Styling
     ax.set_xlabel("Edit-Pfad-Segment")
-    ax.set_ylabel("Anteil Flips")
+    ax.set_ylabel("Anteil Klassifikationswechsel")
     if description:
         ax.text(
             0.5, 0.97, description,  # x, y in axes coordinates

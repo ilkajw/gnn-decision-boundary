@@ -20,6 +20,7 @@ from the test set.
 The repo defines a k-fold cross validation training on training sets augmented with labeled path graphs and
 calculates test accuracy statistics to compare training stability to original dataset training.
 
+### Installation
 
 ### Functionality
 
@@ -71,6 +72,14 @@ A map on distances and on the number of operations per path is calculated. Furth
 path with the triggering edit operation per flip and its path position is computed, one with path positions measured 
 according to the cost function, one according to the number of operations.
 
+### Usage
+
+In config.py set the GNN architecture as well as training and analysis parameters to use and execute 
+`analysis_pipeline.py` to run everything from training on the TUDataset to plotting analysis results. 
+
+For augmented data training, set all desired parameters in `config.py` and 
+execute `15_train_model_on_augmented_data.py`. If you skip the prior analysis pipeline, run 
+`path_graph_creation_pipeline.py` before.
 
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
