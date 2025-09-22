@@ -20,23 +20,15 @@ from config import (
     DISTANCE_MODE
 )
 
-# TODO: change true label source from dict to actual dataset
-
 # ----- Set input, output paths ----
-# TODO: adjust the paths
+
 # Directory with all path sequences (.pt lists)
 # using hard coded path to not have to run predictions with GCN as we only need the true label
-path_seq_dir = "data_actual_best/MUTAG/GAT/predictions/edit_path_graphs_with_predictions_CUMULATIVE_COST"
-# os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
-
-# Path to json with org graph true labels: { "0":{"true_label":0}, "1":{"true_label":1}, ... }
-base_labels_path = "data_actual_best/MUTAG/GAT/predictions/MUTAG_GAT_predictions.json"
-# os.join.path(PREDICTIONS_DIR, f"{DATASET_NAME}_{MODEL}_predictions.json")
+path_seq_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
 
 # Output files definition
-output_dir = f"model_cv_augmented/{DATASET_NAME}/{MODEL}/by_{DISTANCE_MODE}/flip_at_{int(FLIP_AT*100)}"
-# os.path.join("models_cv_augmented", DATASET_NAME, MODEL,
-#              f"by_{DISTANCE_MODE}", f"flip_at_{int(FLIP_AT*100)})"
+output_dir = os.path.join("models_cv_augmented", DATASET_NAME, MODEL,
+                          f"by_{DISTANCE_MODE}", f"flip_at_{int(FLIP_AT*100)}")
 model_fname = f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"
 log_fname = f"{DATASET_NAME}_{MODEL}_train_log_flip_{int(FLIP_AT*100)}.json"
@@ -165,7 +157,7 @@ if __name__ == "__main__":
     for fold, (train_idx, test_idx) in enumerate(skf.split(np.zeros(len(base_ds)), labels), start=1):
 
         if VERBOSE:
-            print(f"\n--- fold {fold} ---")
+            print(f"\n--- Fold {fold} ---")
 
         # Define train and test split on original dataset
         train_subset = Subset(base_ds, train_idx.tolist())
@@ -176,20 +168,18 @@ if __name__ == "__main__":
         print(f"[info] Building augmented dataset...")
         path_train = EditPathGraphDataset(
             seq_dir=path_seq_dir,
-            base_pred_path=base_labels_path,  # todo: delete for new implementation
             flip_at=FLIP_AT,
             drop_endpoints=DROP_ENDPOINTS,
             verbose=False,
             allowed_indices=allowed_indices,  # Filter for paths between graphs from train split
-            use_base_dataset=False,  # todo: delete this param when using new implementation
-            base_dataset=None  # todo: change to base_ds
+            base_dataset=base_ds
         )
 
         path_train.transform = Compose([
             to_float_y(),  # Ensure float labels
-
-            drop_keys(["edit_step", "cumulative_cost", "source_idx",  # Drop attrs to match org schema for collating
-                       "target_idx", "iteration", "distance",
+            # Drop attrs to match org schema for collating
+            drop_keys(["edit_step", "cumulative_cost", "source_idx",
+                       "target_idx", "iteration", "distance", "operation",
                        "num_all_ops", "prediction", "probability"]),
             tag_origin("edit"),  # Tag each graph with origin "edit"
         ])
