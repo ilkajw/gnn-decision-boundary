@@ -4,7 +4,7 @@ from GAT import GAT
 from GCN import GCN
 from GraphSAGE import GraphSAGE
 
-ROOT = './data_test'
+ROOT = './data'
 DATASET_NAME = 'MUTAG'
 
 # --- Set model architecture and parameters ---
@@ -21,7 +21,7 @@ MODEL_REGISTRY = {
 }
 
 MODEL_CLS, MODEL_KWARGS = MODEL_REGISTRY[MODEL]
-MODEL_DIR = os.path.join('models', DATASET_NAME, MODEL)
+MODEL_DIR = os.path.join('models_org_data', DATASET_NAME, MODEL)
 
 # --- Training parameters ---
 K_FOLDS = 10

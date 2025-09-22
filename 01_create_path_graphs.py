@@ -126,16 +126,16 @@ def generate_edit_path_graphs(
             # Assign metadata to each nx graph in sequence
             for step, g in enumerate(nx_sequence):
 
-                # Handle sequences with operation null for their start graphs
-                if g.graph["edit_step"] == 0 and "operation" not in g.graph:
-                    g.graph["operation"] = "start"
-
                 g.graph['source_idx'] = i
                 g.graph['target_idx'] = j
                 g.graph['iteration'] = ep.iteration
                 g.graph['distance'] = ep.distance
                 g.graph['edit_step'] = step
                 g.graph['num_operations_incl_insertion'] = num_operations
+
+                # Handle sequences with operation null for their start graphs
+                if g.graph["edit_step"] == 0 and "operation" not in g.graph:
+                    g.graph["operation"] = "start"
 
             # Filter for connected graphs
             if fully_connected_only:
