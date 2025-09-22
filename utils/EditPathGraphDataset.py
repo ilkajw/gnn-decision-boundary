@@ -1,3 +1,5 @@
+# TODO: file descriptor
+
 import os
 import json
 import torch
@@ -46,46 +48,36 @@ class EditPathGraphDataset(InMemoryDataset):
     def __init__(
         self,
         seq_dir,
-        base_pred_path,  # todo: delete this param when done with base_pred_path
         flip_at: float = 0.5,
         transform=None,
         pre_transform=None,
         drop_endpoints: bool = True,
         verbose: bool = True,
         allowed_indices: set[int] | None = None,
-        use_base_dataset: bool = False,  # todo: delete this param when done with base_pred_path
         base_dataset=None,
     ):
         self.seq_dir = seq_dir
-        self.base_pred_path = base_pred_path
         self.drop_endpoints = bool(drop_endpoints)
         self.verbose = bool(verbose)
         self.allowed_indices = set(allowed_indices) if allowed_indices is not None else None
         self.flip_at = float(flip_at)
-        self.use_base_dataset = bool(use_base_dataset)
         self.base_dataset = base_dataset
-        self._label_cache = {}  # idx -> int label (used only when use_base_dataset=True)
+        self._label_cache = {}  # idx -> int label
 
         assert 0.0 <= self.flip_at <= 1.0, "flip_at must be in [0,1]"
 
-        if self.use_base_dataset and self.base_dataset is None:
-            raise ValueError("use_base_dataset=True requires base_dataset to be provided.")
-        if not self.use_base_dataset and not os.path.exists(str(self.base_pred_path)):
-            print(f"[WARN] base_pred_path '{self.base_pred_path}' not found. "
-                  f"Either provide the JSON or set use_base_dataset=True with base_dataset=...")
+        if self.base_dataset is None:
+            raise ValueError("base_dataset required.")
 
-        root_dir = os.path.abspath(f"{ROOT}/{DATASET_NAME}/processed/_editpath_inmem_root")
-        # was for last hopefully correct run:
-        # root_dir = os.path.abspath(f"data_control/{DATASET_NAME}/processed/_editpath_inmem_root")
+        root_dir = os.path.abspath(os.path.join(ROOT, DATASET_NAME, "processed", "_editpath_inmem_root"))
 
         super().__init__(root=root_dir, transform=transform, pre_transform=pre_transform)
 
         data_list = self._build_list()
         self.data, self.slices = self.collate(data_list)
         if self.verbose:
-            src = "base_dataset.y" if self.use_base_dataset else "JSON base_pred_path"
             print(f"[EditPathGraphsDataset] {len(data_list)} graphs from {self.seq_dir} "
-                  f"| flip_at={self.flip_at} | labels from {src}")
+                  f"| flip_at={self.flip_at}")
 
     # InMemoryDataset expects these
     @property
@@ -97,16 +89,7 @@ class EditPathGraphDataset(InMemoryDataset):
     def download(self): pass
     def process(self): pass
 
-    # -------------- internal helpers -------------------------
-
-    def _load_base_labels_from_json(self):
-        """
-        True classes of original dataset graphs.
-        """
-        with open(self.base_pred_path, "r") as f:
-            base = json.load(f)
-        # ensure int keys
-        return {int(k): int(v["true_label"]) for k, v in base.items()}
+    # ---- Helpers -----
 
     @staticmethod
     def _normalize_label_from_y(y) -> int:
@@ -186,8 +169,6 @@ class EditPathGraphDataset(InMemoryDataset):
 
         # Only load JSON if we're in the old mode
         base_labels = None
-        if not self.use_base_dataset:
-            base_labels = self._load_base_labels_from_json()
 
         files = sorted([f for f in os.listdir(self.seq_dir) if f.endswith(".pt")])
 
@@ -211,16 +192,9 @@ class EditPathGraphDataset(InMemoryDataset):
                 if (i not in self.allowed_indices) or (j not in self.allowed_indices):
                     continue
 
-            # Get source and target graph classes depending on mode (dict vs. dataset)
-            if self.use_base_dataset:
-                y_src = self._get_label_from_dataset(i)
-                y_tgt = self._get_label_from_dataset(j)
-            else:
-                if i not in base_labels or j not in base_labels:
-                    print(f"[WARN] missing base label for {i} or {j} in {fname}.")
-                    continue
-                y_src = base_labels[i]
-                y_tgt = base_labels[j]
+            # Get source and target graph classes
+            y_src = self._get_label_from_dataset(i)
+            y_tgt = self._get_label_from_dataset(j)
 
             # Optionally drop source and target graph
             if self.drop_endpoints:
@@ -246,7 +220,7 @@ class EditPathGraphDataset(InMemoryDataset):
                 # Copy graph attributes to dataset graph
                 for key in (
                     "edit_step", "cumulative_cost", "source_idx", "target_idx", "iteration",
-                    "distance", "prediction", "probability", "num_all_ops"
+                    "distance", "prediction", "probability", "num_all_ops", "operation"
                 ):
                     if hasattr(g, key):
                         setattr(data_point, key, getattr(g, key))
@@ -283,7 +257,6 @@ class EditPathGraphDataset(InMemoryDataset):
                 "flip_at": self.flip_at,
                 "distance_mode": DISTANCE_MODE,
                 "num_graphs": self.len(),
-                "use_base_dataset": self.use_base_dataset,
                 "base_dataset_cls": type(self.base_dataset).__name__ if self.base_dataset is not None else None,
 
             }

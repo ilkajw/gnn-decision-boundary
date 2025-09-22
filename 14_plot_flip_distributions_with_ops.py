@@ -1,13 +1,14 @@
+# TODO: file descriptor
+
 import os
 import json
-import math
 import matplotlib.pyplot as plt
 
 from matplotlib.colors import to_rgb
 from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
 
-# ----- Set input, ouput paths -----
 
+# ----- Set input, ouput paths -----
 INPUT_PATH = os.path.join(
     ANALYSIS_DIR,
     f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
@@ -51,14 +52,14 @@ def _hex_to_rgb01(hex_color: str):
 
 
 def _color_for_ops(ops: list[str]):
-    # High-contrast, colorblind-friendly, with yellow for relabel_node
+
     palette = {
         "add_edge": "#f2c94c",              # yellow
         "remove_edge": "#F9E79F",           # darker yellow
         "add_node": "#1f77b4",              # green
         "relabel_node": "#7FA6D6",          # light green
         "remove_node": "#B5CCE7",           # teal / matplotlib blue
-        "target_graph_insertion": "#7F7F7F" # dark gray
+        "target_graph_insertion": "#7F7F7F"  # dark gray
     }
 
     colors = {}
@@ -103,7 +104,6 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
         bars = ax.bar(xs, ys, bottom=bottoms, label=op, color=op_colors[op])
         bottoms = [b + y for b, y in zip(bottoms, ys)]
 
-        # Optional: label segment with within-decile share if it's visually meaningful
         for rect, d in zip(bars, xs):
             dkey = str(d)
             op_share = float(ops_by_decile.get(dkey, {}).get("norm", {}).get(op, 0.0))
@@ -119,12 +119,12 @@ def plot_ops_composition(entry: dict, k: int, save_path: str, description=None):
     # Total labels at top of bars
     for x, total in zip(xs, bottoms):
         if total > 0:
-            ax.text(x, total + 0.002, f"{total:.2f}", ha="center", va="bottom", fontsize=9, weight="bold")
+            ax.text(x, total + 0.002, f"{total: .2f}", ha="center", va="bottom", fontsize=9, weight="bold")
 
     ymin, ymax = ax.get_ylim()
     ax.set_ylim(ymin, ymax * 1.12)
 
-    # styling
+    # Styling
     ax.set_xlabel("Edit-Pfad-Segment")
     ax.set_ylabel("Anteil Klassifikationswechsel • Segmentanteile nach Operation")
     if description:

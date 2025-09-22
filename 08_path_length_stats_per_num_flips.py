@@ -1,22 +1,27 @@
+# TODO: file descriptor
+
 import os
 import json
-import statistics as stats
+import numpy as np
 from collections import defaultdict
 
-from config import DATASET_NAME, ANALYSIS_DIR, DISTANCES_PATH, FLIPS_PATH, MODEL, DISTANCE_MODE, CORRECTLY_CLASSIFIED_ONLY
+from config import DATASET_NAME, ANALYSIS_DIR, DISTANCES_PATH, FLIPS_PATH, MODEL, DISTANCE_MODE
 
-# TODO:  calculate with numpy
+
 # ---- Set output path ----
+output_path = os.path.join(
+    ANALYSIS_DIR,
+    f"{DATASET_NAME}_{MODEL}_path_length_stats_per_num_flips_by_{DISTANCE_MODE}.json"
+)
 
-output_path = os.path.join(ANALYSIS_DIR, f"{DATASET_NAME}_{MODEL}_path_length_stats_per_num_flips_by_{DISTANCE_MODE}.json")
 
 # ---- Function definitions -----
-
 def safe_stdev(values):
-    return float(stats.stdev(values)) if len(values) > 1 else 0.0
+    return float(np.std(values)) if len(values) > 1 else 0.0
 
 
 def calculate_stats(output_path):
+    # TODO: docstring
     with open(FLIPS_PATH, "r") as f:
         flips = json.load(f)
     with open(DISTANCES_PATH, "r") as f:
@@ -38,8 +43,8 @@ def calculate_stats(output_path):
 
     for k in sorted(per_k):
         vals = per_k[k]
-        mean_v = float(stats.mean(vals))
-        med_v = float(stats.median(vals))
+        mean_v = float(np.mean(vals))
+        med_v = float(np.median(vals))
         std_v = safe_stdev(vals)
         max_v = float(max(vals))
         summary[f"{k}"] = {"mean": mean_v,

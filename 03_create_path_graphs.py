@@ -1,3 +1,5 @@
+# TODO: file descriptor
+
 import os
 import json
 import pickle
@@ -95,7 +97,9 @@ def generate_edit_path_graphs(
             def edge_match(e1, e2):
                 return e1['label'] == e2['label']
 
-            # TODO: include edges in isomorphism test as soon as edge labels consistent in external repo
+            # TODO: Include edge label comparison in isomorphism test
+            #  as soon as edge labels from external repo are consistent
+
             last_graph = nx_sequence[-1]
             last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
             if not last_and_target_graph_isomorphic or len(nx_sequence) < 2:
@@ -107,6 +111,11 @@ def generate_edit_path_graphs(
 
             # Assign metadata to each nx graph in sequence
             for step, g in enumerate(nx_sequence):
+
+                # Handle sequences with operation null for their start graphs
+                if g.graph["edit_step"] == 0 and "operation" not in g.graph:
+                    g.graph["operation"] = "start"
+
                 g.graph['source_idx'] = i
                 g.graph['target_idx'] = j
                 g.graph['iteration'] = ep.iteration
@@ -117,7 +126,6 @@ def generate_edit_path_graphs(
             # Filter for connected graphs
             if fully_connected_only:
                 nx_sequence = [g for g in nx_sequence if nx.is_connected(g)]
-                # todo: distinguish between after connectedness filter and before
                 if len(nx_sequence) <= 2:
                     no_intermediates_after_filter.append((i, j))
 

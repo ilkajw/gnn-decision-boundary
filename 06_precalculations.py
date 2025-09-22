@@ -1,3 +1,5 @@
+# TODO: file descriptor
+
 import os
 import json
 import re
@@ -13,7 +15,6 @@ from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 # ---- Set inputs ----
 edit_paths_input_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
 graph_sequences_input_dir = os.path.join(PREDICTIONS_DIR, "edit_path_graphs_with_predictions")
-
 
 # ----- Set outputs ----
 dist_cost_fname = f"{DATASET_NAME}_dist_per_path.json"
@@ -46,7 +47,7 @@ def num_operations_per_path(
         sequences_dir=os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs"),
         output_path=os.path.join(ROOT, DATASET_NAME, "precalculations")
 ):
-
+    # TODO: docstring
     add_safe_globals([Data])
     pattern = re.compile(r"g(\d+)_to_g(\d+)_it\d+_graph_sequence\.pt")
     num_operations = {}
@@ -80,8 +81,6 @@ def num_operations_per_path(
         json.dump(num_operations, f, indent=2)
 
     return num_operations
-
-# todo: merge following two functions into one with "by_cost=True/False"
 
 
 def flip_occurrences_per_path_edit_step(input_dir, output_dir=None, output_fname=None, verbose=False):
@@ -199,11 +198,6 @@ def flip_occurrences_per_path_cum_cost(input_dir, output_dir=None, output_fname=
 
         # loop through each sequence from i to j and track at which steps changes happen to which class
         for g in sequence:
-
-            # Handle sequences with operation null for their start graphs
-            # TODO: put handling into graph creation
-            if getattr(g, "edit_step") == 0 and not hasattr(g, "operation"):
-                setattr(g, "operation", "start")
 
             if not hasattr(g, "cumulative_cost"):
                 raise AttributeError(

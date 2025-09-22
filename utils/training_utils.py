@@ -1,3 +1,5 @@
+# todo: file descrptor
+
 import os
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # or ":16:8"  # for reproducibility
 import torch
@@ -108,7 +110,7 @@ def evaluate_accuracy(model, loader, device, thr=0.5):
             n += y_hard.numel()
     return correct / max(1, n)  # Average accuracy over datapoints
 
-# TODO: delete? just for logging
+
 def evaluate_loss(model, loader, device):
     """Eval BCE loss on a loader (averaged over batches) for logging only."""
     model.eval()
@@ -223,7 +225,6 @@ def train_model_kcv(
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
         # To collect per-fold history
-        # todo: give more detailed history from training utils
         hist = {"train_loss": [], "test_loss": [], "test_acc": [], "num_epochs": EPOCHS}
 
         # Train over epochs

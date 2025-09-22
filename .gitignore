@@ -2,6 +2,6 @@ __pycache__/
 *.pyc
 edit_path_graphs/
 data/
-model/
+models/
 old/
 old/tests

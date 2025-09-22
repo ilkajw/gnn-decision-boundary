@@ -1,3 +1,5 @@
+# TODO: file descriptor
+
 from datetime import datetime, timezone
 from collections import defaultdict, Counter
 import os
@@ -25,6 +27,7 @@ def flip_distribution_over_deciles_by_num_flips(
     include_paths=False,
     correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
 ):
+    # TODO: docstring
     # To filter if defined
     if correctly_classified_only:
         correct = graphs_correctly_classified()

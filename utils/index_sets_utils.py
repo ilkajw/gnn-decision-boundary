@@ -1,3 +1,5 @@
+# todo file decriptor
+
 import itertools
 import json
 import os
@@ -99,7 +101,6 @@ def graphs_correctly_classified(dataset_name=DATASET_NAME, model=MODEL):
     return correct_idxs
 
 
-# TODO: potentially merge next two functions into 1 with same/diff argument
 def graph_index_pairs_same_class(dataset=f"{DATASET_NAME}",
                                  correctly_classified_only=True,
                                  save_dir=None

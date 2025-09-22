@@ -1,4 +1,5 @@
 # path_length_statistics.py
+# TODO: file descriptor
 
 import json
 import os
@@ -57,6 +58,7 @@ def load_lengths_from_precalc(
 
 
 def path_length_statistics(path_lengths: dict):
+    # TODO: docstring
     vals = list(path_lengths.values())
     if not vals:
         return {"num_paths": 0, "mean": 0.0, "std_dev": 0.0, "median": 0.0, "min": 0.0, "max": 0.0}

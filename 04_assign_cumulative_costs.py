@@ -1,3 +1,5 @@
+# TODO: file descriptor
+
 import os
 import re
 import json
@@ -217,6 +219,8 @@ def add_cum_cost_to_path_predictions_json(
     add_field_name: str = "cumulative_cost",
     out_path: str | None = None,  # if None overwrite
 ):
+    # TODO: docstring
+
     # Load predictions JSON
     with open(path_pred_json_path, "r") as f:
         entries = json.load(f)

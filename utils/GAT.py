@@ -1,3 +1,5 @@
+# todo: file descriptor
+
 import torch
 from torch import nn
 from torch_geometric.nn import GATv2Conv, global_add_pool, global_mean_pool, global_max_pool
@@ -99,7 +101,6 @@ class GAT(torch.nn.Module):
         self.drop = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         # --- GATv2 stack ---
-        # TODO: adapt to GCN and GraphSAGE stack construction
         self.convs = nn.ModuleList()
         if num_layers == 1:
             self.convs.append(GATv2Conv(in_channels, hidden_channels, heads=heads, concat=False))
