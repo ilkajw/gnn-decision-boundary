@@ -1,4 +1,10 @@
-# TODO: file descriptor
+"""
+Summarize path lengths by the number of flips.
+
+Reads per-path flip lists (FLIPS_PATH) and per-path lengths (DISTANCES_PATH),
+groups lengths by k = number of flips, computes simple statistics (mean,
+median, std, max, count) and writes a JSON summary to the given output path.
+"""
 
 import os
 import json
@@ -21,7 +27,23 @@ def safe_stdev(values):
 
 
 def calculate_stats(output_path):
-    # TODO: docstring
+    """
+        Aggregate path-length values by number of flips and write a JSON summary.
+
+        Reads per-path flip lists from FLIPS_PATH and per-path lengths from
+        DISTANCES_PATH (both provided by the project config). Groups path lengths
+        by k = number of flips and computes summary statistics for each k:
+          - mean, median, std (0.0 if n<=1), max, n, and the raw list of values.
+
+        The function prints a small table to stdout and writes a JSON file to
+        `output_path` with structure:
+          { "<k>": { "mean": float, "std": float, "median": float,
+                     "max": float, "n": int, "vals": [float, ...] }, ... }
+
+        :param output_path: filesystem path where the summary JSON will be written.
+        :type output_path: str
+        :returns: None (writes JSON and prints a summary table).
+        """
     with open(FLIPS_PATH, "r") as f:
         flips = json.load(f)
     with open(DISTANCES_PATH, "r") as f:

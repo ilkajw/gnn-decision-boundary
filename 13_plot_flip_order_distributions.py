@@ -1,4 +1,15 @@
-# TODO: file descriptor
+"""
+Plot flip-order distributions by decile for edit-path analyses.
+
+Loads a consolidated per-num-flips distribution JSON (INPUT_PATH), extracts the
+per-index-set flip-order distributions, and writes stacked-bar PNGs (one per k
+and index-set) under ANALYSIS_DIR/plots/flip_distributions. Each plot shows the
+share of classification changes per decile and per flip-order.
+
+Requires config: DATASET_NAME, DISTANCE_MODE, ANALYSIS_DIR, MODEL.
+Inputs: consolidated JSON at INPUT_PATH.
+Outputs: PNG files under PLOT_DIR.
+"""
 
 import os
 import json

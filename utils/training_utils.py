@@ -1,4 +1,23 @@
-# todo: file descrptor
+"""
+Training utilities for k-fold cross-validation of GNNs (PyTorch Geometric).
+
+Provides helpers to set reproducibility (setup_reproducibility), run a single
+training epoch (train_epoch), evaluate accuracy and loss (evaluate_accuracy,
+evaluate_loss), and run K-fold cross-validation training selecting the best
+model across folds/epochs (train_model_kcv). The CV runner saves the best
+model `state_dict`, the best train/test split JSON, and a training log JSON.
+
+Key behavior:
+  - Uses StratifiedKFold (sklearn) and torch_geometric DataLoader.
+  - Uses binary cross-entropy with logits for binary graph-level tasks.
+
+Writes artifacts to the provided `output_dir`: best model weights, best split,
+and a JSON log with per-fold histories and config metadata.
+
+Requires config variables referenced in the module (e.g. K_FOLDS, MODEL,
+DATASET_NAME, BATCH_SIZE, LEARNING_RATE, EPOCHS, MODEL_CLS, MODEL_KWARGS).
+"""
+
 
 import os
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # or ":16:8"  # for reproducibility

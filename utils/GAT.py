@@ -1,5 +1,3 @@
-# todo: file descriptor
-
 import torch
 from torch import nn
 from torch_geometric.nn import GATv2Conv, global_add_pool, global_mean_pool, global_max_pool

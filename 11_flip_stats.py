@@ -1,4 +1,15 @@
-# TODO: file descriptor
+"""
+Summarize per-path flip counts and produce per-index-set statistics.
+
+Reads per-path flip lists from FLIPS_PATH, counts flips per path, and
+aggregates simple statistics (count, mean, median, std, min, max)
+for each index-set cut produced by index_sets_utils.build_index_set_cuts.
+Writes a JSON summary to ANALYSIS_DIR/<DATASET_NAME>_<MODEL>_flip_stats_by_<DISTANCE_MODE>.json
+containing a "meta" block and "per_index_set" results.
+
+Requires config variables: DATASET_NAME, MODEL, MODEL_DIR, ANALYSIS_DIR,
+CORRECTLY_CLASSIFIED_ONLY, DISTANCE_MODE, FLIPS_PATH.
+"""
 
 import os
 import json

@@ -1,4 +1,15 @@
-# TODO: file descriptor
+"""
+Collect flip-position distributions by decile for edit-paths.
+
+Reads per-path flip lists and path distances, groups flips by k = number of
+flips, bins each flip into a decile of the path distance (0..9), and returns
+per-k statistics including absolute counts, normalized decile distributions,
+per-flip-order counts, and operation counts by decile.
+
+Inputs (from config or args): DISTANCES_PATH, FLIPS_PATH, optional index-set cuts.
+Outputs: JSON serializable dict (optionally written to `output_path`) with the
+per-k distributions and optional contributing path lists.
+"""
 
 from datetime import datetime, timezone
 from collections import defaultdict, Counter
@@ -27,7 +38,51 @@ def flip_distribution_over_deciles_by_num_flips(
     include_paths=False,
     correctly_classified_only=CORRECTLY_CLASSIFIED_ONLY,
 ):
-    # TODO: docstring
+    """
+    Build per-num-flips decile distributions of flip positions and operations.
+
+    Reads:
+      - distances from `dist_input_path` ({"i,j": number, ...})
+      - flips from `flips_input_path` ({"i,j": [ (step_or_cost, class, operation), ... ], ...})
+
+    For each path (i, j) with k flips (1 <= k <= max_num_flips), each flip's
+    step/cost is normalized by the path distance and binned into a decile
+    (0..9). The function accumulates:
+      - absolute decile counts per k,
+      - normalized decile distributions per k,
+      - per-flip-order counts (for each flip index 1..k) per decile,
+      - operation occurrence counts by decile (absolute and normalized).
+
+    Parameters
+    ----------
+    max_num_flips : int
+        Maximum k to consider (builds results for k = 1..max_num_flips).
+    dist_input_path : str
+        Path to JSON with per-path distances.
+    flips_input_path : str
+        Path to JSON with per-path flip lists.
+    idx_pair_set : set[(int,int)], optional
+        If provided, only consider pairs in this set (both orders accepted).
+    output_path : str, optional
+        If provided, write resulting JSON to this path.
+    include_paths : bool, default False
+        If True, include the list of contributing paths and their flips in the output.
+    correctly_classified_only : bool, default CORRECTLY_CLASSIFIED_ONLY
+        If True (and idx_pair_set is None), skip paths whose endpoints are not
+        both correctly classified.
+
+    Returns
+    -------
+    dict
+        Mapping str(k) -> {
+            "num_paths": int,
+            "abs": { "0": int, ..., "9": int },
+            "norm": { "0": float, ..., "9": float },
+            "flip_order_distribution": { "1": {"0": int,...}, ... },
+            "ops_by_decile": { "0": {"abs": {...}, "norm": {...}}, ... },
+            ("paths": [...] if include_paths)
+        }
+    """
     # To filter if defined
     if correctly_classified_only:
         correct = graphs_correctly_classified()

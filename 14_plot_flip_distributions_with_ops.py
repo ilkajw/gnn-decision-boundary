@@ -1,4 +1,14 @@
-# TODO: file descriptor
+"""
+Plot operation-composition of classification changes across path deciles.
+
+Reads a consolidated per-num-flips JSON (INPUT_PATH) produced by the analysis
+pipeline and creates stacked-bar plots showing, for each k and index-set,
+how different edit operations contribute to classification changes across
+deciles of the path. Saved PNGs go under ANALYSIS_DIR/plots/flip_distributions_ops.
+
+Requires config: DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR.
+"""
+
 
 import os
 import json

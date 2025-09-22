@@ -1,5 +1,19 @@
-# TODO: file descriptor
+"""
+Run a saved GNN on PyG edit-path graph sequences and write predictions.
 
+Loads a trained model, iterates over PyG graph sequences (ROOT/DATASET_NAME/pyg_edit_path_graphs),
+runs the model on each graph, attaches `prediction` and `probability` attributes to each
+PyG graph, saves the updated sequences under PREDICTIONS_DIR/<sequences_subdir_name>/,
+and writes a JSON summary of all per-graph predictions.
+
+Config required: DATASET_NAME, ROOT, MODEL, MODEL_CLS, MODEL_KWARGS, MODEL_DIR, PREDICTIONS_DIR.
+Inputs:
+  - trained model: MODEL_DIR/<DATASET_NAME>_<MODEL>_model.pt
+  - PyG sequences: ROOT/DATASET_NAME/pyg_edit_path_graphs
+Outputs:
+  - updated sequences: PREDICTIONS_DIR/<sequences_subdir_name>/*.pt
+  - predictions JSON: PREDICTIONS_DIR/<DATASET_NAME>_<MODEL>_edit_path_predictions.json
+"""
 
 import os
 import json

@@ -1,4 +1,15 @@
 # read_ops_heatmaps.py
+
+"""
+Generate operation-by-decile heatmaps from per-num-flips analysis results.
+
+Reads the consolidated JSON at ANALYSIS_DIR/<DATASET_NAME>_<MODEL>_flip_distribution_per_num_flips_by_<DISTANCE_MODE>.json,
+extracts per-index-set operation shares by decile, and writes PNG heatmaps under
+ANALYSIS_DIR/plots/ops_heatmaps. Rows = operations, columns = deciles (0–10% … 90–100%).
+
+Requires config variables: ANALYSIS_DIR, DATASET_NAME, MODEL, DISTANCE_MODE.
+"""
+
 import json
 import os
 import numpy as np

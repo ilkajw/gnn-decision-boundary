@@ -1,4 +1,19 @@
-# todo file decriptor
+"""
+Index-set utilities for pair-based analyses.
+
+Helpers to build splits and construct sets of graph index pairs
+used by the analysis pipeline (same-class, different-class, train/train,
+test/test, train/test, and class-specific variants). Functions may read
+prediction files under PREDICTIONS_DIR to determine true labels and correct
+classification.
+
+Outputs: Python sets of (i, j) index pairs (and optionally saved JSON files
+when save_dir / save_path arguments are provided).
+
+Requires config variables: DATASET_NAME, PREDICTIONS_DIR, MODEL, MODEL_DIR, ROOT,
+and CORRECTLY_CLASSIFIED_ONLY.
+"""
+
 
 import itertools
 import json

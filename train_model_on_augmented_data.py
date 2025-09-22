@@ -1,4 +1,19 @@
-# TODO: file descriptor
+"""
+Train a GNN on an augmented dataset that includes edit-path graphs.
+
+Loads the base TUDataset, augments the training folds with path graphs
+(produced by EditPathGraphDataset) according to FLIP_AT and DROP_ENDPOINTS,
+and runs stratified K-fold cross-validation. Selects and saves the best model
+(state_dict), the best train/test split JSON, and a training log JSON with
+per-fold histories and metadata.
+
+Inputs (via config and local constants):
+  - ROOT, DATASET_NAME, K_FOLDS, BATCH_SIZE, EPOCHS, LEARNING_RATE, FLIP_AT, MODEL, MODEL_CLS, MODEL_KWARGS
+  - path sequences: ROOT/DATASET_NAME/pyg_edit_path_graphs
+
+Outputs:
+  - best model state_dict, best split JSON, and log JSON written to output_dir.
+"""
 
 import os
 # For reproducibility
@@ -29,7 +44,7 @@ from config import (
 path_seq_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
 
 # Output files definition
-output_dir = os.path.join("models_cv_augmented", DATASET_NAME, MODEL,
+output_dir = os.path.join("models_augmented_data", DATASET_NAME, MODEL,
                           f"by_{DISTANCE_MODE}", f"flip_at_{int(FLIP_AT*100)}")
 model_fname = f"{DATASET_NAME}_{MODEL}_best_model_flip_{int(FLIP_AT*100)}.pt"
 split_fname = f"{DATASET_NAME}_{MODEL}_best_split_flip_{int(FLIP_AT*100)}.json"

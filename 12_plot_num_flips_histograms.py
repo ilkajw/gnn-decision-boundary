@@ -1,4 +1,12 @@
-# TODO: file descriptor
+"""
+Generate and save flip-count histogram plots from consolidated results.
+
+Loads a consolidated histogram JSON (created by the analysis pipeline) and
+creates per-index-set histograms (absolute and normalized) of flips-per-path.
+Saves PNGs under ANALYSIS_DIR/plots/histograms and reports missing keys.
+
+Requires config: DATASET_NAME, DISTANCE_MODE, ANALYSIS_DIR, MODEL.
+"""
 
 import json
 import os

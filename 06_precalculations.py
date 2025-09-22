@@ -1,4 +1,18 @@
-# TODO: file descriptor
+"""
+Collect per-path distances, operation counts and flip histories from prediction-annotated PyG edit-path sequences.
+
+Loads edit-path metadata and prediction-annotated PyG sequences, and produces JSON
+files that list:
+  - distances per path (from edit-path data),
+  - number of operations per path (from saved sequences),
+  - flip/change occurrences per path with operation and edit step or cumulative cost info.
+
+Outputs are written to MODEL_DEPENDENT_PRECALCULATIONS_DIR and
+MODEL_INDEPENDENT_PRECALCULATIONS_DIR.
+
+Requires config variables: DATASET_NAME, MODEL, PREDICTIONS_DIR, ROOT,
+MODEL_DEPENDENT_PRECALCULATIONS_DIR, MODEL_INDEPENDENT_PRECALCULATIONS_DIR.
+"""
 
 import os
 import json

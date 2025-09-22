@@ -1,4 +1,18 @@
-# TODO: file descriptor
+"""
+Generate NetworkX and PyG graph sequences from precomputed edit-path operations.
+
+Loads edit-paths produced by the external utilities, reconstructs intermediate
+NetworkX graphs for each (source, target, iteration), optionally filters for
+connected graphs, drops edge attributes, converts to PyTorch-Geometric objects,
+and writes outputs:
+
+ - NX sequences:  ROOT/DATASET_NAME/nx_edit_path_graphs/*.pkl
+ - PyG sequences: ROOT/DATASET_NAME/pyg_edit_path_graphs/*.pt
+ - Audit JSONs:   ROOT/DATASET_NAME/test/*.json
+
+Requires: config.py (ROOT, DATASET_NAME, FULLY_CONNECTED_ONLY) and the
+external pg_gnn_edit_paths utilities.
+"""
 
 import os
 import json

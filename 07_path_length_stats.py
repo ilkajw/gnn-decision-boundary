@@ -1,5 +1,15 @@
 # path_length_statistics.py
-# TODO: file descriptor
+"""
+Compute statistics for path lengths (counted by cost or number of operations).
+
+Reads per-path lengths from DISTANCES_PATH, optionally filters by index-set cuts
+and correctness, and produces global and per-index-set statistics (count, mean,
+std, median, min, max, and coverage). Writes results to
+ANALYSIS_DIR/<DATASET_NAME>_<MODEL>_path_length_stats_by_<DISTANCE_MODE>.json.
+
+Requires config variables: DATASET_NAME, DISTANCE_MODE, MODEL, MODEL_DIR,
+ANALYSIS_DIR, CORRECTLY_CLASSIFIED_ONLY, DISTANCES_PATH.
+"""
 
 import json
 import os

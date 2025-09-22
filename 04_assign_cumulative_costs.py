@@ -1,4 +1,18 @@
-# TODO: file descriptor
+"""
+Add cumulative edit-path costs to PyG graph sequences and prediction JSONs.
+
+Computes cumulative costs from precomputed edit-path operations and attaches
+a per-graph `cumulative_cost` attribute to PyTorch-Geometric sequences
+(found under ROOT/DATASET_NAME/pyg_edit_path_graphs). Updated sequences are
+written back to disk (overwriting or to out_dir if provided).
+
+Config required: DATASET_NAME, ROOT (from config.py).
+Inputs:
+  - edit-path ops: external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}
+  - PyG sequences: ROOT/DATASET_NAME/pyg_edit_path_graphs
+Outputs:
+  - updated PyG sequences in graph_sequences_output_dir (default same as input)
+"""
 
 import os
 import re
@@ -211,58 +225,6 @@ def add_cum_cost_to_pyg_sequences(
         f"skipped_no_match={skipped_no_match}, "
         f"missing_files={missing_files}"
     )
-
-
-def add_cum_cost_to_path_predictions_json(
-    path_pred_json_path,
-    cum_costs,                      # dict[(i,j)] -> [cumulative costs]
-    add_field_name: str = "cumulative_cost",
-    out_path: str | None = None,  # if None overwrite
-):
-    # TODO: docstring
-
-    # Load predictions JSON
-    with open(path_pred_json_path, "r") as f:
-        entries = json.load(f)
-
-    updated = []
-
-    # Loop over all graph entries from JSON
-    for e in entries:
-
-        # Get source and target index of current graph
-        i = int(e["source_idx"])
-        j = int(e["target_idx"])
-
-        key = (i, j)
-        if key not in cum_costs and (j, i) in cum_costs:
-            key = (j, i)
-        if key not in cum_costs:
-            print(f"[error] pair {(i, j)} not in cum_costs dict. skipping entry.")
-            continue
-
-        # Get cumulative cost list for pair
-        c = cum_costs[key]
-
-        # Get edit step of current graph
-        step_idx = int(e.get("edit_step"))
-
-        # If graph is an inserted target graph, assume additional cost 0.0 to underestimate true cost,
-        # hence assign cost of previous graph
-        if step_idx >= len(c):
-            step_idx -= 1
-
-        # Add cum cost as attribute from cum cost list at corresponding index
-        e[add_field_name] = float(c[step_idx])
-        updated.append(e)
-
-    # Save
-    if out_path is None:
-        # Overwrite input directory
-        out_path = path_pred_json_path
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, "w") as f:
-        json.dump(updated, f, indent=2)
 
 
 # --- Run ---

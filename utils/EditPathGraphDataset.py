@@ -1,5 +1,3 @@
-# TODO: file descriptor
-
 import os
 import json
 import torch
@@ -9,8 +7,6 @@ from torch_geometric.data import InMemoryDataset, Data
 from torch.serialization import add_safe_globals
 
 from config import DATASET_NAME, DISTANCE_MODE, ROOT
-
-# todo: fully delete base pred dict functionality
 
 
 def _ensure_dir(path):

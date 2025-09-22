@@ -1,4 +1,3 @@
-# TODO: file descriptor
 from torch import nn
 from torch.nn import LayerNorm
 from torch_geometric.nn import SAGEConv, BatchNorm, global_add_pool, global_mean_pool, global_max_pool
