@@ -6,10 +6,10 @@ for other datasets).
 For that, it uses the repository `pg_gnn_decision_boundary` and precalculated optimal edit operations from it 
 to build the edit path graphs.
 
-It trains the model on the original dataset with k-fold cross validation and selects the best weight state according to 
-test accuracy over all folds and epochs. With the best model, it classifies the edit path graphs. 
+A model is trained on the original dataset with k-fold cross validation and the best weight state according to 
+test accuracy over all folds and epochs selected. With the best model, the edit path graphs are clssified. 
 
-It then analyses:
+Analysis then considers:
 - how many flips happen along the paths,
 - where flips (of which order) happen along the paths,
 - which operations trigger changes.
@@ -25,14 +25,14 @@ calculates test accuracy statistics to compare training stability to original da
 
 ### Usage
 
-In `config.py`, define the settings for analysis and/or training on augmented data:
+In `config.py`, define the settings for analysis and/or training on path graph-augmented data:
 
 - the model architecture to use in original dataset training and/or augmented dataset training with `MODEL`
 - the model hyperparameters with `MODEL_KWARGS`
 - training parameters `K_FOLDS`, `EPOCHS`, `LEARNING_RATE`, `BATCH_SIZE`
 - for analysis, whether to measure path progress according to the cost function or number of operations 
-with `DISTANCE_MODE`
-- whether only to consider fully connected path graph with `FULLY_CONNECTED_ONLY`
+with `DISTANCE_MODE` (`edit_step` recommended)
+- whether only to consider fully connected path graphs with `FULLY_CONNECTED_ONLY`
 - whether to only consider paths with correctly classified source and target graph in analysis 
 with `CORRECTLY_CLASSIFIED_ONLY`
 - for augmented data training, after what percentage of path progress to change the label for graphs on paths graphs between 
@@ -79,13 +79,14 @@ to later retrieve which graphs are classified correctly.
 #### 03_create_path_graphs.py
 
 The file accesses the repo `pg_gnn_decision_boundary`, where precomputed optimal edit operations are stored, and its 
-`utils.EditPath.create_edit_path_graphs` method. The file creates path graph sequences for every pair from the dataset in NetworkX and 
+`utils.EditPath.create_edit_path_graphs` method. The file creates path graph sequences for every dataset graph pair 
+in NetworkX and 
 PyG format each. Doing so, it drops edge attributes and adds graph attributes on source graph, target graph, optimization
 iteration, edit step and the edit operation the graph results from. Every sequence is saved to a `.pt` or `.pkl` file, 
 respectively. 
 
 #### 04_assign_cumulative_costs.py
-Here, set the cost function used during edit path calculation. Then, cumulative costs per path graph are reconstructed 
+Here, set the cost function used during edit path calculation. Cumulative costs per path graph are reconstructed 
 and added as graph attributes to the prior created graphs in the PyG sequences.
 
 #### 05_classify_path_graphs.py
