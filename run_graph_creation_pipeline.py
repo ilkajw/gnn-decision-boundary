@@ -1,11 +1,19 @@
 import subprocess
+from sys import executable as PY
+from pathlib import Path
+
+
+def run_step(script: str, msg: str):
+    print(msg, flush=True)
+    if not Path(script).is_file():
+        raise FileNotFoundError(f"Script not found: {script}")
+    subprocess.run([PY, script], check=True)
+
 
 if __name__ == "__main__":
+    run_step("01_create_path_graphs.py",
+             "Running graph creation. This may take some time...")
 
-    print("Running graph creation. This may take some time...")
-    subprocess.run(["python", "01_create_path_graphs.py"])
-
-    print("Path graph sequences were created. We're reconstructing and assigning their cumulative costs now. "
-          "This will take a moment...")
-    subprocess.run(["python", "02_assign_cumulative_costs.py"])
-
+    run_step("02_assign_cumulative_costs.py",
+             "Path graph sequences were created. "
+             "Reconstructing and assigning cumulative costs. This will take a moment...")

@@ -1,49 +1,63 @@
-import subprocess
 import os
+import subprocess
+from sys import executable as PY
+from pathlib import Path
 
 from config import MODEL, DATASET_NAME, ANALYSIS_DIR
 
+
+def run_step(script: str, msg: str):
+    print(msg, flush=True)
+    # Verify the script exists before running
+    if not Path(script).is_file():
+        raise FileNotFoundError(f"Script not found: {script}")
+    subprocess.run([PY, script], check=True)
+
+
 if __name__ == "__main__":
+    run_step("01_create_path_graphs.py",
+             "Running graph creation. This may take some time...")
 
-    print("Running graph creation. This may take some time...")
-    subprocess.run(["python", "01_create_path_graphs.py"])
+    run_step("02_assign_cumulative_costs.py",
+             "Path graph sequences were created. Reconstructing and assigning cumulative costs...")
 
-    print("Path graph sequences were created. We're reconstructing and assigning their cumulative costs now. "
-          "This will take a moment...")
-    subprocess.run(["python", "02_assign_cumulative_costs.py"])
+    run_step("03_train_model_on_original_dataset.py",
+             f"Path graph sequences done. Training {MODEL} on {DATASET_NAME}...")
 
-    print(f"Path graph sequences done. Training {MODEL} on {DATASET_NAME}...")
-    subprocess.run(["python", "03_train_model_on_original_dataset.py"])
+    run_step("04_classify_original_dataset.py",
+             f"Model trained and best model saved. Classifying the {DATASET_NAME} graphs...")
 
-    print(f"Model trained and best model saved. Classifying the {DATASET_NAME} graphs...")
-    subprocess.run(["python", "04_classify_original_dataset.py"])
+    run_step("05_classify_path_graphs.py",
+             f"{DATASET_NAME} graphs classified. Next, classifying the path graphs...")
 
-    print(f"{DATASET_NAME} graphs classified. Next, classifying path graphs...")
-    subprocess.run(["python", "05_classify_path_graphs.py"])
+    run_step("06_precalculations.py",
+             "Path graphs classified. Running precalculations for analysis...")
 
-    print(f"Path graphs classified. Running precalculations for analysis...")
-    subprocess.run(["python", "06_precalculations.py"])
+    run_step("07_path_length_stats.py",
+             f"Precalculations done. Analysis starts. All results go to {ANALYSIS_DIR}. "
+             "Calculating path length statistics for all paths...")
 
-    print(f"Precalculations done. Ananlysis starts. All results go to {ANALYSIS_DIR}"
-          f"Calculating path length statistics for all paths...")
-    subprocess.run(["python", "07_path_length_stats.py"])
-    subprocess.run(["python", "08_path_length_stats_per_num_flips.py"])
+    run_step("08_path_length_stats_per_num_flips.py",
+             "Calculating path length statistics per number of flips...")
 
-    print(f"Calculating number of flips distribution...")
-    subprocess.run(["python", "09_num_flips_histograms.py"])
+    run_step("09_num_flips_histograms.py",
+             "Calculating number of flips distribution...")
 
-    print(f"Calculating flip (order) distribution...")
-    subprocess.run(["python", "10_flip_order_distributions.py"])
+    run_step("10_flip_order_distributions.py",
+             "Calculating flip (order) distribution...")
 
-    print(f"Calculating flip statistics...")
-    subprocess.run(["python", "11_flip_stats.py"])
+    run_step("11_flip_stats.py",
+             "Calculating flip statistics...")
 
-    print(f"Analysis done. Plotting results. Plots going to {os.path.join(ANALYSIS_DIR, 'plots')}...")
-    subprocess.run(["python"], "12_plot_num_flips_histograms.py")
-    subprocess.run(["python"], "13_plot_flip_order_distributions.py")
-    subprocess.run(["python"], "14_plot_flip_distributions_with_ops.py")
-    subprocess.run(["python"], "15_plot_operation_heatmaps.py")
+    plots_dir = os.path.join(ANALYSIS_DIR, "plots")
+    run_step("12_plot_num_flips_histograms.py",
+             f"Analysis done. Plotting results. Plots going to {plots_dir}...")
 
+    run_step("13_plot_flip_order_distributions.py",
+             "Plotting flip order distributions...")
 
+    run_step("14_plot_flip_distributions_with_ops.py",
+             "Plotting flip distributions with operations...")
 
-
+    run_step("15_plot_operation_heatmaps.py",
+             "Plotting operation heatmaps...")
