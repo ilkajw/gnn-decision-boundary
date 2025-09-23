@@ -4,7 +4,7 @@ from GAT import GAT
 from GCN import GCN
 from GraphSAGE import GraphSAGE
 
-ROOT = './data'
+ROOT = './data_analysis_pipeline_test'
 DATASET_NAME = 'MUTAG'
 
 # --- Set model architecture and parameters ---
@@ -66,4 +66,4 @@ elif DISTANCE_MODE == "edit_step":
 
 # ---- Synthetic dataset parameters ----
 # Path progress at which to flip class label assigned to path graphs on paths between graphs of different class
-FLIP_AT = 0.9
+FLIP_AT = 0.5

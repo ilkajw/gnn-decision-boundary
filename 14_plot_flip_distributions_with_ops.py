@@ -64,12 +64,12 @@ def _hex_to_rgb01(hex_color: str):
 def _color_for_ops(ops: list[str]):
 
     palette = {
-        "add_edge": "#f2c94c",              # yellow
-        "remove_edge": "#F9E79F",           # darker yellow
-        "add_node": "#1f77b4",              # green
-        "relabel_node": "#7FA6D6",          # light green
-        "remove_node": "#B5CCE7",           # teal / matplotlib blue
-        "target_graph_insertion": "#7F7F7F"  # dark gray
+        "Kanteneinfügung": "#f2c94c",     # yellow
+        "Kantenlöschung": "#F9E79F",      # darker yellow
+        "Knoteneinfügung": "#1f77b4",     # green
+        "Knotensubstitution": "#7FA6D6",  # light green
+        "Knotenlöschung": "#B5CCE7",      # teal / matplotlib blue
+        "Zielgrapheinfügung": "#7F7F7F"   # dark gray
     }
 
     colors = {}

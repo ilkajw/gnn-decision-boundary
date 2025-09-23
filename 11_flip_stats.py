@@ -21,7 +21,7 @@ from index_sets_utils import build_index_set_cuts
 
 
 # ---- Define input, output paths -----
-split_path = os.path.join(MODEL_DIR, f"{MODEL}_best_split.json")
+split_path = os.path.join(MODEL_DIR, f"{DATASET_NAME}_{MODEL}_best_split.json")
 output_dir = f"{ANALYSIS_DIR}"
 output_fname = f"{DATASET_NAME}_{MODEL}_flip_stats_by_{DISTANCE_MODE}.json"
 

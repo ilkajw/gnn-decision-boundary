@@ -118,7 +118,7 @@ def generate_edit_path_graphs(
             last_and_target_graph_isomorphic = is_isomorphic(last_graph, nx_graphs[j], node_match=node_match)
             if not last_and_target_graph_isomorphic or len(nx_sequence) < 2:
                 nx_sequence.append(nx_graphs[j].copy())
-                nx_sequence[-1].graph["operation"] = "target_graph_insertion"
+                nx_sequence[-1].graph["operation"] = "Zielgrapheinfügung"
                 last_graph_insertions.append((i, j))
 
             num_operations = len(nx_sequence) - 1
@@ -135,7 +135,7 @@ def generate_edit_path_graphs(
 
                 # Handle sequences with operation null for their start graphs
                 if g.graph["edit_step"] == 0 and "operation" not in g.graph:
-                    g.graph["operation"] = "start"
+                    g.graph["operation"] = "Startgraph"
 
             # Filter for connected graphs
             if fully_connected_only:

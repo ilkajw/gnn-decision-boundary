@@ -131,7 +131,7 @@ def plot_histograms_from_dict(
 
     ax.set_xticks([x + (n_series - 1) * width / 2 for x in range(len(all_k))])
     ax.set_xticklabels([str(k) for k in all_k])
-    ax.set_xlabel("Anzahl Flips")
+    ax.set_xlabel("Anzahl Klassifikationswechsel")
     ax.set_ylabel("Anteil Pfade" if normalized else "Anzahl Pfade")
     if title:
         ax.set_title(title)
