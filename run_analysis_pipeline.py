@@ -8,7 +8,7 @@ from config import MODEL, DATASET_NAME, ANALYSIS_DIR
 
 def run_step(script: str, msg: str):
     print(msg, flush=True)
-    # Verify the script exists before running
+    # Verify file exists before running
     if not Path(script).is_file():
         raise FileNotFoundError(f"Script not found: {script}")
     subprocess.run([PY, script], check=True)
@@ -33,11 +33,11 @@ if __name__ == "__main__":
     run_step("06_precalculations.py",
              "Path graphs classified. Running precalculations for analysis...")
 
-    run_step("07_path_length_stats.py",
+    run_step("07_path_length_statistics.py",
              f"Precalculations done. Analysis starts. All results go to {ANALYSIS_DIR}. "
              "Calculating path length statistics for all paths...")
 
-    run_step("08_path_length_stats_per_num_flips.py",
+    run_step("08_path_length_statistics_per_num_flips.py",
              "Calculating path length statistics per number of flips...")
 
     run_step("09_num_flips_histograms.py",
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     run_step("10_flip_order_distributions.py",
              "Calculating flip (order) distribution...")
 
-    run_step("11_flip_stats.py",
+    run_step("11_flip_statistics.py",
              "Calculating flip statistics...")
 
     plots_dir = os.path.join(ANALYSIS_DIR, "plots")

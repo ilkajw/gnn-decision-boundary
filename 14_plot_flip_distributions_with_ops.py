@@ -18,7 +18,7 @@ from matplotlib.colors import to_rgb
 from config import DATASET_NAME, DISTANCE_MODE, MODEL, ANALYSIS_DIR
 
 
-# ----- Set input, ouput paths -----
+# ----- Set input, output paths -----
 INPUT_PATH = os.path.join(
     ANALYSIS_DIR,
     f"{DATASET_NAME}_{MODEL}_flip_distribution_per_num_flips_by_{DISTANCE_MODE}.json",
