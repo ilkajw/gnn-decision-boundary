@@ -22,6 +22,16 @@ calculates test accuracy statistics to compare training stability to original da
 
 ### Installation
 
+### Usage
+
+To run the full analysis functionality, simply run the `run_analyis_pipeline.py` file. Make sure all settings, are correctly
+defined in `config.py`. With the default setting analysis, path lengths will be calculated for all paths, whether 
+you set `correctly_classified_only` to `True` or `False`. Running the pipeline includes graph creation, so 
+you can start the training on the augmented dataset afterwards.
+
+If you only want to run the training on augmented training data, run `run_graph_creation_pipeline.py` first. Then, run
+`train_model_on_augmented_data.py`.
+
 ### Functionality
 
 #### config.py
