@@ -37,7 +37,7 @@ with `CORRECTLY_CLASSIFIED_ONLY`
 - for augmented data training, after what percentage of path progress to change the label for graphs on paths graphs between 
 graphs of different class, with `FLIP_AT`
 
-To run all analysis functions, simply run the `run_analyis_pipeline.py` file. With the default setting analysis, path lengths will be calculated for all paths, whether 
+To run all analysis functions, simply run the `run_analyis_pipeline.py` file. With the default setting, path lengths will be calculated for all paths, whether 
 you set `correctly_classified_only` to `True` or `False`. Running the pipeline includes graph creation, so 
 you can start the training on the augmented dataset afterwards.
 
