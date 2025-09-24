@@ -163,6 +163,6 @@ if __name__ == "__main__":
                 entry,
                 k,
                 out_path,
-                description=f"{set_name} (n={num_paths})"
+                description=f"(n={num_paths})"
             )
             print(f"saved plot → {out_path}")
