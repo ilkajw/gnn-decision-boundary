@@ -2,6 +2,7 @@ import os
 import json
 import pickle
 import math
+from pathlib import Path
 from typing import List
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -10,8 +11,9 @@ from config import DATASET_NAME, ROOT
 
 # --- Config ---
 
-SELECTED_DIR = os.path.join(ROOT, DATASET_NAME, "paths_to_plot")
-PLOT_DIR = os.path.join(ROOT, DATASET_NAME, "path_plots")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SELECTED_DIR = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "paths_to_plot")
+PLOT_DIR = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "path_plots")
 LAYOUT = "kamada_kawai"  # "spring" | "kamada_kawai" | "spectral" | "circular" | "shell"
 NODE_ATTR = "primary_label"  # None to use node IDs
 EDGE_ATTR = "label"  # None to hide edge labels
