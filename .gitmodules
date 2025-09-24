@@ -1,3 +1,4 @@
 [submodule "external/pg_gnn_edit_paths"]
 	path = external/pg_gnn_edit_paths
-	url = https://github.com/mlai-student/pg_gnn_edit_paths.git
+	url = https://github.com/ilkajw/pg_gnn_edit_paths.git
+	branch = submodule-sync
