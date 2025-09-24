@@ -71,7 +71,7 @@ def plot_flip_order_distribution(entry: dict, k: int, save_path: str, descriptio
 
         bars = ax.bar(xs, ys,
                       bottom=bottoms,
-                      label=f"Flip {order + 1}",
+                      label=f"Wechsel {order + 1}",
                       color=colors[order % len(colors)]
                       )
         # Only show per-flip oder distribution values if k>1. For k=1 total bar value is equal
