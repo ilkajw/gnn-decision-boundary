@@ -4,6 +4,7 @@ import glob
 import json
 import pickle
 import networkx as nx
+from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from torch_geometric.datasets import TUDataset
 
@@ -11,10 +12,11 @@ from config import DATASET_NAME, ROOT
 
 # --- Config ---
 
-NX_INPUT_DIR = os.path.join(ROOT, DATASET_NAME, "nx_edit_path_graphs")
-SELECTED_DIR = os.path.join(ROOT, DATASET_NAME, "paths_to_plot")  # to save picked sequences to
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+NX_INPUT_DIR = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "nx_edit_path_graphs")
+SELECTED_DIR = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "paths_to_plot")  # to save picked sequences to
 MAX_LEN = 4
-PYG_ROOT = os.path.join("data", "pyg")  # for TUDataset to read labels
+PYG_ROOT = os.path.join(PROJECT_ROOT, "data", "pyg")  # for TUDataset to read labels
 
 os.makedirs(SELECTED_DIR, exist_ok=True)
 
