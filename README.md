@@ -21,7 +21,16 @@ from the test set.
 The repo defines a k-fold cross validation training on training sets augmented with labeled path graphs and
 calculates test accuracy statistics to compare training stability to original dataset training.
 
+### Installation
 
+You can use the ``requirements.txt`` to install all dependencies. 
+
+To clone the repository, use
+
+```
+git clone --recurse-submodules https://gitlab.informatik.uni-bonn.de/wullenweberi0/gnn-decision-boundary.git
+```
+so the necessary submodule is cloned with it. 
 ### Usage
 
 In `config.py`, define the settings for analysis and/or training on path graph-augmented data:
