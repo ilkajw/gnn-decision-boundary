@@ -4,7 +4,7 @@ from GAT import GAT
 from GCN import GCN
 from GraphSAGE import GraphSAGE
 
-ROOT = './data_analysis_pipeline_test_2'
+ROOT = './data'
 DATASET_NAME = 'MUTAG'
 
 # --- Set model architecture and parameters ---
