@@ -1,29 +1,32 @@
 # GNN Decision Boudary
 
 This repository provides a pipeline to analyse the classification behaviour of a GAT, GCN or GraphSAGE model on 
-edit paths between graphs from a TUDataset (currently only MUTAG is available due to mussing precalculations
-for other datasets). 
+edit paths between graphs from the TUDataset MUTAG. 
 For that, it uses the repository `pg_gnn_decision_boundary` and precalculated optimal edit operations from it 
 to build the edit path graphs.
 
 A model is trained on the original dataset with k-fold cross validation and the best weight state according to 
-test accuracy over all folds and epochs selected. With the best model, the edit path graphs are clssified. 
+test accuracy over all folds and epochs selected. With the best model, the edit path graphs are classified. 
 
 Analysis then considers:
 - how many flips happen along the paths,
 - where flips (of which order) happen along the paths,
-- which operations trigger changes.
+- which operations trigger changes in which sections of the paths.
 
-For analysis, paths between graphs from the same or from different classes are distinguished, 
-as well as paths between graphs from the training set, graphs from the test set or one graph from the training and one 
+For analysis, paths between graphs from the same and from different classes are distinguished, 
+as well as paths between graphs from the training set, between graphs from the test set or between one graph from the training and one 
 from the test set.
 
 The repo defines a k-fold cross validation training on training sets augmented with labeled path graphs and
-calculates test accuracy statistics to compare training stability to original dataset training.
+calculates test accuracy statistics to compare training stability to the original dataset training.
+Additional path graphs are labelled as follows:
+- on paths between graphs of the same class with this respective class
+- on paths between graphs of different classes with the source graph's class up to a pre-set relative path progress, 
+and with the target graph's class afterwards
 
 ### Installation
 
-You can use the ``requirements.txt`` to install all dependencies. 
+You can use the ``requirements.txt`` to install dependencies. 
 
 To clone the repository, use
 
@@ -33,22 +36,22 @@ git clone --recurse-submodules https://gitlab.informatik.uni-bonn.de/wullenweber
 so the necessary submodule is cloned with it. 
 ### Usage
 
-In `config.py`, define the settings for analysis and/or training on path graph-augmented data:
+In `config.py`, define the settings for analysis and training on path graph-augmented data:
 
-- the model architecture to use in original dataset training and/or augmented dataset training with `MODEL`
+- the model architecture to use in original dataset training and/or augmented dataset training with `MODEL`, set to `GAT`, `GCN` or `GrapgSAGE`
 - the model hyperparameters with `MODEL_KWARGS`
 - training parameters `K_FOLDS`, `EPOCHS`, `LEARNING_RATE`, `BATCH_SIZE`
 - for analysis, whether to measure path progress according to the cost function or number of operations 
 with `DISTANCE_MODE` (`edit_step` recommended)
 - whether only to consider fully connected path graphs with `FULLY_CONNECTED_ONLY`
 - whether to only consider paths with correctly classified source and target graph in analysis 
-with `CORRECTLY_CLASSIFIED_ONLY`
+with `CORRECTLY_CLASSIFIED_ONLY` 
 - for augmented data training, after what percentage of path progress to change the label for graphs on paths graphs between 
 graphs of different class, with `FLIP_AT`
 
-To run all analysis functions, simply run the `run_analyis_pipeline.py` file. With the default setting, path lengths will be calculated for all paths, whether 
-you set `correctly_classified_only` to `True` or `False`. Running the pipeline includes graph creation, so 
-you can start the training on the augmented dataset afterwards.
+To run all analysis functions, simply run the `run_analyis_pipeline.py` file. With the default settings, path lengths will be calculated for all paths, whether 
+you set `correctly_classified_only` to `True` or `False`. Running the pipeline includes the creation of edit path graphs, so 
+you can start training on the augmented dataset afterwards.
 
 If you only want to run certain analysis function, run `run_graph_creation_pipeline.py`, then `precalculations.py` 
 and afterwards the analysis file you like (`07_xxx.py` to `11_xxx.py`).
@@ -61,7 +64,7 @@ If you only want to run the training on augmented training data, run `run_graph_
 #### config.py
 
 Here, define
-- the TUDataset to use with `DATASET_NAME` (currently only MUTAG available)
+- the TUDataset to use with `DATASET_NAME` (currently only MUTAG availabledue to missing precalculated edit paths for other datasets)
 - the model architecture to use in original dataset training and/or augmented dataset training with `MODEL`
 - the model hyperparameters with `MODEL_KWARGS`
 - training parameters `K_FOLDS`, `EPOCHS`, `LEARNING_RATE`, `BATCH_SIZE`
@@ -153,5 +156,5 @@ per group. The results are saved as a JSON file.
 
 
 Files ``12_plot_num_flips_histogram.py``, ``13_plot_flip_order_distributions.py``, 
-``14_plot_flips_distributions_with_ops.py`` and ``15_plot_operation_heatmaps.py`` plot the analysis results and save plots
+``14_plot_flips_distributions_with_ops.py`` and ``15_plot_operation_heatmaps.py`` plot the analysis results and save plots to
 ``<ANALYSIS_DIR>/plots/``.
