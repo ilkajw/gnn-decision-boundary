@@ -45,7 +45,7 @@ In `config.py`, define the settings for analysis and training on path graph-augm
 - training parameters `K_FOLDS`, `EPOCHS`, `LEARNING_RATE`, `BATCH_SIZE`
 - for analysis, whether to measure path progress according to the cost function or number of operations 
 with `DISTANCE_MODE` (`edit_step` recommended)
-- whether only to consider fully connected path graphs with `FULLY_CONNECTED_ONLY`
+- whether only to consider fully connected path graphs in the analysis with `FULLY_CONNECTED_ONLY`
 - whether to only consider paths with correctly classified source and target graph in analysis 
 with `CORRECTLY_CLASSIFIED_ONLY` 
 - for augmented data training, after what percentage of path progress to change the label for graphs on paths graphs between 
