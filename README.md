@@ -1,28 +1,29 @@
 # GNN Decision Boudary
 
-This repository provides a pipeline to analyse the classification behaviour of a GAT, GCN or GraphSAGE model on 
+This repository provides a pipeline to analyse the classification behaviour of a GAT, GCN or GraphSAGE model along 
 edit paths between graphs from the TUDataset MUTAG. 
-For that, it uses the repository `pg_gnn_decision_boundary` and precalculated optimal edit operations from it 
+Doing so, it uses the repository `pg_gnn_decision_boundary` and precalculated optimal edit operations between graph pairs from it 
 to build the edit path graphs.
 
-A model is trained on the original dataset with k-fold cross validation and the best weight state according to 
-test accuracy over all folds and epochs selected. With the best model, the edit path graphs are classified. 
+A GNN model is trained on the MUTAG dataset with k-fold cross validation. We select the best weight state according to 
+test accuracy over all folds and epochs. With this model, the edit path graphs are classified. 
 
-Analysis then considers:
-- how many flips happen along the paths,
-- where flips (of which order) happen along the paths,
-- which operations trigger changes in which sections of the paths.
+The analysis of the GNN classification behaviour along the edit paths between graphs considers:
+- the number of classifiction changes (flips) along paths,
+- the location of flips (of a certain order) along paths,
+- the graph operations triggering flips per sections of the paths.
 
-For analysis, paths between graphs from the same and from different classes are distinguished, 
-as well as paths between graphs from the training set, between graphs from the test set or between one graph from the training and one 
-from the test set.
+For analysis, we consider different groups of paths:
+- paths between graphs from the same and from different classes, 
+- paths between graphs from the training set, between graphs from the test set or between one graph from the training and one 
+from the test set (considering the fold yielding the best test accuracy).
 
-The repo defines a k-fold cross validation training on training sets augmented with labeled path graphs and
-calculates test accuracy statistics to compare training stability to the original dataset training.
-Additional path graphs are labelled as follows:
+A k-fold cross validation training is defined on training sets augmented with labeled path graph. For each fold, gaphs from paths between a graph pair from the training split are added to the training split.We
+They are labeled as follows:
 - on paths between graphs of the same class with this respective class
 - on paths between graphs of different classes with the source graph's class up to a pre-set relative path progress, 
 and with the target graph's class afterwards
+We calculate test accuracy statistics to compare training stability to the original dataset training.
 
 ### Installation
 
@@ -34,6 +35,7 @@ To clone the repository, use
 git clone --recurse-submodules https://gitlab.informatik.uni-bonn.de/wullenweberi0/gnn-decision-boundary.git
 ```
 so the necessary submodule is cloned with it. 
+
 ### Usage
 
 In `config.py`, define the settings for analysis and training on path graph-augmented data:
@@ -64,7 +66,7 @@ If you only want to run the training on augmented training data, run `run_graph_
 #### config.py
 
 Here, define
-- the TUDataset to use with `DATASET_NAME` (currently only MUTAG availabledue to missing precalculated edit paths for other datasets)
+- the TUDataset to use with `DATASET_NAME` (currently only MUTAG is available due to missing precalculated edit paths for other datasets)
 - the model architecture to use in original dataset training and/or augmented dataset training with `MODEL`
 - the model hyperparameters with `MODEL_KWARGS`
 - training parameters `K_FOLDS`, `EPOCHS`, `LEARNING_RATE`, `BATCH_SIZE`
@@ -80,15 +82,12 @@ graphs of different class, with `FLIP_AT`
 #### 01_create_path_graphs.py
 
 The file accesses the repo `pg_gnn_decision_boundary`, where precomputed optimal edit operations are stored, and its 
-`utils.EditPath.create_edit_path_graphs` method. The file creates path graph sequences for every dataset graph pair 
-in NetworkX and 
-PyG format each. Doing so, it drops edge attributes and adds graph attributes on source graph, target graph, optimization
-iteration, edit step and the edit operation the graph results from. Every sequence is saved to a `.pt` or `.pkl` file, 
+`utils.EditPath.create_edit_path_graphs` method. Path graph sequences for every dataset graph pair in NetworkX and 
+PyG format each are created. Doing so, it drops edge attributes due to the implementation of `utils.EditPath.create_edit_path_graphs`. It adds graph attributes on source graph, target graph, optimization iteration, edit step and the edit operation the graph results from. Every sequence is saved to a `.pt` or `.pkl` file, 
 respectively. 
 
 #### 02_assign_cumulative_costs.py
-Here, set the cost function used during edit path calculation. Cumulative costs per path graph are reconstructed 
-and added as graph attributes to the prior created graphs in the PyG sequences.
+Cumulative costs per path graph are reconstructed according to the cost function used for construction and added as graph attributes to the prior created graphs in the PyG sequences.
 
 #### 03_train_model_on_original_dataset.py
 
@@ -98,17 +97,16 @@ final test accuracies per fold as baseline measures.
 
 #### 04_classify_original_dataset.py
 
-All graphs from the TUDataset are classified with the trained GNN and classifications are saved to a JSON, 
-to later retrieve which graphs are classified correctly.
+All graphs from the TUDataset are classified with the trained GNN. Classifications are saved to a JSON file.
 
 
 #### 05_classify_path_graphs.py
-Path graphs from the prior created sequences are defined with the best model trained on the original dataset. 
-Predictions are stored as graph attributes and a JSON with all graphs, their attributes and prediction is created.
+Path graphs from the prior created sequences are classified by the model trained on the original dataset. 
+Classifications are stored as graph attributes and a JSON with all graphs, their attributes and classification is created.
 
 #### 06_precalculations.py
 
-A map on distances and on the number of operations per path is calculated. Further, a history of flip occurrences per 
+A map on distances and the number of operations per path is calculated. Further, a history of flip occurrences per 
 path with the triggering edit operation per flip and its path position is computed, one with path positions measured 
 according to the cost function, one according to the number of operations.
 
@@ -125,15 +123,15 @@ source and target graphs are correctly classified, controlled by `CORRECTLY_CLAS
 Path lengths statistics are calculated for path groups distinguished by their number of classification flips:
 The file reads per-path flip lists from `FLIPS_PATH` and per-path lengths from `DISTANCES_PATH`, 
 groups lengths by the number of flips (`k`), and computes summary statistics (mean, median, standard deviation, 
-maximum, and count) for each group. The results are saved as a JSON file in `ANALYSIS_DIR` with the naming convention:
+maximum, and count) for each group. The results are saved as a JSON file in `ANALYSIS_DIR` with the naming convention
 `<DATASET_NAME>_<MODEL>_path_length_stats_per_num_flips_by_<DISTANCE_MODE>.json`.
 
 #### 09_num_flips_histograms.py
 
 This script builds histograms of the number of classification flips per path for multiple index-set cuts.
 It reads per-path flip lists from `FLIPS_PATH` and counts how many paths have 0, 1, 2, ... flips for each index-set cut,
-providing both absolute and relative frequencies. The results are saved as a consolidated JSON file in `ANALYSIS_DIR` 
-with the naming convention: `<DATASET_NAME>_<MODEL>_flips_hist_by_<DISTANCE_MODE>.json`.
+providing both absolute and relative frequencies. Results are saved to a JSON file in `ANALYSIS_DIR` 
+with the naming convention `<DATASET_NAME>_<MODEL>_flips_hist_by_<DISTANCE_MODE>.json`.
 
 #### 10_flip_order_distribution.py
 
