@@ -32,9 +32,9 @@ You can use the ``requirements.txt`` to install dependencies.
 To clone the repository, use
 
 ```
-git clone --recurse-submodules https://gitlab.informatik.uni-bonn.de/wullenweberi0/gnn-decision-boundary.git
+git clone --recurse-submodules https://github.com/ilkajw/gnn-decision-boundary.git
 ```
-so the necessary submodule is cloned with it. 
+to include the submodule. 
 
 ### Usage
 
