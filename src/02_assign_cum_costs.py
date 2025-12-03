@@ -6,7 +6,7 @@ a per-graph `cumulative_cost` attribute to PyTorch-Geometric sequences
 (found under ROOT/DATASET_NAME/pyg_edit_path_graphs). Updated sequences are
 written back to disk (overwriting or to out_dir if provided).
 
-Config required: DATASET_NAME, ROOT (from config.py).
+Config required: DATASET_NAME, PROJECT_ROOT, ROOT (from config.py).
 Inputs:
   - edit-path ops: external/pg_gnn_edit_paths/example_paths_{DATASET_NAME}
   - PyG sequences: ROOT/DATASET_NAME/pyg_edit_path_graphs
@@ -21,13 +21,13 @@ import torch
 from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 
-from config import DATASET_NAME, ROOT
+from config import DATASET_NAME, ROOT, PROJECT_ROOT
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
 # --- Set input paths ---
 
-edit_path_ops_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
+edit_path_ops_dir = os.path.join(PROJECT_ROOT, "external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
 graph_sequences_input_dir = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
 
 # --- Set output path ---

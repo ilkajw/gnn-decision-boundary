@@ -8,13 +8,12 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from torch_geometric.datasets import TUDataset
 
-from config import DATASET_NAME, ROOT
+from config import DATASET_NAME, ROOT, PROJECT_ROOT
 
 # --- Config ---
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-NX_INPUT_DIR = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "nx_edit_path_graphs")
-SELECTED_DIR = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "paths_to_plot")  # to save picked sequences to
+NX_INPUT_DIR = os.path.join(ROOT, DATASET_NAME, "nx_edit_path_graphs")
+SELECTED_DIR = os.path.join(ROOT, DATASET_NAME, "paths_to_plot")  # to save picked sequences to
 MAX_LEN = 4
 PYG_ROOT = os.path.join(PROJECT_ROOT, "data", "pyg")  # for TUDataset to read labels
 

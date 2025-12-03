@@ -23,13 +23,13 @@ import torch.nn.functional as func
 from torch_geometric.utils import from_networkx
 from networkx import is_isomorphic
 
-from config import ROOT, DATASET_NAME, FULLY_CONNECTED_ONLY
+from config import ROOT, DATASET_NAME, FULLY_CONNECTED_ONLY, PROJECT_ROOT
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 from external.pg_gnn_edit_paths.utils.GraphLoader.GraphLoader import GraphDataset
 
 
 # --- Set input, output paths ---
-edit_path_ops_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
+edit_path_ops_dir = os.path.join(PROJECT_ROOT, "external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
 nx_output_dir = os.path.join(ROOT, DATASET_NAME, 'nx_edit_path_graphs')
 pyg_output_dir = os.path.join(ROOT, DATASET_NAME, 'pyg_edit_path_graphs')
 test_output_dir = os.path.join(ROOT, DATASET_NAME, "test")
@@ -189,7 +189,7 @@ def generate_edit_path_graphs(
 
     with open(os.path.join(test_output_dir,
                            f"{DATASET_NAME}_no_interm_graphs_at_graph_creation_after_connect_filter.json"), "w") as f:
-        json.dump(no_intermediates_before_filter, f, indent=2)
+        json.dump(no_intermediates_after_filter, f, indent=2)
 
 
 # --- Run ---

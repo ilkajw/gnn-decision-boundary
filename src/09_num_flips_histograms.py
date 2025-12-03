@@ -48,7 +48,7 @@ def count_paths_by_num_flips(
 ):
     """
     For a given set of index pairs, count how many paths have 0, 1, 2, ... flips.
-<
+
     Args:
         idx_pair_set (set of tuples): Set of (i, j) graph index pairs to consider.
         flips_input_path (str): Path to JSON file with flip data like {"i,j": [[step, label], ...], ...}

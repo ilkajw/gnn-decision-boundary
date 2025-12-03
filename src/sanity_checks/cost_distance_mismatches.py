@@ -8,11 +8,10 @@ from pathlib import Path
 from config import DATASET_NAME, MODEL_INDEPENDENT_PRECALCULATIONS_DIR, ROOT
 
 # ---------- CONFIG ----------
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-SEQUENCES_DIR = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "pyg_edit_path_graphs")
-DISTANCES_JSON = os.path.join(PROJECT_ROOT, MODEL_INDEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_dist_per_path.json")  # {"i,j": distance}
-OUTPUT_JSON = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, "test", "cost_vs_distance_mismatches.json")
+SEQUENCES_DIR = os.path.join(ROOT, DATASET_NAME, "pyg_edit_path_graphs")
+DISTANCES_JSON = os.path.join(MODEL_INDEPENDENT_PRECALCULATIONS_DIR, f"{DATASET_NAME}_dist_per_path.json")  # {"i,j": distance}
+OUTPUT_JSON = os.path.join(ROOT, DATASET_NAME, "test", "cost_vs_distance_mismatches.json")
 
 
 # ----------

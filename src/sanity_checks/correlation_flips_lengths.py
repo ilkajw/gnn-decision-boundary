@@ -4,12 +4,11 @@ import numpy as np
 from scipy import stats
 from pathlib import Path
 
-from config import ANALYSIS_DIR, DATASET_NAME, MODEL, DISTANCE_MODE
+from config import ANALYSIS_DIR, DATASET_NAME, MODEL, DISTANCE_MODE, PROJECT_ROOT
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # --- Load JSON ---
-with open(os.path.join(PROJECT_ROOT, ANALYSIS_DIR, f"{DATASET_NAME}_{MODEL}_path_length_stats_per_num_flips_by_{DISTANCE_MODE}.json"), "r") as f:
+with open(os.path.join(ANALYSIS_DIR, f"{DATASET_NAME}_{MODEL}_path_length_stats_per_num_flips_by_{DISTANCE_MODE}.json"), "r") as f:
     data = json.load(f)
 
 # --- Build full arrays of (k, length) ---

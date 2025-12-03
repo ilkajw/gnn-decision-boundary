@@ -4,15 +4,18 @@ from GAT import GAT
 from GCN import GCN
 from GraphSAGE import GraphSAGE
 
-ROOT = './data'
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+ROOT = os.path.join(PROJECT_ROOT, "data")
+
 DATASET_NAME = 'MUTAG'
 
-# --- Set model architecture and parameters ---
 
+# --- Set model architecture and parameters ---
 MODEL = "GAT"  # <-------- define model here: "GAT" | "GCN" | "GraphSAGE
 
 assert MODEL in {"GAT", "GCN", "GraphSAGE"}, \
-    f"Invalid MODEL={MODEL!r}, must be 'GAT', 'GCN or 'GraphSAGE'."
+    f"Invalid MODEL={MODEL!r}, must be 'GAT', 'GCN' or 'GraphSAGE'."
 
 MODEL_REGISTRY = {
     "GAT": (GAT, dict(hidden_channels=8, heads=8, dropout=0.2)),
@@ -21,7 +24,8 @@ MODEL_REGISTRY = {
 }
 
 MODEL_CLS, MODEL_KWARGS = MODEL_REGISTRY[MODEL]
-MODEL_DIR = os.path.join('models_org_data', DATASET_NAME, MODEL)
+MODEL_DIR = os.path.join(PROJECT_ROOT, 'models_org_data', DATASET_NAME, MODEL)
+
 
 # --- Training parameters ---
 K_FOLDS = 10
@@ -50,7 +54,6 @@ MODEL_INDEPENDENT_PRECALCULATIONS_DIR = os.path.join(ROOT, DATASET_NAME, "precal
 
 MODEL_DEPENDENT_PRECALCULATIONS_DIR = os.path.join(ROOT, DATASET_NAME, MODEL, "precalculations")
 
-LEGACY_PYG_SEQ_DIR = os.path.join("data_control", DATASET_NAME, "pyg_edit_path_graphs")
 PREDICTIONS_DIR = os.path.join(ROOT, DATASET_NAME, MODEL, "predictions")
 
 # Define distance mode dependent precalculation files

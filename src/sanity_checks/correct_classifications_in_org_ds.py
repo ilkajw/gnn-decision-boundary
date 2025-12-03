@@ -3,9 +3,8 @@ import os
 from pathlib import Path
 from config import DATASET_NAME, PREDICTIONS_DIR, MODEL, ROOT
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-IN_PATH = os.path.join(PROJECT_ROOT, PREDICTIONS_DIR, f"{DATASET_NAME}_{MODEL}_predictions.json")
-OUT_PATH = os.path.join(PROJECT_ROOT, ROOT, DATASET_NAME, f"{DATASET_NAME}_per_class_accuracy.json")
+IN_PATH = os.path.join(PREDICTIONS_DIR, f"{DATASET_NAME}_{MODEL}_predictions.json")
+OUT_PATH = os.path.join(ROOT, DATASET_NAME, f"{DATASET_NAME}_per_class_accuracy.json")
 
 
 def pct(x, n): return (100.0 * x / n) if n else 0.0

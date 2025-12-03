@@ -22,12 +22,12 @@ from torch.serialization import add_safe_globals
 from torch_geometric.data import Data
 
 from config import DATASET_NAME, MODEL, PREDICTIONS_DIR, ROOT, MODEL_DEPENDENT_PRECALCULATIONS_DIR, \
-    MODEL_INDEPENDENT_PRECALCULATIONS_DIR
+    MODEL_INDEPENDENT_PRECALCULATIONS_DIR, PROJECT_ROOT
 from external.pg_gnn_edit_paths.utils.io import load_edit_paths_from_file
 
 
 # ---- Set inputs ----
-edit_paths_input_dir = os.path.join("external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
+edit_paths_input_dir = os.path.join(PROJECT_ROOT, "external", "pg_gnn_edit_paths", f"example_paths_{DATASET_NAME}")
 graph_sequences_input_dir = os.path.join(PREDICTIONS_DIR, "edit_path_graphs_with_predictions")
 
 # ----- Set outputs ----
@@ -82,6 +82,7 @@ def num_operations_per_path(
         if not isinstance(sequence, (list, tuple)) or len(sequence) == 0:
             raise RuntimeError(f"Loaded sequence is empty or not list/tuple: {fname}")
         first = sequence[0]
+        # TODO: check this. dict? is it Data?
         try:
             val = first["num_operations_incl_insertion"]
         except Exception as e:
