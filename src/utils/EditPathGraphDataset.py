@@ -28,10 +28,7 @@ class EditPathGraphDataset(InMemoryDataset):
     Parameters
     ----------
     seq_dir : str
-        Directory with per-path .pt sequences (each a list[PyG Data]).
-    base_pred_path : str
-        JSON with true labels of base graphs, indexed by graph id.
-        Expected shape: { "<idx>": {"true_label": 0 or 1}, ... }
+        Directory with per-path .pt sequences (each a list[PyG Data]).}
     flip_at : float, default 0.5
         Threshold in [0,1] where the label flips for different-class paths.
         For t < flip_at -> source label; for t >= flip_at -> target label.
@@ -249,7 +246,6 @@ class EditPathGraphDataset(InMemoryDataset):
             _ensure_dir(meta_output_path)
             meta = {
                 "seq_dir": self.seq_dir,
-                "base_pred_path": self.base_pred_path,
                 "flip_at": self.flip_at,
                 "distance_mode": DISTANCE_MODE,
                 "num_graphs": self.len(),
